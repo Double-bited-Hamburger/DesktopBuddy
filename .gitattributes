@@ -1,0 +1,8 @@
+# Text files are LF everywhere (Biome and the .pxl parser expect it), even with core.autocrlf on.
+* text=auto eol=lf
+
+# Binary assets: never touch their bytes.
+*.png binary
+*.ico binary
+*.wav binary
+*.ogg binary
