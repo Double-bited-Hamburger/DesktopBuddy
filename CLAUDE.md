@@ -42,6 +42,7 @@ network unless the user turns on Friends, no dark patterns (pressure timers, hid
 | `npm run build`                                  | Bake + production bundles into `out/`                                                                           |
 | `npm run preview`                                | Run the production build                                                                                        |
 | `npm run bake`                                   | `assets/src/**/*.pxl` → `assets/baked/**` (validates art rules)                                                 |
+| `npm run readme-art`                             | Regenerates the animated README pictures in `docs/media/` from the `.pxl` art                                   |
 | `npm run smoke`                                  | End-to-end check of a running dev app (`npx electron-vite dev --remoteDebuggingPort 9222` first; stop it after) |
 | `npm run perf`                                   | CPU/RAM per duck state on the built app (`npm run build` first; close other Electron apps; ~1 min per state × run) |
 | `npm run check`                                  | typecheck + lint + tests — **run before calling anything done**                                                 |

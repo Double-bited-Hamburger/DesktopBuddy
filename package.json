@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "smoke": "node tools/smoke-cdp.mjs",
     "perf": "node tools/measure-perf.mjs",
-    "check": "npm run typecheck && npm run lint && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "readme-art": "tsx tools/readme-art.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.3",

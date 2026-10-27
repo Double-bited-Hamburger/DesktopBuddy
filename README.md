@@ -1,45 +1,185 @@
-# DesktopBuddy 🦆
+<div align="center">
 
-An open-source, **16-bit pixel-art desktop duck** — the programmer's rubber duck. It walks along
-your taskbar, wears hats, earns points when you pet and play with it, and (soon) tracks your focus.
-Small on CPU and RAM, free of paywalls, and built so anyone can add a hat.
+<img src="docs/media/duck-show.svg" alt="The DesktopBuddy duck idles, walks, quacks, gets petted and eats bread" width="544">
 
-> **Status: Phase 0 (foundation).** A placeholder duck walks, sleeps, drags, and a stub panel
-> opens. Real art and features arrive phase by phase — see [docs/ROADMAP.md](docs/ROADMAP.md).
+# DesktopBuddy
 
-## Run it
+**A 16-bit pixel duck that lives on your taskbar.** The programmer's rubber duck: pet it, feed it,
+throw it, dress it up. Free and open source, with no paywalls.
 
-Needs Node 24+ and npm. Windows 11 is the primary target.
+[![License: MIT](https://img.shields.io/badge/license-MIT-f7d84a?style=flat-square)](LICENSE)
+[![Art: CC BY 4.0](https://img.shields.io/badge/art-CC%20BY%204.0-f2872b?style=flat-square)](LICENSE)
+![Windows 11](https://img.shields.io/badge/Windows-11-2a1f2d?style=flat-square&logo=windows11&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-45-2a1f2d?style=flat-square&logo=electron&logoColor=9feaf9)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-2a1f2d?style=flat-square&logo=typescript&logoColor=3178c6)
+![Preact](https://img.shields.io/badge/Preact-panels-2a1f2d?style=flat-square&logo=preact&logoColor=673ab8)
+<br>
+![No telemetry](https://img.shields.io/badge/telemetry-none-8ccaa6?style=flat-square)
+![No paywalls](https://img.shields.io/badge/paywalls-none-8ccaa6?style=flat-square)
+![Tested with Vitest](https://img.shields.io/badge/tested%20with-Vitest-8ccaa6?style=flat-square&logo=vitest&logoColor=white)
+[![Last commit](https://img.shields.io/github/last-commit/Double-bited-Hamburger/DesktopBuddy?style=flat-square&color=b8732e)](https://github.com/Double-bited-Hamburger/DesktopBuddy/commits/main)
 
-```bash
-npm install
-npm run dev        # bakes sprites, starts Electron with hot reload
+[Quick start](#-quick-start) · [What it does](#-what-it-does) · [How it works](#-how-it-works) ·
+[Add a hat](#-add-a-hat-in-5-minutes) · [Roadmap](#-roadmap)
+
+</div>
+
+---
+
+## 🦆 What it does
+
+| You…                                   | The duck…                                  |     Points |
+| -------------------------------------- | ------------------------------------------ | ---------: |
+| leave it alone                         | idles, blinks, walks the taskbar, naps     |          — |
+| **click** it                           | quacks, with a speech bubble               |     **+1** |
+| **stroke** it (mouse back and forth)   | closes its eyes happily, a heart pops up   |     **+2** |
+| **throw** it (drag fast, let go)       | flies, bounces off the screen edges        |     **+3** |
+| drop it from high up                   | lands on its bottom and sees stars ✨      |          — |
+| **feed** it bread (panel or tray)      | catches the slice and eats it in 3 bites   |     **+3** |
+| open the **Bag** (right-click)         | wears a new skin, hat or glasses, live     |          — |
+
+<div align="center">
+<img src="docs/media/wardrobe.svg" alt="Six duck skins wearing different hats and glasses" width="720">
+<br><sub>6 skins · 4 hats · 2 glasses, all original pixel art, all unlocked</sub>
+</div>
+
+Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets you nowhere:
+
+```mermaid
+pie showData title Most points a day from each source
+    "click (1 pt, 0.4 s cooldown)" : 100
+    "pet (2 pts, 2 s cooldown)" : 80
+    "play: throw or bread (3 pts, 5 s)" : 150
 ```
 
-Right-click the duck (or click the tray icon) to open the panel. Drag the duck to move it; it drops
-back onto the taskbar. Tray → **Quit** exits.
+## 🚀 Quick start
 
-| Command                             |                                                                                          |
-| ----------------------------------- | ---------------------------------------------------------------------------------------- |
-| `npm run check`                     | typecheck + lint + tests                                                                 |
-| `npm run build` / `npm run preview` | production bundles / run them                                                            |
-| `npm run bake`                      | `.pxl` sprite sources → PNG sheets                                                       |
-| `npm run smoke`                     | end-to-end check of a running dev app (see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)) |
+```bash
+git clone https://github.com/Double-bited-Hamburger/DesktopBuddy.git
+cd DesktopBuddy && npm install
+npm run dev
+```
 
-## How it's built
+Needs **Node 24+** and npm. Windows 11 first; macOS/Linux later.
+Right-click the duck for the panel · tray icon for **Feed bread**, **Points pill** and **Quit**.
 
-TypeScript · Electron (`electron-vite`) · Preact panels · canvas pixel renderer · Vitest · Biome.
-Game logic (sprites, behavior, points) is **pure TypeScript** in `src/core`, tested without Electron.
+## 🧠 How it works
 
-- [Architecture & performance budget](docs/ARCHITECTURE.md)
-- [Art bible & `.pxl` format](docs/ART_BIBLE.md)
-- [Economy](docs/ECONOMY.md) · [Privacy](docs/PRIVACY.md) · [Roadmap](docs/ROADMAP.md)
-- [CLAUDE.md](CLAUDE.md) — project rules and the agent roster for AI-assisted development
+```mermaid
+flowchart LR
+    D["🦆 duck page<br/>canvas · sandboxed"] -- "walk · click · pet · ate" --> M
+    P["🎒 panel<br/>Preact · on demand"] -- "equip · feed" --> M
+    M{{"⚙️ main process<br/>moves the window<br/>checks every sender<br/>applies caps"}} -- "points" --> L["💰 points pill<br/>optional"]
+    M --> S[("💾 settings.json<br/>ledger.json")]
+    C["🧩 src/core<br/>pure TypeScript<br/>behavior · physics<br/>sprites · economy"] -. "used by" .-> D
+    C -. "used by" .-> M
+```
 
-## Contributing
+- **The duck page only asks.** Main checks _which window_ sent each message and applies the
+  caps, so a page can never mint points or move another window.
+- **The game is pure TypeScript.** Behavior, physics, sprites and economy live in `src/core`,
+  free of Electron and the DOM, and are deterministic in tests.
+- **Cheap on CPU.** There is no frame loop: the duck wakes only when its picture changes. Main owns
+  all window movement, and the panel exists only while it's open.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Art and ideas are very welcome — everything must be original.
+<details>
+<summary><b>The duck's moods</b> (state machine)</summary>
 
-## License
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> idle
+    idle --> walk: 55%
+    idle --> sleep: 15%
+    idle --> quack: 5%
+    walk --> idle
+    sleep --> idle
+    idle --> quack: click
+    idle --> happy: pet
+    idle --> eat: bread
+    idle --> ouch: hard landing
+    quack --> idle
+    happy --> idle
+    eat --> idle: +3 play
+    ouch --> idle
+```
 
-Code: [MIT](LICENSE). Art and audio: CC BY 4.0 (see `LICENSE`).
+</details>
+
+<details>
+<summary><b>Project layout</b></summary>
+
+```
+src/core/       pure TS: sprites, animation, behavior, physics, economy, i18n
+src/main/       Electron: duck/panel/pill windows, tray, IPC, file storage, points
+src/preload/    the only bridge: window.buddy
+src/renderer/   duck/ (canvas) · panel/ (Preact) · pill/
+assets/src/     .pxl pixel art (text files, one char per pixel)
+assets/economy/ economy.json (points, caps) · catalog.json (items)
+```
+
+</details>
+
+## 🎩 Add a hat in 5 minutes
+
+Sprites are **plain text**, so art changes are readable in a pull request:
+
+```text
+name: my-hat          ← assets/src/hats/my-hat.pxl
+size: 14x6
+anchor: head 7 5      ← this point sits on the duck's head
+palette:
+  K #2a1f2d
+  G #3f8f4a
+  L #6fbf7a
+@frame my-hat
+....KKKKKK....
+...KGLLGGGK...
+...KGLGGGGK...
+..KGGGGGGGGK..
+.KKKKKKKKKKKK.
+..............
+```
+
+`npm run bake` checks the art rules (≤ 16 colors, no anti-aliasing), then add it to
+`assets/economy/catalog.json` and the item name to `assets/i18n/*.json`. Full guide:
+[CONTRIBUTING.md](CONTRIBUTING.md#add-a-hat-or-a-face-or-a-toy).
+
+## 🗺️ Roadmap
+
+| Phase                                   | Status |
+| --------------------------------------- | :----: |
+| 0 · Foundation, security, sprite pipeline | ✅ |
+| 2 · Walk, quack, throw, bounce, fall, multi-monitor | ✅ |
+| 3 · Skins, hats, glasses, Bag panel     | ✅ |
+| 4 · Petting, points & caps, bread, points pill | ✅ |
+| 1 · Hand-drawn duck to replace the placeholder | 🎨 |
+| 5 · Store, gift boxes (visible odds), quests | 🔜 |
+| 6 · Opt-in, local focus tracking (Today / Stats) | 🔜 |
+| 7 · Settings, chiptune sounds, polish   | 🔜 |
+| 8 · Friends (opt-in, self-hostable)     | 🔜 |
+
+Details and what's still unverified: [docs/ROADMAP.md](docs/ROADMAP.md).
+
+## 🧰 Commands
+
+| Command             | What it does                                        |
+| ------------------- | --------------------------------------------------- |
+| `npm run dev`       | bake sprites, run with hot reload                   |
+| `npm run check`     | typecheck + lint + tests (run before a PR)          |
+| `npm run build`     | production bundles (`npm run preview` runs them)    |
+| `npm run bake`      | `.pxl` → PNG sheets, validates the art rules        |
+| `npm run readme-art`| regenerates the pictures in this README from `.pxl` |
+
+## 🤝 Principles
+
+🎨 **Original art only**: inspired by other desktop pets, copying none of them ·
+🔒 **Private**: no network, no telemetry, focus tracking opt-in and local ·
+🎁 **Fair**: no real money, no paywalls, odds always shown ·
+🪶 **Light**: one small window at rest
+
+[Architecture](docs/ARCHITECTURE.md) · [Art bible](docs/ART_BIBLE.md) · [Economy](docs/ECONOMY.md) ·
+[Privacy](docs/PRIVACY.md) · [Contributing](CONTRIBUTING.md) · [CLAUDE.md](CLAUDE.md) (rules for
+AI-assisted development)
+
+<div align="center"><sub>Code <a href="LICENSE">MIT</a> · art and audio CC BY 4.0 · made with 🍞 for ducks</sub></div>
