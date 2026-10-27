@@ -174,3 +174,183 @@ body {
 .rarity-exotic {
   color: #c8243c;
 }
+
+/* --- navigation ---------------------------------------------------------------------------- */
+.panel .nav button[aria-current="page"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 4px;
+  min-width: 16px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--ink);
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.note {
+  margin: 0;
+  text-align: center;
+}
+
+.grow {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.icon {
+  image-rendering: pixelated;
+  flex: none;
+}
+
+/* --- bag / collection ---------------------------------------------------------------------- */
+.found {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.panel .tile.locked {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.tile.locked .preview {
+  filter: brightness(0) opacity(0.25);
+}
+
+.tile.locked .name {
+  color: var(--muted);
+}
+
+/* --- store --------------------------------------------------------------------------------- */
+.store,
+.quests {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 6px;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  padding: 8px;
+}
+
+.card.free {
+  background: #fff3c4;
+}
+
+.preview.small {
+  width: 48px;
+  height: 48px;
+}
+
+.preview.big {
+  width: 160px;
+  height: 160px;
+}
+
+.odds {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0 10px;
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+}
+
+.odds li {
+  display: contents;
+}
+
+.panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: 0 3px 0 var(--edge);
+}
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  text-align: center;
+}
+
+.reveal p {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* --- quests -------------------------------------------------------------------------------- */
+.quests h2 {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.quests ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quest {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.quest.claimed {
+  opacity: 0.6;
+}
+
+.bar {
+  height: 8px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.bar > div {
+  height: 100%;
+  background: var(--accent);
+}

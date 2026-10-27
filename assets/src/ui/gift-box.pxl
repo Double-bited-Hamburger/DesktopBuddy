@@ -1,0 +1,71 @@
+# Gift boxes for the Store: paper (everyday), ribbon (fancy), royal (the big one).
+# One shape, three colorways; light from the top-left.
+name: gift-box
+size: 16x16
+palette:
+  K #2a1f2d
+  W #ffffff
+  P #efe2c4
+  p #c8b48c
+  R #d9473f
+  r #a8322c
+  B #6aaee6
+  b #3a74b0
+  Y #f2c94c
+  y #c9962a
+  V #9a5ad8
+  v #5e3196
+
+@frame paper
+................
+...KKK....KKK...
+..KRRrK..KrRRK..
+..KRrRRKKRRrRK..
+...KKKRrrRKKK...
+.KKKKKKRrKKKKKK.
+.KWPPPPRrPPPPpK.
+.KPPPPPRrPPPPpK.
+.KKKKKKRrKKKKKK.
+..KPPPPRrPPPpK..
+..KPPPPRrPPPpK..
+..KPPPPRrPPPpK..
+..KPPPPRrPPPpK..
+..KppppRrppppK..
+..KKKKKKKKKKKK..
+................
+
+@frame ribbon
+................
+...KKK....KKK...
+..KYYyK..KyYYK..
+..KYyYYKKYYyYK..
+...KKKYyyYKKK...
+.KKKKKKYyKKKKKK.
+.KWBBBBYyBBBBbK.
+.KBBBBBYyBBBBbK.
+.KKKKKKYyKKKKKK.
+..KBBBBYyBBBbK..
+..KBBBBYyBBBbK..
+..KBBBBYyBBBbK..
+..KBBBBYyBBBbK..
+..KbbbbYybbbbK..
+..KKKKKKKKKKKK..
+................
+
+@frame royal
+................
+...KKK....KKK...
+..KYYyK..KyYYK..
+..KYyYYKKYYyYK..
+...KKKYyyYKKK...
+.KKKKKKYyKKKKKK.
+.KWVVVVYyVVVVvK.
+.KVVVVVYyVVVVvK.
+.KKKKKKYyKKKKKK.
+..KVVVVYyVVVvK..
+..KVVVVYyVVVvK..
+..KVVVVYyVVVvK..
+..KVVVVYyVVVvK..
+..KvvvvYyvvvvK..
+..KKKKKKKKKKKK..
+................

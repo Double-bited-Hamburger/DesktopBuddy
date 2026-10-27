@@ -52,6 +52,14 @@ possible if the RAM budget cannot be met.
 - **Points pill (optional):** a third renderer page in a 120×32 click-through window. It costs a
   renderer process (tens of MB) only while the setting is on; off by default, so the resting app
   is still one window. It has no timers and repaints only on `points` events.
+- **Store, gifts & quests:** `ProgressService` (main) owns the inventory, per-box pity counters,
+  the free-gift time and the `QuestBook`; it saves `inventory.json` and `quests.json` (batched
+  1 s, flushed on quit) and moves points only through the ledger (`spend` / `grant`). The panel
+  asks with `store`, `openGift`, `buyFeatured`, `claimQuest` (panel-only, payload checked); main
+  rolls with core `openBox` and pushes a fresh `StoreView` to the panel (if open) on every change.
+  Quest events come from main's own handlers (click/pet/throw/snack/gift/equip), never from a page
+  claiming progress. No new window and no timer: the panel's free-gift countdown ticks every 30 s
+  only while the Store screen is open.
 - **IPC:** contract in `src/shared/ipc.ts`; each handler in `src/main/ipc.ts` checks the sender
   window and payload. The panel cannot drive the duck and vice versa.
 
@@ -155,3 +163,7 @@ effects first) and a shorter walk share in the behavior mix. Last resort: Tauri.
 DevTools Protocol and checks both pages (canvas drawn, `window.buddy` surface, sandbox, panel
 open/pin/close through IPC, no console errors). Stop the dev server afterwards — it leaves a local
 debug port open.
+
+For anything that spends points or changes items, start the dev app with a throwaway data folder:
+`BUDDY_DATA_DIR=<some temp folder>` (unpackaged builds only) moves every save there, so probes
+never touch the real ledger, inventory or quests. Seed `<folder>/data/ledger.json` for points.

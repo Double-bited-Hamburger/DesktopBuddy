@@ -56,19 +56,21 @@ export interface LoadoutIds {
 
 /**
  * The loadout after wearing `id` in `slot` (null takes a hat or glasses off), or undefined when
- * the request is invalid: unknown slot or item, an item from another slot, or "no skin".
- * Takes `unknown` on purpose: it validates IPC payloads.
+ * the request is invalid: unknown slot or item, an item from another slot, "no skin", or (when
+ * `owned` is given) an item the player doesn't own. Takes `unknown`: it validates IPC payloads.
  */
 export function equipItem<L extends LoadoutIds>(
   catalog: Catalog,
   loadout: L,
   slot: unknown,
   id: unknown,
+  owned?: ReadonlySet<string>,
 ): L | undefined {
   const known = SLOTS.find((s) => s === slot)
   if (!known) return undefined
   if (id === null) return known === 'skin' ? undefined : { ...loadout, [known]: null }
   if (typeof id !== 'string' || !findItem(catalog, known, id)) return undefined
+  if (owned && !owned.has(id)) return undefined
   return { ...loadout, [known]: id }
 }
 

@@ -2,11 +2,19 @@ import type { WebContents } from 'electron'
 import { ipcMain } from 'electron'
 import type { Snack } from '../core/toys/snacks'
 import { isSnack } from '../core/toys/snacks'
-import type { AppConfig, EarnSource, Loadout } from '../shared/ipc'
+import type {
+  AppConfig,
+  BuyResult,
+  EarnSource,
+  GiftResult,
+  Loadout,
+  StoreView,
+} from '../shared/ipc'
 import { EARN_SOURCES, IPC } from '../shared/ipc'
 import type { DuckWindow } from './duck-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
+import type { ProgressService } from './progress'
 import type { SnackWindow } from './snack-window'
 
 interface IpcDeps {
@@ -23,6 +31,8 @@ interface IpcDeps {
   readonly panel: PanelWindow
   readonly pill: PillWindow
   readonly snack: SnackWindow
+  /** Inventory, gifts, featured item and quests. */
+  readonly progress: ProgressService
 }
 
 /**
@@ -39,6 +49,7 @@ export function registerIpc({
   panel,
   pill,
   snack,
+  progress,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -107,5 +118,27 @@ export function registerIpc({
     const next = await equip(slot, id)
     if (!next) throw new Error('Invalid equip request')
     return next
+  })
+
+  ipcMain.handle(IPC.store, (event): StoreView => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return progress.view()
+  })
+
+  ipcMain.handle(IPC.openGift, (event, box: unknown): GiftResult => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const result = progress.openGift(box)
+    if (!result) throw new Error('Unknown gift box')
+    return result
+  })
+
+  ipcMain.handle(IPC.buyFeatured, (event): BuyResult => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return progress.buyFeatured()
+  })
+
+  ipcMain.handle(IPC.claimQuest, (event, id: unknown): number => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return progress.claimQuest(id)
   })
 }

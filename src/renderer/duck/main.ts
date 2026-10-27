@@ -311,6 +311,7 @@ async function main(): Promise<void> {
   })
 
   window.buddy.onPoints(({ granted }) => {
+    if (granted <= 0) return // spent in the store: no popup
     popup = { text: `+${granted}`, startedAt: performance.now() }
     if (busy())
       render() // shown now; it rises once the duck is back on its feet

@@ -1,4 +1,4 @@
-import type { EconomyConfig } from '../core/economy/ledger'
+import type { EconomyConfig } from '../core/economy/config'
 import { PointsLedger } from '../core/economy/ledger'
 import { loadLedgerEntries, saveLedger } from '../core/economy/save'
 import type { StorageAdapter } from '../core/storage/storage'
@@ -35,6 +35,19 @@ export class PointsService {
     const { granted } = this.ledger.earn(source)
     if (granted > 0) this.scheduleSave()
     return granted
+  }
+
+  /** Pays a reward limited by other means (quests, duplicate refunds). */
+  grant(source: string, amount: number): void {
+    this.ledger.grant(source, amount)
+    this.scheduleSave()
+  }
+
+  /** Takes points for a purchase; false (and nothing changes) when the balance is too low. */
+  spend(source: string, amount: number): boolean {
+    if (!this.ledger.spend(source, amount)) return false
+    this.scheduleSave()
+    return true
   }
 
   /** Writes any pending change now (on quit). */

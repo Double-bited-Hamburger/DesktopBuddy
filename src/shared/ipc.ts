@@ -1,5 +1,7 @@
 import type { BehaviorState } from '../core/behavior/machine'
-import type { Slot } from '../core/catalog/catalog'
+import type { Rarity, Slot } from '../core/catalog/catalog'
+import type { RarityChance } from '../core/economy/gifts'
+import type { QuestView } from '../core/economy/quests'
 import type { Settings } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
 
@@ -25,6 +27,11 @@ export const IPC = {
   ate: 'duck:ate',
   chase: 'duck:chase',
   snackClick: 'snack:click',
+  store: 'panel:store',
+  storeChanged: 'panel:store-changed',
+  openGift: 'panel:open-gift',
+  buyFeatured: 'panel:buy-featured',
+  claimQuest: 'panel:claim-quest',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -51,6 +58,43 @@ export interface PointsEvent {
   readonly granted: number
   readonly balance: number
 }
+
+/** A gift box as the Store shows it: price, the real odds, and how far off the guarantee is. */
+export interface BoxView {
+  readonly id: string
+  readonly price: number
+  readonly odds: readonly RarityChance[]
+  readonly pity: { readonly rarity: Rarity; readonly left: number }
+}
+
+/** Everything the Store, Quests and Bag screens need. Main sends a fresh one on every change. */
+export interface StoreView {
+  /** Catalog ids the player owns (the Bag shows the rest as locked). */
+  readonly owned: readonly string[]
+  readonly boxes: readonly BoxView[]
+  /** The free gift opens this box; ready from `readyAt` (epoch ms, 0 = now). */
+  readonly freeGift: { readonly box: string; readonly readyAt: number }
+  /** Today's featured item and its fixed price. */
+  readonly featured?: { readonly id: string; readonly price: number }
+  readonly quests: readonly QuestView[]
+}
+
+/** What came out of a gift box. A duplicate is paid back as `refund` points. */
+export type GiftResult =
+  | {
+      readonly ok: true
+      readonly item: string
+      readonly rarity: Rarity
+      readonly duplicate: boolean
+      readonly refund: number
+      /** The pity guarantee decided this one. */
+      readonly pity: boolean
+    }
+  | { readonly ok: false; readonly reason: 'points' | 'not-ready' }
+
+export type BuyResult =
+  | { readonly ok: true; readonly item: string }
+  | { readonly ok: false; readonly reason: 'points' | 'owned' }
 
 /** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
 export type ChaseDirection = 1 | -1 | 0
@@ -111,6 +155,16 @@ export interface BuddyApi {
     equip(slot: Slot, id: string | null): Promise<Loadout>
     /** Puts a snack in the user's hand, to drop or throw for the duck. */
     feed(snack: Snack): void
+    /** Store, quests and what the player owns. */
+    store(): Promise<StoreView>
+    /** Something in the store view changed (quest progress, a purchase). Returns unsubscribe. */
+    onStore(listener: (view: StoreView) => void): () => void
+    /** Opens a gift box by id, or the free gift ('free'). Main charges and rolls. */
+    openGift(box: string): Promise<GiftResult>
+    /** Buys today's featured item at its fixed price. */
+    buyFeatured(): Promise<BuyResult>
+    /** Claims a finished quest; resolves to the points paid (0 if it couldn't be claimed). */
+    claimQuest(id: string): Promise<number>
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

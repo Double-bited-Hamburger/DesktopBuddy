@@ -1,8 +1,153 @@
 {
   "version": 1,
   "sources": {
-    "click": { "points": 1, "cooldownMs": 400, "dailyCap": 100 },
-    "pet": { "points": 2, "cooldownMs": 2000, "dailyCap": 80 },
-    "play": { "points": 3, "cooldownMs": 5000, "dailyCap": 150 }
+    "click": {
+      "points": 1,
+      "cooldownMs": 400,
+      "dailyCap": 100
+    },
+    "pet": {
+      "points": 2,
+      "cooldownMs": 2000,
+      "dailyCap": 80
+    },
+    "play": {
+      "points": 3,
+      "cooldownMs": 5000,
+      "dailyCap": 150
+    }
+  },
+  "starter": ["classic"],
+  "boxes": [
+    {
+      "id": "paper",
+      "price": 80,
+      "odds": {
+        "common": 75,
+        "uncommon": 22,
+        "rare": 3
+      },
+      "pity": {
+        "after": 10,
+        "rarity": "rare"
+      }
+    },
+    {
+      "id": "ribbon",
+      "price": 250,
+      "odds": {
+        "uncommon": 60,
+        "rare": 30,
+        "epic": 9,
+        "legendary": 1
+      },
+      "pity": {
+        "after": 8,
+        "rarity": "epic"
+      }
+    },
+    {
+      "id": "royal",
+      "price": 700,
+      "odds": {
+        "rare": 50,
+        "epic": 35,
+        "legendary": 13,
+        "exotic": 2
+      },
+      "pity": {
+        "after": 6,
+        "rarity": "legendary"
+      }
+    }
+  ],
+  "freeGift": {
+    "cooldownMs": 7200000,
+    "box": "paper",
+    "duplicatePoints": 20
+  },
+  "duplicateRefund": 0.5,
+  "prices": {
+    "common": 60,
+    "uncommon": 150,
+    "rare": 400,
+    "epic": 900,
+    "legendary": 2000,
+    "exotic": 4000
+  },
+  "quests": {
+    "dailyCount": 3,
+    "pool": [
+      {
+        "id": "pet-8",
+        "period": "daily",
+        "event": "pet",
+        "target": 8,
+        "reward": 25
+      },
+      {
+        "id": "click-15",
+        "period": "daily",
+        "event": "click",
+        "target": 15,
+        "reward": 15
+      },
+      {
+        "id": "throw-2",
+        "period": "daily",
+        "event": "throw",
+        "target": 2,
+        "reward": 20
+      },
+      {
+        "id": "bread-2",
+        "period": "daily",
+        "event": "bread",
+        "target": 2,
+        "reward": 20
+      },
+      {
+        "id": "cigar-1",
+        "period": "daily",
+        "event": "cigar",
+        "target": 1,
+        "reward": 20
+      },
+      {
+        "id": "gift-1",
+        "period": "daily",
+        "event": "gift",
+        "target": 1,
+        "reward": 25
+      },
+      {
+        "id": "equip-1",
+        "period": "daily",
+        "event": "equip",
+        "target": 1,
+        "reward": 10
+      },
+      {
+        "id": "pet-60",
+        "period": "weekly",
+        "event": "pet",
+        "target": 60,
+        "reward": 150
+      },
+      {
+        "id": "bread-10",
+        "period": "weekly",
+        "event": "bread",
+        "target": 10,
+        "reward": 100
+      },
+      {
+        "id": "gift-5",
+        "period": "weekly",
+        "event": "gift",
+        "target": 5,
+        "reward": 200
+      }
+    ]
   }
 }

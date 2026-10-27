@@ -3,11 +3,10 @@
 Points are earned by **playing with the duck** and by **quests**, and spent in the **store**.
 Everything is free and earnable; there is no real money and no locked "premium" tier.
 
-> Status: points are live (Phase 4): clicks, pets and throws earn through the main-process ledger,
-> saved to `ledger.json`; the panel header shows the balance and the duck shows a +N popup. The item catalog lives in `assets/economy/catalog.json` (id, slot, rarity, sprite, optional skin
-> palette; no prices yet — everything is unlocked until the Store lands). Gifts and quests arrive in
-> Phases 4–5. Numbers below are
-> starting values to be playtested.
+> Status: live (Phase 5). Points come from play (Phase 4) and quests, and are spent on gift boxes
+> and the daily featured item. Items are gated: a new player owns the starter duck and finds the
+> rest. Every number below lives in `assets/economy/economy.json` and is a starting value to be
+> playtested.
 
 ## Principles
 
@@ -26,20 +25,56 @@ Everything is free and earnable; there is no real money and no locked "premium" 
 | `click`       | 1                     | 0.4 s    | 100           | Single click on the duck                          |
 | `pet`         | 2                     | 2 s      | 80            | Stroke the mouse back and forth over the duck ×3  |
 | `play`        | 3                     | 5 s      | 150           | Throwing the duck, a snack (bread/cigar); toys   |
-| Quests        | per quest             | —        | by quest pool | Daily ×3 drawn from a pool, weekly, achievements  |
-| Free gift     | one gift per N min    | N min    | —             | The "come back soon" timer; always a small reward |
+| Quests        | 10–200 per quest      | —        | by quest pool | 3 daily drawn from the pool, all weekly ones      |
+| Free gift     | one paper gift        | 2 h      | —             | Ready on first launch; a duplicate pays 20 pts    |
+| Refunds       | ½ the box price       | —        | —             | When a bought box gives an item you already own   |
 | Focus session | per completed session | —        | —             | Phase 6, from `focus.completed`                   |
 
 `earn(source)` returns `{ granted }` or `{ granted: 0, reason }` with `unknown-source`, `cooldown`
 or `daily-cap`; at the cap it pays out only what is left. `grant` is for rewards limited by other
 means (quests, gifts). `spend` never overdraws.
 
-## Sinks (spending) — Phase 5
+## Sinks (spending)
 
-- **Gift boxes by tier** (common → exotic): weighted drop table per tier, **visible odds**,
-  **pity counter** (guaranteed upgrade after N misses), duplicates refund a share of the price.
-- **Direct purchase** of the **featured** rotating item at a fixed price.
-- **Collection book** shows owned/unowned per category so progress is visible.
+Gift boxes roll a rarity by the weights below, then an item of that rarity, every item equally
+likely. Rarities with no item in the catalog are left out and the rest scaled to 100%; the Store
+shows exactly those numbers (core `boxOdds`, the same function the roll uses).
+
+| Box      | Price | Odds (weights)                                       | Pity: guaranteed …     |
+| -------- | ----: | ---------------------------------------------------- | ---------------------- |
+| Paper    |    80 | common 75 · uncommon 22 · rare 3                     | rare+ on the 10th open |
+| Ribbon   |   250 | uncommon 60 · rare 30 · epic 9 · legendary 1         | epic+ on the 8th open  |
+| Royal    |   700 | rare 50 · epic 35 · legendary 13 · exotic 2          | legendary+ on the 6th  |
+
+- **Pity** counts opens of that box in a row below its pity rarity; the open after `after - 1`
+  misses only rolls the pity rarity and better. The Store shows how many opens are left.
+- **Duplicates** refund `duplicateRefund` (50%) of the box price; the free gift pays 20 pts.
+- **The free gift** opens a paper box every 2 h (ready on first launch, so a new player gets a
+  first item right away). It has its own timer and doesn't move the paper box's pity counter.
+- **Featured item:** one non-starter item per local day, rotating through the catalog, at a fixed
+  price by rarity: common 60 · uncommon 150 · rare 400 · epic 900 · legendary 2000 · exotic 4000.
+- **Collection book:** the Bag lists every item; ones you don't own are silhouettes with their
+  rarity and an "n / total found" count per tab. Only owned items can be worn (checked in main).
+
+## Quests
+
+Three daily quests are drawn from the pool per local day (seeded by the date, so the same all
+day), plus every weekly quest (weeks start on Monday). Progress counts actions, not points, so a
+capped source still moves its quest. Rewards are paid once, on Claim, as `quest` ledger entries.
+Old days and weeks simply stop counting; nothing claimable is lost before its period ends.
+
+| Quest                | Period | Target | Reward |
+| -------------------- | ------ | -----: | -----: |
+| Pet the duck         | daily  |      8 |     25 |
+| Click the duck       | daily  |     15 |     15 |
+| Throw the duck       | daily  |      2 |     20 |
+| Feed it bread        | daily  |      2 |     20 |
+| Share a cigar        | daily  |      1 |     20 |
+| Open gifts           | daily  |      1 |     25 |
+| Change its outfit    | daily  |      1 |     10 |
+| Pet the duck         | weekly |     60 |    150 |
+| Feed it bread        | weekly |     10 |    100 |
+| Open gifts           | weekly |      5 |    200 |
 
 ## Items
 
@@ -65,5 +100,7 @@ The ledger is append-only and not compacted yet: at the daily caps that is ≈ 2
 (≈ 4 MB a year). Compacting old days into one carried entry is a later task. A ledger that parses
 but fails validation is copied to `ledger-backup-<time>` before starting from zero.
 
-`ledger`, `inventory`, `quests` are separate storage keys, versioned and zod-validated. A corrupt
-file falls back safely and is backed up before any migration so players never silently lose items.
+`ledger`, `inventory`, `quests` are separate storage keys, versioned and zod-validated (core
+`loadSave`). A file that parses but fails validation is copied to `<key>-backup-<time>` before
+starting fresh, so players never silently lose items. The first `inventory` holds the starter
+items plus whatever the duck already wore, so nobody's outfit disappears when gating starts.

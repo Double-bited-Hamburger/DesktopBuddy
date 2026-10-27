@@ -128,6 +128,26 @@ Free-gift timer, tiered gift boxes (visible odds + pity), featured item, collect
 quests, gating turned on. **Exit:** a new player gets a first item in one session; economy tests
 cover pity, duplicates, caps.
 
+- [x] **Core** (`src/core/economy`): `gifts.ts` (box schema, `boxOdds`, `openBox` with pity,
+      free-gift timer), `inventory.ts` (save, starter + worn items, daily `featuredItem`),
+      `quests.ts` (pool, seeded daily draw, weekly, `QuestBook`), `config.ts` (`checkEconomy`
+      cross-checks economy.json against the catalog). Tests: odds, pity, duplicates, featured
+      rotation, quest periods/claims/saves, ownership gating, backup of bad saves
+- [x] **Main:** `ProgressService` owns inventory, pity, free gift and quests; spends/grants only
+      through the ledger; saves `inventory.json` / `quests.json`; panel-only IPC
+- [x] **Panel:** Bag · Store · Quests navigation. Store: free gift with countdown, today's pick,
+      three gift boxes with exact odds and "guaranteed within N", reveal with Wear it. Quests:
+      progress bars, Claim, a badge with how many are ready. Bag = collection book (silhouettes)
+- [x] **Gating on:** only owned items can be worn; the first run keeps whatever the duck wore
+- [x] **Art:** `ui/gift-box` (16×16, paper / ribbon / royal)
+- [x] Verified live over CDP (2026-10-27) on a throwaway `BUDDY_DATA_DIR`: free gift once then
+      "not ready", 13 paper boxes (pity hit on the 10th), duplicates flagged, featured bought once,
+      unknown box and duck-page shopping rejected, quests counted from duck clicks/pets and
+      claimed once, wearing an unowned item rejected, smoke test green; screens checked visually
+- [ ] **Not verified:** a real 2 h free-gift wait and midnight/Monday quest rollover in the app
+      (covered by unit tests with a fake clock); balance over days of real play
+- [ ] Next: more items (the exotic tier is empty), achievements, emotes as items
+
 ## Phase 6 — Focus & stats (opt-in)
 
 Tracker spike (library choice + measured CPU) → opt-in tracking, Today timeline, focus sessions,

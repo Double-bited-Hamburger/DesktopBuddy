@@ -8,6 +8,7 @@ import it from '../../assets/i18n/it.json'
 import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
 import { equipItem, parseCatalog } from '../core/catalog/catalog'
+import { checkEconomy } from '../core/economy/config'
 import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
 import { loadSettings, saveSettings } from '../core/settings/settings'
@@ -20,6 +21,7 @@ import { registerIpc } from './ipc'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
+import { ProgressService } from './progress'
 import { SnackWindow } from './snack-window'
 import { createTray } from './tray'
 
@@ -50,7 +52,9 @@ async function start(): Promise<void> {
   const t = createTranslator(settings.language, { en, it })
   const catalog = parseCatalog(catalogJson)
   const pinState = pinStateFromEnv()
-  const points = await PointsService.load(storage, parseEconomy(economyJson))
+  const economy = parseEconomy(economyJson)
+  checkEconomy(economy, catalog)
+  const points = await PointsService.load(storage, economy)
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
@@ -63,35 +67,64 @@ async function start(): Promise<void> {
   const panel = new PanelWindow(() => duck.bounds)
   const pill = new PillWindow()
   pill.setVisible(settings.showPointsPill)
-  const equip = async (slot: unknown, id: unknown) => {
-    const loadout = equipItem(catalog, settings.loadout, slot, id)
-    if (!loadout) return undefined
-    settings = { ...settings, loadout }
-    await saveSettings(storage, settings)
-    duck.window.webContents.send(IPC.loadout, loadout)
-    return loadout
-  }
-  const earn = (source: string) => {
-    const granted = points.earn(source)
-    if (granted === 0) return
+  /** Tells every open page about a balance change (`granted` < 0 for spending). */
+  const announce = (source: string, granted: number) => {
     const event: PointsEvent = { source, granted, balance: points.balance }
     duck.window.webContents.send(IPC.points, event)
     panel.webContents?.send(IPC.points, event)
     pill.webContents?.send(IPC.points, event)
   }
-  duck.onThrown = () => earn('play')
+  const progress = await ProgressService.load(
+    storage,
+    economy,
+    catalog,
+    {
+      spend: (source, amount) => {
+        if (!points.spend(source, amount)) return false
+        announce(source, -amount)
+        return true
+      },
+      grant: (source, amount) => {
+        points.grant(source, amount)
+        announce(source, amount)
+      },
+    },
+    [settings.loadout.skin, settings.loadout.hat, settings.loadout.face].flatMap((id) =>
+      id === null ? [] : [id],
+    ),
+  )
+  progress.onChange = () => panel.webContents?.send(IPC.storeChanged, progress.view())
+  const equip = async (slot: unknown, id: unknown) => {
+    const loadout = equipItem(catalog, settings.loadout, slot, id, progress.ownedSet)
+    if (!loadout) return undefined
+    const changed = JSON.stringify(loadout) !== JSON.stringify(settings.loadout)
+    settings = { ...settings, loadout }
+    await saveSettings(storage, settings)
+    duck.window.webContents.send(IPC.loadout, loadout)
+    if (changed) progress.record('equip')
+    return loadout
+  }
+  const earn = (source: string) => {
+    if (source === 'click' || source === 'pet') progress.record(source)
+    const granted = points.earn(source)
+    if (granted > 0) announce(source, granted)
+  }
+  duck.onThrown = () => {
+    progress.record('throw')
+    earn('play')
+  }
 
   // Feeding: the user carries a snack (bread or a cigar) and drops or throws it; the duck runs or
   // jumps to it. It is paid for once finished, and only for a snack it actually caught, so the
   // duck page can't claim treats it was never given.
   const snack = new SnackWindow(settings.scale)
-  let snackCaught = false
+  let snackCaught: Snack | undefined
   snack.onLanded = (spot) => duck.chase(spot)
   snack.onLifted = () => duck.stopChase()
   duck.onCaught = () => {
     const kind = snack.kind
     snack.taken()
-    snackCaught = true
+    snackCaught = kind
     duck.window.webContents.send(IPC.fed, kind)
   }
   const feed = (kind: Snack) => {
@@ -101,7 +134,8 @@ async function start(): Promise<void> {
   }
   const ate = () => {
     if (!snackCaught) return
-    snackCaught = false
+    progress.record(snackCaught)
+    snackCaught = undefined
     earn('play')
   }
   const setPill = (shown: boolean) => {
@@ -111,7 +145,7 @@ async function start(): Promise<void> {
       console.error('Could not save settings', error),
     )
   }
-  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill, snack })
+  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill, snack, progress })
 
   tray = createTray(t, {
     togglePanel: () => panel.toggle(),
@@ -127,12 +161,17 @@ async function start(): Promise<void> {
   app.on('will-quit', (event) => {
     if (flushed) return
     event.preventDefault()
-    points.flush().finally(() => {
+    Promise.all([points.flush(), progress.flush()]).finally(() => {
       flushed = true
       app.quit()
     })
   })
 }
+
+// Dev-only: `BUDDY_DATA_DIR` keeps test runs away from the real saves (points, items, quests).
+// It also gets its own single-instance lock, so a test app can run next to the real one.
+if (!app.isPackaged && process.env.BUDDY_DATA_DIR)
+  app.setPath('userData', process.env.BUDDY_DATA_DIR)
 
 app.setAppUserModelId('dev.desktopbuddy.app')
 

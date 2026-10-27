@@ -11,13 +11,7 @@ export const SourceRuleSchema = z.object({
   dailyCap: z.number().int().positive(),
 })
 
-export const EconomyConfigSchema = z.object({
-  version: z.literal(1),
-  sources: z.record(z.string(), SourceRuleSchema),
-})
-
 export type SourceRule = z.infer<typeof SourceRuleSchema>
-export type EconomyConfig = z.infer<typeof EconomyConfigSchema>
 export type SourceRules = Readonly<Record<string, SourceRule>>
 
 export interface LedgerEntry {

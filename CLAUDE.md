@@ -5,7 +5,8 @@ desktop, walks along the taskbar, can be dressed (duck types/skins, hats, faces,
 points when you pet and play with it or finish quests, and spends them in a store. Later: focus
 tracking (Today/Stats) and friends. It must stay **cheap on CPU and RAM**.
 
-Status: **Phase 0 done** (foundation + walking skeleton). See [docs/ROADMAP.md](docs/ROADMAP.md).
+Status: **Phases 0, 2–5 done** (duck, behaviors, dress-up, points & snacks, store/gifts/quests).
+See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user turns on Friends, no dark patterns (pressure timers, hidden odds).
@@ -43,7 +44,7 @@ network unless the user turns on Friends, no dark patterns (pressure timers, hid
 | `npm run preview`                                | Run the production build                                                                                        |
 | `npm run bake`                                   | `assets/src/**/*.pxl` → `assets/baked/**` (validates art rules)                                                 |
 | `npm run readme-art`                             | Regenerates the animated README pictures in `docs/media/` from the `.pxl` art                                   |
-| `npm run smoke`                                  | End-to-end check of a running dev app (`npx electron-vite dev --remoteDebuggingPort 9222` first; stop it after) |
+| `npm run smoke`                                  | End-to-end check of a running dev app (`npx electron-vite dev --remoteDebuggingPort 9222` first; stop it after). Set `BUDDY_DATA_DIR` to a temp folder for probes that spend points |
 | `npm run perf`                                   | CPU/RAM per duck state on the built app (`npm run build` first; close other Electron apps; ~1 min per state × run) |
 | `npm run check`                                  | typecheck + lint + tests — **run before calling anything done**                                                 |
 | `npm run typecheck` / `lint` / `format` / `test` | The individual pieces (`format` writes fixes)                                                                   |

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { EconomyConfigSchema } from '../../src/core/economy/config'
 import type { SourceRules } from '../../src/core/economy/ledger'
-import { EconomyConfigSchema, localDayKey, PointsLedger } from '../../src/core/economy/ledger'
+import { localDayKey, PointsLedger } from '../../src/core/economy/ledger'
 
 const rules: SourceRules = {
   click: { points: 2, cooldownMs: 400, dailyCap: 5 },

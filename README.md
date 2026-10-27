@@ -36,11 +36,13 @@ throw it, dress it up. Free and open source, with no paywalls.
 | **throw** it (drag fast, let go)       | flies, bounces off the screen edges        |     **+3** |
 | drop it from high up                   | lands on its bottom and sees stars ✨      |          — |
 | **feed** it bread or a cigar 🚬        | runs/flies to where you drop it, pecks it up, eats or smokes it |     **+3** |
-| open the **Bag** (right-click)         | wears a new skin, hat or glasses, live     |          — |
+| finish **quests** (3 a day + weekly)   | —                                          | **+10…200** |
+| open **gifts** in the Store            | new skins, hats, glasses (odds shown, pity) | spend 80–700 |
+| open the **Bag** (right-click)         | wears what you've found, live              |          — |
 
 <div align="center">
 <img src="docs/media/wardrobe.svg" alt="Six duck skins wearing different hats and glasses" width="720">
-<br><sub>6 skins · 4 hats · 2 glasses, all original pixel art, all unlocked</sub>
+<br><sub>6 skins · 4 hats · 2 glasses, all original pixel art, all earnable in play</sub>
 </div>
 
 Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets you nowhere:
@@ -157,7 +159,7 @@ palette:
 | 3 · Skins, hats, glasses, Bag panel     | ✅ |
 | 4 · Petting, points & caps, bread, points pill | ✅ |
 | 1 · Hand-drawn duck to replace the placeholder | 🎨 |
-| 5 · Store, gift boxes (visible odds), quests | 🔜 |
+| 5 · Store, gift boxes (visible odds + pity), quests | ✅ |
 | 6 · Opt-in, local focus tracking (Today / Stats) | 🔜 |
 | 7 · Settings, chiptune sounds, polish   | 🔜 |
 | 8 · Friends (opt-in, self-hostable)     | 🔜 |

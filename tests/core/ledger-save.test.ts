@@ -1,9 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { InventorySaveSchema, newInventory } from '../../src/core/economy/inventory'
 import {
+  INVENTORY_KEY,
   LEDGER_KEY,
   loadLedgerEntries,
+  loadSave,
   parseEconomy,
   saveLedger,
 } from '../../src/core/economy/save'
@@ -29,6 +32,16 @@ describe('ledger save file', () => {
     await storage.write(LEDGER_KEY, { version: 9, stuff: true })
     expect(await loadLedgerEntries(storage, 42)).toEqual([])
     expect(await storage.read('ledger-backup-42')).toEqual({ version: 9, stuff: true })
+  })
+
+  it('loads other saves the same way (inventory), backing up a bad one', async () => {
+    const storage = new MemoryStorage()
+    const save = newInventory(['classic'], [])
+    await storage.write(INVENTORY_KEY, save)
+    expect(await loadSave(storage, INVENTORY_KEY, InventorySaveSchema, 0)).toEqual(save)
+    await storage.write(INVENTORY_KEY, { version: 1, owned: 'everything' })
+    expect(await loadSave(storage, INVENTORY_KEY, InventorySaveSchema, 7)).toBeUndefined()
+    expect(await storage.read('inventory-backup-7')).toEqual({ version: 1, owned: 'everything' })
   })
 
   it('rejects fractional deltas', async () => {

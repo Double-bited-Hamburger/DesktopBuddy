@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { isSnack } from '../core/toys/snacks'
-import type { AppConfig, BuddyApi, Loadout, PointsEvent } from '../shared/ipc'
+import type {
+  AppConfig,
+  BuddyApi,
+  BuyResult,
+  GiftResult,
+  Loadout,
+  PointsEvent,
+  StoreView,
+} from '../shared/ipc'
 import { FALL_EVENTS, IPC } from '../shared/ipc'
 
 // The renderers only ever see this object. Every call maps to one fixed channel;
@@ -64,6 +72,16 @@ const api: BuddyApi = {
     setPinned: (pinned) => ipcRenderer.send(IPC.panelSetPinned, pinned),
     equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
+    store: (): Promise<StoreView> => ipcRenderer.invoke(IPC.store),
+    onStore: (listener) => {
+      // Main only ever sends a view it built itself; hand over the data, not the event.
+      const handler = (_event: unknown, view: StoreView) => listener(view)
+      ipcRenderer.on(IPC.storeChanged, handler)
+      return () => ipcRenderer.off(IPC.storeChanged, handler)
+    },
+    openGift: (box): Promise<GiftResult> => ipcRenderer.invoke(IPC.openGift, box),
+    buyFeatured: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.buyFeatured),
+    claimQuest: (id): Promise<number> => ipcRenderer.invoke(IPC.claimQuest, id),
   },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),
