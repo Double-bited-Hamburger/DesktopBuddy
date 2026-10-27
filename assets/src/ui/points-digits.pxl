@@ -1,0 +1,105 @@
+# Pixel digits for the +N points popup. Cells overlap by one outline column when drawn.
+name: points-digits
+size: 5x7
+palette:
+  K #2a1f2d
+  Y #f7d84a
+
+@frame 0
+KKKKK
+KYYYK
+KYKYK
+KYKYK
+KYKYK
+KYYYK
+KKKKK
+
+@frame 1
+.KKK.
+KKYK.
+KYYK.
+KKYK.
+KKYKK
+KYYYK
+KKKKK
+
+@frame 2
+KKKKK
+KYYYK
+KKKYK
+KYYYK
+KYKKK
+KYYYK
+KKKKK
+
+@frame 3
+KKKKK
+KYYYK
+KKKYK
+.KYYK
+KKKYK
+KYYYK
+KKKKK
+
+@frame 4
+KKKKK
+KYKYK
+KYKYK
+KYYYK
+KKKYK
+..KYK
+..KKK
+
+@frame 5
+KKKKK
+KYYYK
+KYKKK
+KYYYK
+KKKYK
+KYYYK
+KKKKK
+
+@frame 6
+KKKKK
+KYYYK
+KYKKK
+KYYYK
+KYKYK
+KYYYK
+KKKKK
+
+@frame 7
+KKKKK
+KYYYK
+KKKYK
+.KKYK
+.KYKK
+.KYK.
+.KKK.
+
+@frame 8
+KKKKK
+KYYYK
+KYKYK
+KYYYK
+KYKYK
+KYYYK
+KKKKK
+
+@frame 9
+KKKKK
+KYYYK
+KYKYK
+KYYYK
+KKKYK
+KYYYK
+KKKKK
+
+@frame plus
+.....
+.KKK.
+KKYKK
+KYYYK
+KKYKK
+.KKK.
+.....

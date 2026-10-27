@@ -1,0 +1,33 @@
+# A slice of bread for feeding the duck. Drawn for a duck facing right: bites come off the left
+# (beak) side. bread-3 is whole, bread-1 is the last crumb.
+name: bread
+size: 7x6
+palette:
+  K #2a1f2d
+  B #b8732e
+  C #f2d38a
+  L #fff0c4
+
+@frame bread-3
+.KKKKK.
+KBBBBBK
+KBLCCBK
+KBCCCBK
+KBBBBBK
+.KKKKK.
+
+@frame bread-2
+...KKK.
+..KBBBK
+.KCCCBK
+.KCCCBK
+..KBBBK
+...KKK.
+
+@frame bread-1
+.......
+....KK.
+...KCBK
+...KCBK
+....KK.
+.......

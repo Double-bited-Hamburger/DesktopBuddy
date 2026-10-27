@@ -1,0 +1,23 @@
+# Striped party cone with a pompom.
+name: party-hat
+size: 9x11
+anchor: head 4 10
+palette:
+  K #2a1f2d
+  P #e5508a
+  Y #f7d84a
+  C #49c2d8
+  W #fffaf0
+
+@frame party-hat
+....W....
+...WWW...
+....K....
+...KPK...
+...KYK...
+..KCCCK..
+..KPPPK..
+.KYYYYYK.
+.KCCCCCK.
+KPPPPPPPK
+KKKKKKKKK

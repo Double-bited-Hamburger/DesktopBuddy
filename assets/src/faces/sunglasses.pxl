@@ -1,0 +1,14 @@
+# Dark shades seen from the side: a lens over the eye, the arm going back.
+name: sunglasses
+size: 10x4
+anchor: face 7 1
+palette:
+  K #2a1f2d
+  D #1d1b26
+  L #7d8bb0
+
+@frame sunglasses
+KKKKKKKKKK
+......KLDK
+......KDDK
+.......KK.

@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "classic",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/placeholder-duck"
+    },
+    {
+      "id": "rubber",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#3a2a12",
+        "W": "#ffd83d",
+        "S": "#e9b524",
+        "H": "#fff1a1"
+      }
+    },
+    {
+      "id": "mint",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "W": "#bfe8cf",
+        "S": "#8ccaa6",
+        "H": "#eafff2"
+      }
+    },
+    {
+      "id": "strawberry",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "W": "#f6b8c8",
+        "S": "#e08aa0",
+        "H": "#ffe6ee"
+      }
+    },
+    {
+      "id": "midnight",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#12131b",
+        "W": "#4a4e6b",
+        "S": "#33364d",
+        "H": "#7a80a8",
+        "O": "#f2b02b",
+        "D": "#b97a14",
+        "E": "#f4e9d1"
+      }
+    },
+    {
+      "id": "golden",
+      "slot": "skin",
+      "rarity": "legendary",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#4a2c06",
+        "W": "#e0a526",
+        "S": "#a8701a",
+        "H": "#fff0a0"
+      }
+    },
+    {
+      "id": "beanie",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/beanie"
+    },
+    {
+      "id": "cap",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/cap"
+    },
+    {
+      "id": "party-hat",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/party-hat"
+    },
+    {
+      "id": "crown",
+      "slot": "hat",
+      "rarity": "epic",
+      "sprite": "hats/crown"
+    },
+    {
+      "id": "nerd-glasses",
+      "slot": "face",
+      "rarity": "common",
+      "sprite": "faces/nerd-glasses"
+    },
+    {
+      "id": "sunglasses",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/sunglasses"
+    }
+  ]
+}

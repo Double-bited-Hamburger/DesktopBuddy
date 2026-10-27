@@ -1,0 +1,15 @@
+# Shown above the duck while it is being petted.
+name: heart
+size: 7x6
+palette:
+  K #2a1f2d
+  R #e8485a
+  P #ff9aa8
+
+@frame heart
+.KK.KK.
+KPRKRRK
+KRRRRRK
+.KRRRK.
+..KRK..
+...K...

@@ -1,0 +1,20 @@
+# Speech bubble shown when the duck quacks. Drawn above the head, never mirrored.
+name: quack-bubble
+size: 25x12
+palette:
+  K #2a1f2d
+  H #fffaf0
+
+@frame quack-bubble
+..KKKKKKKKKKKKKKKKKKKKK..
+.KHHHHHHHHHHHHHHHHHHHHHK.
+KHHKHHKHKHHKHHHKKHKHKHKHK
+KHKHKHKHKHKHKHKHHHKHKHKHK
+KHKHKHKHKHKKKHKHHHKKHHKHK
+KHKKHHKHKHKHKHKHHHKHKHHHK
+KHHKKHKKKHKHKHHKKHKHKHKHK
+.KHHHHHHHHHHHHHHHHHHHHHK.
+..KKKKKKKKKHHHKKKKKKKKK..
+..........KHHK...........
+..........KHK............
+..........KK.............

@@ -1,0 +1,39 @@
+{
+  "name": "desktop-buddy",
+  "version": "0.0.0",
+  "private": true,
+  "description": "An open-source 16-bit pixel-art desktop duck: skins, accessories, quests and a points store.",
+  "license": "MIT",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "predev": "npm run bake",
+    "build": "electron-vite build",
+    "prebuild": "npm run bake",
+    "preview": "electron-vite preview",
+    "bake": "tsx tools/bake-sprites.ts",
+    "typecheck": "tsc -p tsconfig.core.json --noEmit && tsc -p tsconfig.json --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "node tools/smoke-cdp.mjs",
+    "perf": "node tools/measure-perf.mjs",
+    "check": "npm run typecheck && npm run lint && npm run test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.3",
+    "@preact/preset-vite": "^2.10.6",
+    "@types/node": "^26.6.5",
+    "@types/pngjs": "^6.0.5",
+    "electron": "^45.0.0",
+    "electron-vite": "^6.0.0",
+    "pngjs": "^7.0.0",
+    "preact": "^11.0.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
+  }
+}

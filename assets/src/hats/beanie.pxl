@@ -1,0 +1,20 @@
+# Knitted beanie with a pompom. Anchor: where the top of the duck head sits.
+name: beanie
+size: 14x8
+anchor: head 7 5
+palette:
+  K #2a1f2d
+  R #c8413b
+  r #8e2a2a
+  L #e8705e
+  P #fffaf0
+
+@frame beanie
+......KK......
+.....KPPK.....
+...KKKPPKKK...
+..KLLRRRRRRK..
+.KLRRRRRRRRRK.
+.KRRRRRRRRRrK.
+KLrLrLrLrLrLrK
+KKKKKKKKKKKKKK

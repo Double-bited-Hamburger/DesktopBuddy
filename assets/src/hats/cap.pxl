@@ -1,0 +1,18 @@
+# Baseball cap, bill pointing forward (the duck faces right).
+name: cap
+size: 15x7
+anchor: head 7 4
+palette:
+  K #2a1f2d
+  B #3b6fd1
+  b #284c94
+  L #6f9bea
+
+@frame cap
+....KKKKK......
+...KLLBBBK.....
+..KLBBBBBBK....
+..KBBBBBBBbK...
+.KbbbbbbbbbKKKK
+.KKKKKKKKKKbbbK
+..........KKKK.

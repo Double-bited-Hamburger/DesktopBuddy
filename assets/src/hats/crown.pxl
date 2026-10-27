@@ -1,0 +1,18 @@
+# Small gold crown with a ruby.
+name: crown
+size: 11x6
+anchor: head 5 5
+palette:
+  K #2a1f2d
+  G #f2c230
+  g #b8861b
+  R #d8344a
+  W #fff4c2
+
+@frame crown
+K....K....K
+KW..KWK..WK
+KGGKGGGKGGK
+KGGGGRGGGGK
+KgGgGgGgGgK
+KKKKKKKKKKK

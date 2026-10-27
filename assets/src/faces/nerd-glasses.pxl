@@ -1,0 +1,12 @@
+# Round brown glasses; the lens is see-through so the eye still shows.
+name: nerd-glasses
+size: 10x4
+anchor: face 7 1
+palette:
+  F #6b3f1f
+
+@frame nerd-glasses
+FFFFFFFFF.
+......F..F
+......F..F
+.......FF.

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "sources": {
+    "click": { "points": 1, "cooldownMs": 400, "dailyCap": 100 },
+    "pet": { "points": 2, "cooldownMs": 2000, "dailyCap": 80 },
+    "play": { "points": 3, "cooldownMs": 5000, "dailyCap": 150 }
+  }
+}
