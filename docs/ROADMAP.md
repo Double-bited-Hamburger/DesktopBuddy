@@ -111,6 +111,15 @@ hands 🙌). **Exit:** earning rate matches `docs/ECONOMY.md`; auto-clicking is 
 - [ ] **Not verified:** the tray menu items themselves (clicked by hand only through CDP's panel
       button); the pill next to the real tray and on a taskbar that is on a side or auto-hidden;
       pill on a secondary monitor (it always uses the primary one)
+- [x] **Snacks you carry** (2026-10-27): "Feed" opens a menu (🍞 Bread / 🚬 Cigar; tray: "Feed
+      bread", "Give a cigar"). The snack follows the cursor; a click drops or throws it, a click on
+      a resting snack picks it up again. The duck runs (10× walk speed) or jumps to it, pecks it
+      off the ground (new `peck` frame), then eats the bread in 3 bites or smokes the cigar with
+      rising puffs and a cough at the end (`smoke` state, 6.3 s). One `play` payout per caught snack
+- [x] Verified live over CDP (2026-10-27): both snacks picked from the menu, dropped, caught and
+      paid +3 each; frames checked for the pickup, puffs and bites in both facings; smoke test green
+- [ ] **Not verified:** carrying/throwing a snack with the real mouse (CDP can't move the cursor);
+      chase jumps across two monitors; the tray "Give a cigar" item by hand
 - [ ] Next: more toys (bubbles, a ball), emotes, ledger compaction
 
 ## Phase 5 — Store, gifts & quests

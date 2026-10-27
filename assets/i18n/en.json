@@ -34,5 +34,8 @@
   "points.hint": "Earn points by clicking, petting and throwing your duck",
   "tray.feed": "Feed bread",
   "tray.pill": "Points pill",
-  "panel.feed": "Feed"
+  "panel.feed": "Feed",
+  "tray.cigar": "Give a cigar",
+  "snack.bread": "🍞 Bread",
+  "snack.cigar": "🚬 Cigar"
 }

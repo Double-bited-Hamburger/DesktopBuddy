@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/media/duck-show.svg" alt="The DesktopBuddy duck idles, walks, quacks, gets petted and eats bread" width="544">
+<img src="docs/media/duck-show.svg" alt="The DesktopBuddy duck idles, walks, quacks, gets petted, eats bread and smokes a cigar" width="544">
 
 # DesktopBuddy
 
@@ -35,7 +35,7 @@ throw it, dress it up. Free and open source, with no paywalls.
 | **stroke** it (mouse back and forth)   | closes its eyes happily, a heart pops up   |     **+2** |
 | **throw** it (drag fast, let go)       | flies, bounces off the screen edges        |     **+3** |
 | drop it from high up                   | lands on its bottom and sees stars ✨      |          — |
-| **feed** it bread (panel or tray)      | catches the slice and eats it in 3 bites   |     **+3** |
+| **feed** it bread or a cigar 🚬        | runs/flies to where you drop it, pecks it up, eats or smokes it |     **+3** |
 | open the **Bag** (right-click)         | wears a new skin, hat or glasses, live     |          — |
 
 <div align="center">
@@ -61,7 +61,7 @@ npm run dev
 ```
 
 Needs **Node 24+** and npm. Windows 11 first; macOS/Linux later.
-Right-click the duck for the panel · tray icon for **Feed bread**, **Points pill** and **Quit**.
+Right-click the duck for the panel · tray icon for **Feed bread**, **Give a cigar**, **Points pill** and **Quit**.
 
 ## 🧠 How it works
 
@@ -96,11 +96,14 @@ stateDiagram-v2
     sleep --> idle
     idle --> quack: click
     idle --> happy: pet
-    idle --> eat: bread
+    idle --> run: snack dropped
+    run --> eat: bread caught
+    run --> smoke: cigar caught
     idle --> ouch: hard landing
     quack --> idle
     happy --> idle
     eat --> idle: +3 play
+    smoke --> idle: +3 play
     ouch --> idle
 ```
 

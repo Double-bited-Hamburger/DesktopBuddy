@@ -25,7 +25,7 @@ Everything is free and earnable; there is no real money and no locked "premium" 
 | ------------- | --------------------- | -------- | ------------- | ------------------------------------------------- |
 | `click`       | 1                     | 0.4 s    | 100           | Single click on the duck                          |
 | `pet`         | 2                     | 2 s      | 80            | Stroke the mouse back and forth over the duck ×3  |
-| `play`        | 3                     | 5 s      | 150           | Throwing the duck, feeding it bread; more toys    |
+| `play`        | 3                     | 5 s      | 150           | Throwing the duck, a snack (bread/cigar); toys   |
 | Quests        | per quest             | —        | by quest pool | Daily ×3 drawn from a pool, weekly, achievements  |
 | Free gift     | one gift per N min    | N min    | —             | The "come back soon" timer; always a small reward |
 | Focus session | per completed session | —        | —             | Phase 6, from `focus.completed`                   |
@@ -58,7 +58,8 @@ play. Duck types (skins) are items too.
 
 Only main writes the ledger. The duck page may *ask* for `click` and `pet` (any other source, or
 any request from the panel, is ignored); `play` is granted by main when it sees a throw, or when
-the duck reports it ate a slice of bread that main actually served (one payout per slice).
+the duck reports it finished a snack (bread or a cigar) that it actually caught (one payout per
+snack).
 
 The ledger is append-only and not compacted yet: at the daily caps that is ≈ 200 entries a day
 (≈ 4 MB a year). Compacting old days into one carried entry is a later task. A ledger that parses

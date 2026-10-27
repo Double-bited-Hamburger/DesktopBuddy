@@ -6,6 +6,8 @@ import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
 import { breadAt, MEAL_MS, msUntilBreadChange } from '../../core/toys/bread'
+import { msUntilSmokeChange, SMOKE_MS, smokeAt } from '../../core/toys/cigar'
+import type { Snack } from '../../core/toys/snacks'
 import type { WalkDirection } from '../../shared/ipc'
 import { drawDressed, loadDressedDuck } from '../shared/outfit'
 import { loadSprite } from '../shared/sprites'
@@ -19,9 +21,17 @@ const POPUP_STEP_MS = 200
 /** Popup digits are 5 px cells whose outlines overlap by one column. */
 const DIGIT_ADVANCE = 4
 
-/** Where a slice of bread sits in the beak (stage px, duck facing right), and how far it drops. */
-const BREAD_IN_BEAK = { x: 33, y: 16 }
-const BREAD_FALL_PX = 16
+/**
+ * Where each snack is drawn (stage px, top-left, duck facing right): lying in front of the beak
+ * while the duck pecks it up, then held in the beak. Smoke rises from just above the ember.
+ */
+const SNACK_SPOTS = {
+  bread: { ground: { x: 32, y: 33 }, beak: { x: 33, y: 16 } },
+  cigar: { ground: { x: 32, y: 35 }, beak: { x: 33, y: 18 } },
+} as const
+const PUFF_SPOT = { x: 35, y: 14 }
+/** How long each snack keeps the duck busy. */
+const TREAT_MS = { bread: MEAL_MS, cigar: SMOKE_MS } as const
 
 /** A press that moves less than this (screen px) before release is a click, not a drag. */
 const CLICK_SLOP_PX = 4
@@ -30,14 +40,37 @@ const blinkCycle = [...Array.from({ length: 11 }, () => 'idle'), 'blink']
 const animations: AnimationSet = {
   idle: { frames: blinkCycle, frameMs: 200, loop: true },
   walk: { frames: ['idle', 'step'], frameMs: 250, loop: true },
+  run: { frames: ['step', 'idle'], frameMs: 90, loop: true }, // after bread: same legs, much faster
   sleep: { frames: ['blink'], frameMs: 1000, loop: true },
   quack: { frames: ['quack', 'idle'], frameMs: 200, loop: true },
   ouch: { frames: ['ouch'], frameMs: 1000, loop: true }, // sat on its bottom, seeing stars
   happy: { frames: ['happy'], frameMs: 1000, loop: true }, // petted: eyes closed, a heart above
-  // Fed: beak open while the bread drops in, then three chomps (MEAL_MS = 8 × 225 ms).
+  // Fed: pecks the bread off the ground, then three chomps (MEAL_MS = 8 × 225 ms).
   eat: {
-    frames: ['quack', 'quack', 'idle', 'quack', 'idle', 'quack', 'idle', 'idle'],
+    frames: ['peck', 'peck', 'quack', 'idle', 'quack', 'idle', 'quack', 'idle'],
     frameMs: 225,
+    loop: false,
+  },
+  // A cigar: pecked up, puffed on with the odd slow blink, and a cough at the end
+  // (SMOKE_MS = 14 × 450 ms).
+  smoke: {
+    frames: [
+      'peck',
+      'idle',
+      'idle',
+      'idle',
+      'blink',
+      'idle',
+      'idle',
+      'idle',
+      'idle',
+      'blink',
+      'idle',
+      'idle',
+      'quack',
+      'quack',
+    ],
+    frameMs: 450,
     loop: false,
   },
 }
@@ -52,9 +85,16 @@ async function main(): Promise<void> {
   const bubble = (await loadSprite('emotes', 'quack-bubble')).frames[0]
   const heart = (await loadSprite('emotes', 'heart')).frames[0]
   const digits = await loadSprite('ui', 'points-digits')
-  const breadFrames = (await loadSprite('toys', 'bread')).frames
-  // Bread is drawn after the duck is mirrored, so it needs its own left-facing copies.
-  const breadMirrored = breadFrames.map((frame): Frame => ({ ...frame, ...mirrorX(frame) }))
+  // Snacks are drawn after the duck is mirrored, so they need their own left-facing copies.
+  const withMirrored = (frames: readonly Frame[]) => ({
+    right: frames,
+    left: frames.map((frame): Frame => ({ ...frame, ...mirrorX(frame) })),
+  })
+  const snackFrames = {
+    bread: withMirrored((await loadSprite('toys', 'bread')).frames),
+    cigar: withMirrored((await loadSprite('toys', 'cigar')).frames),
+  }
+  const puffFrames = (await loadSprite('emotes', 'smoke')).frames
 
   const canvas = document.getElementById('stage') as HTMLCanvasElement
   canvas.width = STAGE_SIZE
@@ -81,8 +121,8 @@ async function main(): Promise<void> {
   let pressedAt = { x: 0, y: 0 }
   const petting = new PetDetector()
   let popup: { text: string; startedAt: number } | undefined
-  /** When the current slice of bread was served (same time base as `lastTick`). */
-  let meal: number | undefined
+  /** The snack being eaten or smoked, and when the duck caught it (same time base as `lastTick`). */
+  let treat: { kind: Snack; since: number } | undefined
 
   // Equipping from the Bag swaps the outfit live; the version is part of the redraw key.
   let outfitVersion = 0
@@ -114,6 +154,16 @@ async function main(): Promise<void> {
     })
   }
 
+  /** The snack's frame, where it is, and any smoke, `elapsed` ms into the treat. */
+  function snackView(kind: Snack, elapsed: number) {
+    if (kind === 'bread') {
+      const view = breadAt(elapsed)
+      return view && { frame: view.frame, onGround: view.onGround, puff: undefined, rise: 0 }
+    }
+    const view = smokeAt(elapsed)
+    return view && { frame: 'cigar', onGround: view.onGround, puff: view.puff, rise: view.rise }
+  }
+
   function render(): void {
     const pose = dragging ? HELD_POSE : falling ? AIRBORNE_POSE : clock.frameName
     const facing = machine.direction
@@ -122,8 +172,8 @@ async function main(): Promise<void> {
     const loved = calm && machine.state === 'happy' && heart !== undefined
     const now = performance.now()
     const rise = popupStep(now)
-    const bread = calm && meal !== undefined ? breadAt(now - meal, BREAD_FALL_PX) : undefined
-    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${popup?.text}:${rise}:${bread?.frame}:${bread?.drop}`
+    const snack = calm && treat ? snackView(treat.kind, now - treat.since) : undefined
+    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(dressed, pose)
     if (!image) return
@@ -146,12 +196,19 @@ async function main(): Promise<void> {
         offset: { x: facing === 1 ? 23 : STAGE_SIZE - 23 - heart.width, y: 3 },
       })
     }
-    if (bread) {
-      const index = breadFrames.findIndex((f) => f.name === bread.frame)
-      const frame = (facing === 1 ? breadFrames : breadMirrored)[index]
+    if (treat && snack) {
+      const frames = snackFrames[treat.kind]
+      const index = frames.right.findIndex((f) => f.name === snack.frame)
+      const frame = (facing === 1 ? frames.right : frames.left)[index]
+      const spot = SNACK_SPOTS[treat.kind][snack.onGround ? 'ground' : 'beak']
       if (frame) {
-        const x = facing === 1 ? BREAD_IN_BEAK.x : STAGE_SIZE - BREAD_IN_BEAK.x - frame.width
-        layers.push({ frame, offset: { x, y: BREAD_IN_BEAK.y - bread.drop } })
+        const x = facing === 1 ? spot.x : STAGE_SIZE - spot.x - frame.width
+        layers.push({ frame, offset: { x, y: spot.y } })
+      }
+      const puff = snack.puff && puffFrames.find((f) => f.name === snack.puff)
+      if (puff) {
+        const x = facing === 1 ? PUFF_SPOT.x : STAGE_SIZE - PUFF_SPOT.x - puff.width
+        layers.push({ frame: puff, offset: { x, y: PUFF_SPOT.y - snack.rise } })
       }
     }
     if (popup && rise !== undefined) {
@@ -183,7 +240,11 @@ async function main(): Promise<void> {
     let wait = Math.min(clock.msUntilFrameChange(), machine.msUntilDecision)
     if (popup)
       wait = Math.min(wait, POPUP_STEP_MS - ((performance.now() - popup.startedAt) % POPUP_STEP_MS))
-    if (meal !== undefined) wait = Math.min(wait, msUntilBreadChange(performance.now() - meal))
+    if (treat) {
+      const elapsed = performance.now() - treat.since
+      const change = treat.kind === 'bread' ? msUntilBreadChange : msUntilSmokeChange
+      wait = Math.min(wait, change(elapsed))
+    }
     timer = setTimeout(tick, Math.min(Math.max(wait, MIN_WAIT_MS), MAX_WAIT_MS))
   }
 
@@ -212,12 +273,12 @@ async function main(): Promise<void> {
       clock.play(machine.state) // a no-op unless the state changed (by time or by a click)
       clock.advance(dt)
     }
-    if (meal !== undefined) {
-      if (now - meal >= MEAL_MS - 1) {
-        meal = undefined
-        window.buddy.duck.ate() // main pays for bread it actually served
-      } else if (machine.state !== 'eat') {
-        meal = undefined // interrupted (clicked, petted): the bread is dropped
+    if (treat) {
+      if (now - treat.since >= TREAT_MS[treat.kind] - 1) {
+        treat = undefined
+        window.buddy.duck.ate() // main pays only for a snack the duck actually caught
+      } else if (machine.state !== (treat.kind === 'bread' ? 'eat' : 'smoke')) {
+        treat = undefined // interrupted (clicked, petted): the snack is dropped
       }
     }
     syncWalk()
@@ -232,12 +293,20 @@ async function main(): Promise<void> {
     render()
   })
 
-  window.buddy.duck.onFed(() => {
+  window.buddy.duck.onChase((direction) => {
+    wake() // catch up first
+    if (direction !== 0) machine.chase(direction)
+    else if (machine.state === 'run') machine.enter('idle')
+    wake()
+  })
+
+  window.buddy.duck.onFed((kind) => {
     if (busy()) return // held or flying: it can't eat now
-    wake() // catch up first so the meal starts now
-    machine.eat()
-    clock.play('eat', true) // a second slice starts the chomping over
-    meal = lastTick
+    wake() // catch up first so the treat starts now
+    if (kind === 'bread') machine.eat()
+    else machine.smoke()
+    clock.play(machine.state, true) // a second snack starts the animation over
+    treat = { kind, since: lastTick }
     wake()
   })
 
@@ -300,8 +369,8 @@ async function main(): Promise<void> {
     if (e.button !== 0 || !isOverDuck(e)) return
     dragging = true
     petting.reset()
-    if (meal !== undefined) {
-      meal = undefined // grabbed mid-meal: the bread is dropped
+    if (treat) {
+      treat = undefined // grabbed mid-treat: the snack is dropped
       machine.enter('idle')
     }
     pressedAt = { x: e.screenX, y: e.screenY }

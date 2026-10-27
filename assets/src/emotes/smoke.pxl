@@ -1,0 +1,24 @@
+# Smoke puffs rising from the duck's cigar: small, bigger, drifting apart.
+name: smoke
+size: 5x4
+palette:
+  S #e4e1dc
+  s #b9b4ad
+
+@frame puff-1
+.....
+.....
+..S..
+.SSs.
+
+@frame puff-2
+.....
+.SS..
+SSSS.
+.Sss.
+
+@frame puff-3
+.S.S.
+SSSSS
+.SsS.
+.....

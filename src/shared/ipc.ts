@@ -1,6 +1,7 @@
 import type { BehaviorState } from '../core/behavior/machine'
 import type { Slot } from '../core/catalog/catalog'
 import type { Settings } from '../core/settings/settings'
+import type { Snack } from '../core/toys/snacks'
 
 /** Channel names shared by main, preload and renderers. */
 export const IPC = {
@@ -22,6 +23,8 @@ export const IPC = {
   feed: 'panel:feed',
   fed: 'duck:fed',
   ate: 'duck:ate',
+  chase: 'duck:chase',
+  snackClick: 'snack:click',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -48,6 +51,9 @@ export interface PointsEvent {
   readonly granted: number
   readonly balance: number
 }
+
+/** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
+export type ChaseDirection = 1 | -1 | 0
 
 /** Facing while walking; 0 = stand still. */
 export type WalkDirection = 1 | -1 | 0
@@ -82,9 +88,11 @@ export interface BuddyApi {
     onFall(listener: (event: FallEvent) => void): () => void
     /** The loadout changed (equipped from the Bag): redraw with the new outfit. */
     onLoadout(listener: (loadout: Loadout) => void): () => void
-    /** Someone served bread (panel or tray): eat it, then call `ate`. */
-    onFed(listener: () => void): () => void
-    /** The bread is finished. Main pays `play` points once per slice it actually served. */
+    /** Run after a snack (main moves the window), or stop (0). */
+    onChase(listener: (direction: ChaseDirection) => void): () => void
+    /** The duck reached the snack: eat the bread / smoke the cigar, then call `ate`. */
+    onFed(listener: (snack: Snack) => void): () => void
+    /** The snack is finished. Main pays `play` points once per snack the duck actually caught. */
     ate(): void
     /**
      * Asks for points for a click or a pet. Main applies the cooldowns and daily caps from
@@ -101,8 +109,12 @@ export interface BuddyApi {
      * catalog, saves it and tells the duck. Resolves to the loadout now in effect.
      */
     equip(slot: Slot, id: string | null): Promise<Loadout>
-    /** Serves the duck a slice of bread. */
-    feed(): void
+    /** Puts a snack in the user's hand, to drop or throw for the duck. */
+    feed(snack: Snack): void
+  }
+  snack: {
+    /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */
+    click(): void
   }
 }
 

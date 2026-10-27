@@ -9,10 +9,11 @@ import { buildRecolorMapping, recolorFrame } from '../src/core/sprite/recolor'
 import type { Frame, RgbaImage } from '../src/core/sprite/types'
 import { STAGE_SIZE } from '../src/core/stage'
 import { breadAt, MEAL_MS } from '../src/core/toys/bread'
+import { SMOKE_MS, smokeAt } from '../src/core/toys/cigar'
 
 /**
  * Renders the README pictures straight from the .pxl sources, so they always match the game:
- *   docs/media/duck-show.svg  an animated loop (idle, walk, quack, pet, eat, +points, ouch)
+ *   docs/media/duck-show.svg  an animated loop (idle, walk, quack, pet, eat, smoke, ouch)
  *   docs/media/wardrobe.svg   every skin, dressed in a few hats and glasses
  * Plain SVG rects + CSS steps: crisp at any size, animates on GitHub, honors reduced motion.
  * Usage: npm run readme-art
@@ -115,6 +116,8 @@ async function main(): Promise<void> {
   const heart = frameOf(await load('emotes/heart'), 'heart')
   const digits = await load('ui/points-digits')
   const bread = await load('toys/bread')
+  const cigar = frameOf(await load('toys/cigar'), 'cigar')
+  const smoke = await load('emotes/smoke')
   const cap = frameOf(await load('hats/cap'), 'cap')
 
   // The show wears a cap so the README shows off the dress-up too.
@@ -153,16 +156,30 @@ async function main(): Promise<void> {
   for (let r = 0; r < 5; r++)
     far(stage('happy', 1, [{ frame: heart, offset: { x: 23, y: 3 } }, ...plus(2, 10 - r)]), 200)
   far(stage('idle', 1), 400)
-  // Fed: the bread drops in and is eaten in three bites, then +3.
-  const eatPoses = ['quack', 'quack', 'idle', 'quack', 'idle', 'quack', 'idle', 'idle']
+  // Fed: the duck pecks the bread off the ground and eats it in three bites, then +3.
+  // Positions match src/renderer/duck/main.ts (SNACK_SPOTS, PUFF_SPOT).
+  const eatPoses = ['peck', 'peck', 'quack', 'idle', 'quack', 'idle', 'quack', 'idle']
   for (let ms = 0; ms < MEAL_MS; ms += 225) {
-    const view = breadAt(ms, 16)
-    const extras: Layer[] = view
-      ? [{ frame: frameOf(bread, view.frame), offset: { x: 33, y: 16 - view.drop } }]
-      : []
+    const view = breadAt(ms)
+    const spot = view?.onGround ? { x: 32, y: 33 } : { x: 33, y: 16 }
+    const extras: Layer[] = view ? [{ frame: frameOf(bread, view.frame), offset: spot }] : []
     far(stage(eatPoses[ms / 225] ?? 'idle', 1, extras), 225)
   }
   for (let r = 0; r < 5; r++) far(stage('idle', 1, plus(3, 10 - r)), 200)
+  // A cigar: pecked up, puffed on, a cough at the end.
+  const smokePoses = ['peck', 'idle', 'idle', 'idle', 'blink', 'idle', 'idle', 'idle', 'idle']
+  smokePoses.push('blink', 'idle', 'idle', 'quack', 'quack')
+  for (let ms = 0; ms < SMOKE_MS; ms += 250) {
+    const view = smokeAt(ms)
+    if (!view) continue
+    const extras: Layer[] = [
+      { frame: cigar, offset: view.onGround ? { x: 32, y: 35 } : { x: 33, y: 18 } },
+    ]
+    if (view.puff)
+      extras.push({ frame: frameOf(smoke, view.puff), offset: { x: 35, y: 14 - view.rise } })
+    far(stage(smokePoses[Math.floor(ms / 450)] ?? 'idle', 1, extras), Math.min(250, SMOKE_MS - ms))
+  }
+  far(stage('idle', 1), 300)
   // Walk home, facing left.
   for (let i = WALK - 1; i >= 0; i--) at(i * 2)(stage(i % 2 ? 'step' : 'idle', -1), 160)
   // A clumsy landing: sits on its bottom, seeing stars.
@@ -173,7 +190,12 @@ async function main(): Promise<void> {
   await mkdir(media, { recursive: true })
   await writeFile(
     join(media, 'duck-show.svg'),
-    flipBook(shots, width, STAGE_SIZE, 'The duck idles, walks, quacks, gets petted, eats bread'),
+    flipBook(
+      shots,
+      width,
+      STAGE_SIZE,
+      'The duck idles, walks, quacks, gets petted, eats bread, smokes a cigar',
+    ),
   )
 
   // Wardrobe: every skin, each with a different hat/glasses combo.

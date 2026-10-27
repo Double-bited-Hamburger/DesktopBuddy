@@ -11,6 +11,7 @@ import { equipItem, parseCatalog } from '../core/catalog/catalog'
 import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
 import { loadSettings, saveSettings } from '../core/settings/settings'
+import type { Snack } from '../core/toys/snacks'
 import type { AppConfig, PointsEvent } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { DuckWindow } from './duck-window'
@@ -19,6 +20,7 @@ import { registerIpc } from './ipc'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
+import { SnackWindow } from './snack-window'
 import { createTray } from './tray'
 
 // Keep a reference so the tray icon is not garbage collected.
@@ -79,16 +81,27 @@ async function start(): Promise<void> {
   }
   duck.onThrown = () => earn('play')
 
-  // Bread is served by the user (panel or tray) and paid for once eaten, so the duck page can't
-  // claim meals it was never given.
-  let breadServed = false
-  const feed = () => {
-    breadServed = true
-    duck.window.webContents.send(IPC.fed)
+  // Feeding: the user carries a snack (bread or a cigar) and drops or throws it; the duck runs or
+  // jumps to it. It is paid for once finished, and only for a snack it actually caught, so the
+  // duck page can't claim treats it was never given.
+  const snack = new SnackWindow(settings.scale)
+  let snackCaught = false
+  snack.onLanded = (spot) => duck.chase(spot)
+  snack.onLifted = () => duck.stopChase()
+  duck.onCaught = () => {
+    const kind = snack.kind
+    snack.taken()
+    snackCaught = true
+    duck.window.webContents.send(IPC.fed, kind)
+  }
+  const feed = (kind: Snack) => {
+    panel.closeUnlessPinned() // out of the way, so the snack can go anywhere
+    duck.stopChase()
+    snack.serve(kind)
   }
   const ate = () => {
-    if (!breadServed) return
-    breadServed = false
+    if (!snackCaught) return
+    snackCaught = false
     earn('play')
   }
   const setPill = (shown: boolean) => {
@@ -98,7 +111,7 @@ async function start(): Promise<void> {
       console.error('Could not save settings', error),
     )
   }
-  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill })
+  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill, snack })
 
   tray = createTray(t, {
     togglePanel: () => panel.toggle(),

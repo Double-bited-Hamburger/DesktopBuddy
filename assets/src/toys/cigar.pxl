@@ -1,0 +1,17 @@
+# A fat cigar for the duck, held in the beak. Drawn for a duck facing right: the mouth end is on
+# the left, the glowing ember on the right.
+name: cigar
+size: 7x4
+palette:
+  K #2a1f2d
+  B #8a5a2b
+  D #6b4220
+  G #e8b93a
+  A #a8a39c
+  R #ff6a2a
+
+@frame cigar
+.KKKKK.
+KBBGBAK
+KDDGDRK
+.KKKKK.

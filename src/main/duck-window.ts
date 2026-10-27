@@ -1,17 +1,33 @@
 import type { Rectangle } from 'electron'
 import { BrowserWindow, screen } from 'electron'
+import { catchSpot, JUMP_DISTANCE, jumpVelocity, RUN_SPEED, runStep } from '../core/chase'
 import type { Flight, Sample } from '../core/flight'
 import { flightStep, HURT_SPEED, releaseVelocity } from '../core/flight'
 import { duckCenterX, floorAt } from '../core/floor'
 import type { FloorBounds } from '../core/stage'
-import { clamp, DUCK_ORIGIN, floorBounds, STAGE_SIZE, WALK_SPEED, walkStep } from '../core/stage'
+import {
+  clamp,
+  DUCK_ORIGIN,
+  FLOOR_INSET,
+  floorBounds,
+  STAGE_SIZE,
+  WALK_SPEED,
+  walkStep,
+} from '../core/stage'
 import type { Point, Rect } from '../core/types'
-import type { FallEvent, WalkDirection } from '../shared/ipc'
+import type { ChaseDirection, FallEvent, WalkDirection } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
+import type { SnackSpot } from './snack-window'
 
 /** A flight is short (a second or two), so it may run faster than the 12 fps walk. */
 const FLIGHT_FRAME_MS = 1000 / 30
+/** Running after a snack is short too, and 12 fps at 10× the walk speed would stutter. */
+const RUN_FRAME_MS = 1000 / 30
+/** A chase launches at most this many jumps per slice, then it runs the rest of the way. */
+const MAX_JUMPS = 2
+/** Pause after a landing before setting off again (longer after a painful one). */
+const RESUME_MS = { land: 250, hurt: 2300 } as const
 
 /**
  * The always-on-top transparent window the duck lives in. It is tiny (the stage), so moving it
@@ -37,6 +53,13 @@ export class DuckWindow {
   private walkDirection: 1 | -1 = 1
   /** Called when the user throws the duck (released while moving fast): that counts as play. */
   onThrown: () => void = () => undefined
+  /** Called when the duck reaches the snack it was chasing. */
+  onCaught: () => void = () => undefined
+  /** A snack lying on a floor that the duck is going for. */
+  private target: SnackSpot | undefined
+  private runTimer: ReturnType<typeof setInterval> | undefined
+  private resumeTimer: ReturnType<typeof setTimeout> | undefined
+  private jumps = 0
   /**
    * Logical px per walk step; the step rate follows from WALK_SPEED (12 Hz). 2 px at 6 Hz was
    * measured too (2026-10-27): no CPU gain, choppier, so the walk stays pixel-stepped.
@@ -79,6 +102,7 @@ export class DuckWindow {
     this.window.once('ready-to-show', () => this.window.showInactive())
     this.window.on('closed', () => {
       this.walk(0)
+      this.stopRun()
       clearInterval(this.flightTimer)
     })
     // Any display change can move the work area (taskbar moved, DPI changed, monitor unplugged).
@@ -98,6 +122,7 @@ export class DuckWindow {
 
   dragStart(): void {
     this.walk(0) // held in the hand: the renderer restarts the walk after the drop
+    this.stopRun() // a chase resumes after the drop
     if (this.flightTimer) this.stopFlight('land') // caught in mid-air
     const cursor = screen.getCursorScreenPoint()
     this.drag = { cursor, bounds: this.window.getBounds() }
@@ -145,6 +170,7 @@ export class DuckWindow {
     this.x = clamp(bounds.x, this.floor.minX, this.floor.maxX)
     this.y = this.floor.y
     this.place()
+    this.resumeChase('land')
   }
 
   /**
@@ -154,7 +180,7 @@ export class DuckWindow {
   walk(direction: WalkDirection): void {
     clearInterval(this.walkTimer)
     this.walkTimer = undefined
-    if (direction === 0 || this.drag || this.flightTimer) return
+    if (direction === 0 || this.drag || this.flightTimer || this.target) return
     this.walkDirection = direction
     this.walkTimer = setInterval(() => this.step(), 1000 / (WALK_SPEED / this.stepPx))
   }
@@ -178,7 +204,83 @@ export class DuckWindow {
   }
 
   /** Flies the duck from `start` until it rests on the floor (see core `flightStep`). */
-  private fly(start: Flight): void {
+  /** A snack landed: go get it (now, or as soon as the duck is back on its feet). */
+  chase(spot: SnackSpot): void {
+    this.target = spot
+    this.jumps = 0
+    this.walk(0)
+    if (!this.drag && !this.flightTimer) this.pursue()
+  }
+
+  /** The snack was picked up again or taken. */
+  stopChase(): void {
+    if (!this.target) return
+    this.target = undefined
+    this.stopRun()
+    this.sendChase(0)
+  }
+
+  private sendChase(direction: ChaseDirection): void {
+    this.window.webContents.send(IPC.chase, direction)
+  }
+
+  private stopRun(): void {
+    clearInterval(this.runTimer)
+    clearTimeout(this.resumeTimer)
+    this.runTimer = undefined
+    this.resumeTimer = undefined
+  }
+
+  private resumeChase(how: FallEvent): void {
+    if (!this.target) return
+    clearTimeout(this.resumeTimer)
+    this.resumeTimer = setTimeout(
+      () => this.pursue(),
+      how === 'hurt' ? RESUME_MS.hurt : RESUME_MS.land,
+    )
+  }
+
+  /** Runs to the snack, or launches itself at it when it is far away or on another floor. */
+  private pursue(): void {
+    const target = this.target
+    if (!target || this.drag || this.flightTimer) return
+    this.stopRun()
+    const standY = target.floorY - this.size + FLOOR_INSET * this.scale
+    const floor = floorAt(this.areas, target.x, this.scale, standY) ?? this.floor
+    const spot = catchSpot(target.x, this.x, this.scale)
+    const goalX = clamp(spot.x, floor.minX, floor.maxX)
+    const otherFloor = Math.abs(floor.y - this.floor.y) >= this.scale
+    const far = Math.abs(goalX - this.x) > JUMP_DISTANCE * this.scale
+    this.sendChase(spot.direction)
+
+    if ((otherFloor || far) && this.jumps < MAX_JUMPS) {
+      this.jumps++
+      const { vx, vy } = jumpVelocity(goalX - this.x, floor.y - this.y)
+      this.fly({ x: this.x, y: this.y, vx, vy }, true)
+      return
+    }
+
+    const stepPx = (RUN_SPEED * this.scale * RUN_FRAME_MS) / 1000
+    this.runTimer = setInterval(() => {
+      const next = runStep(this.x, goalX, stepPx)
+      this.x = next.x
+      const under = floorAt(this.areas, duckCenterX(this.x, this.scale), this.scale, this.y)
+      if (under) this.floor = under
+      if (this.floor.y > this.y + 1) {
+        this.stopRun()
+        this.fly({ x: this.x, y: this.y, vx: 0, vy: 0 }, true) // ran off a taller monitor
+        return
+      }
+      this.y = this.floor.y
+      this.place()
+      if (!next.arrived) return
+      this.stopRun()
+      this.target = undefined
+      this.onCaught()
+    }, RUN_FRAME_MS)
+  }
+
+  private fly(start: Flight, gentle = false): void {
     this.walk(0)
     clearInterval(this.flightTimer)
     let state: Flight = start
@@ -203,7 +305,8 @@ export class DuckWindow {
       const floor = floorAt(this.areas, duckCenterX(this.x, this.scale), this.scale, this.y)
       if (floor) this.floor = floor
       this.place()
-      if (next.landed) this.stopFlight(hardest > HURT_SPEED ? 'hurt' : 'land')
+      // A jump after a snack is on purpose: the duck lands on its feet.
+      if (next.landed) this.stopFlight(!gentle && hardest > HURT_SPEED ? 'hurt' : 'land')
     }, FLIGHT_FRAME_MS)
   }
 
@@ -211,6 +314,7 @@ export class DuckWindow {
     clearInterval(this.flightTimer)
     this.flightTimer = undefined
     this.window.webContents.send(IPC.fall, how)
+    this.resumeChase(how)
   }
 
   /** Highest window y a flying duck may reach: its head touches the top of the highest display. */

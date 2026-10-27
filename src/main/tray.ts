@@ -1,10 +1,11 @@
 import { Menu, nativeImage, Tray } from 'electron'
 import placeholderSheet from '../../assets/baked/ducks/placeholder-duck/sheet.png?asset'
 import type { Translator } from '../core/i18n/i18n'
+import type { Snack } from '../core/toys/snacks'
 
 interface TrayActions {
   togglePanel(): void
-  feed(): void
+  feed(snack: Snack): void
   /** Whether the points pill is on now, and how to switch it. */
   pillShown: boolean
   setPill(shown: boolean): void
@@ -21,7 +22,8 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: t('tray.openPanel'), click: actions.togglePanel },
-      { label: t('tray.feed'), click: actions.feed },
+      { label: t('tray.feed'), click: () => actions.feed('bread') },
+      { label: t('tray.cigar'), click: () => actions.feed('cigar') },
       {
         label: t('tray.pill'),
         type: 'checkbox',

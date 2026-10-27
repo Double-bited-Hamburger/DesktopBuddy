@@ -81,6 +81,11 @@ export class PanelWindow {
     if (this.win && !this.win.isDestroyed()) this.win.close()
   }
 
+  /** Gets out of the way (e.g. to place bread), unless the user pinned it. */
+  closeUnlessPinned(): void {
+    if (!this.pinned) this.close()
+  }
+
   setPinned(pinned: boolean): void {
     this.pinned = pinned
     this.win?.setAlwaysOnTop(pinned)

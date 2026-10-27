@@ -1,43 +1,35 @@
 import { describe, expect, it } from 'vitest'
 import { BehaviorMachine } from '../../src/core/behavior/machine'
-import {
-  BREAD_BITE_MS,
-  BREAD_FALL_MS,
-  breadAt,
-  MEAL_MS,
-  msUntilBreadChange,
-} from '../../src/core/toys/bread'
+import { BREAD_BITE_MS, breadAt, MEAL_MS, msUntilBreadChange } from '../../src/core/toys/bread'
+import { PICKUP_MS } from '../../src/core/toys/snacks'
 import { sequence } from '../helpers'
 
 describe('breadAt', () => {
-  it('drops from the full height into the beak, speeding up', () => {
-    const drops = [0, 120, 230, 340].map((t) => breadAt(t, 18)?.drop)
-    expect(drops).toEqual([18, 17, 14, 8])
-    expect(breadAt(0, 18)?.frame).toBe('bread-3')
+  it('is pecked off the ground first, then sits in the beak', () => {
+    expect(breadAt(0)).toEqual({ frame: 'bread-3', onGround: true })
+    expect(breadAt(PICKUP_MS)).toEqual({ frame: 'bread-3', onGround: false })
   })
 
   it('gets smaller with each of the three bites, then is gone', () => {
-    expect(breadAt(BREAD_FALL_MS, 18)).toEqual({ frame: 'bread-3', drop: 0 })
-    expect(breadAt(BREAD_FALL_MS + BREAD_BITE_MS, 18)?.frame).toBe('bread-2')
-    expect(breadAt(BREAD_FALL_MS + 2 * BREAD_BITE_MS, 18)?.frame).toBe('bread-1')
-    expect(breadAt(MEAL_MS, 18)).toBeUndefined()
-    expect(breadAt(-1, 18)).toBeUndefined()
+    expect(breadAt(PICKUP_MS + BREAD_BITE_MS)?.frame).toBe('bread-2')
+    expect(breadAt(PICKUP_MS + 2 * BREAD_BITE_MS)?.frame).toBe('bread-1')
+    expect(breadAt(MEAL_MS)).toBeUndefined()
+    expect(breadAt(-1)).toBeUndefined()
   })
 })
 
 describe('msUntilBreadChange', () => {
-  it('wakes on each fall step and each bite, then never', () => {
-    expect(msUntilBreadChange(0)).toBe(BREAD_FALL_MS / 4)
-    expect(msUntilBreadChange(BREAD_FALL_MS)).toBe(BREAD_BITE_MS)
-    expect(msUntilBreadChange(BREAD_FALL_MS + 100)).toBe(BREAD_BITE_MS - 100)
+  it('wakes when it is picked up and on each bite, then never', () => {
+    expect(msUntilBreadChange(0)).toBe(PICKUP_MS)
+    expect(msUntilBreadChange(PICKUP_MS + 100)).toBe(BREAD_BITE_MS - 100)
     expect(msUntilBreadChange(MEAL_MS)).toBe(Number.POSITIVE_INFINITY)
   })
 
   it('agrees with breadAt: nothing changes before the reported time', () => {
     for (let t = 0; t < MEAL_MS; t += 37) {
       const wait = msUntilBreadChange(t)
-      expect(breadAt(t + wait - 1, 18)).toEqual(breadAt(t, 18))
-      expect(breadAt(t + wait, 18)).not.toEqual(breadAt(t, 18))
+      expect(breadAt(t + wait - 1)).toEqual(breadAt(t))
+      expect(breadAt(t + wait)).not.toEqual(breadAt(t))
     }
   })
 })

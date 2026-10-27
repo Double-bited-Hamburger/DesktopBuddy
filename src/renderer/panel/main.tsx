@@ -7,6 +7,8 @@ import { itemsForSlot } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
 import { createTranslator } from '../../core/i18n/i18n'
 import { STAGE_SIZE } from '../../core/stage'
+import type { Snack } from '../../core/toys/snacks'
+import { SNACKS } from '../../core/toys/snacks'
 import type { Loadout } from '../../shared/ipc'
 import { catalog, drawDressed, loadDressedDuck } from '../shared/outfit'
 
@@ -17,6 +19,31 @@ const TABS: readonly { slot: Slot; label: string }[] = [
   { slot: 'hat', label: 'bag.hats' },
   { slot: 'face', label: 'bag.faces' },
 ]
+
+/** "Feed" opens a tiny menu: what goes in the user's hand for the duck. */
+function FeedMenu({ t }: { t: Translator }) {
+  const [open, setOpen] = useState(false)
+  const give = (snack: Snack) => {
+    setOpen(false)
+    window.buddy.panel.feed(snack)
+  }
+  return (
+    <div class="feed">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+        {t('panel.feed')}
+      </button>
+      {open && (
+        <div class="feed-menu" role="menu">
+          {SNACKS.map((snack) => (
+            <button key={snack} type="button" role="menuitem" onClick={() => give(snack)}>
+              {t(`snack.${snack}`)}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 /** A pixel-perfect thumbnail of the duck wearing `loadout`. */
 function DuckPreview({ loadout }: { loadout: Loadout }) {
@@ -157,9 +184,7 @@ function App() {
             {t('points.balance', { n: points.toLocaleString(language) })}
           </output>
         )}
-        <button type="button" onClick={() => window.buddy.panel.feed()}>
-          {t('panel.feed')}
-        </button>
+        <FeedMenu t={t} />
         <button type="button" aria-pressed={pinned} onClick={togglePin}>
           {pinned ? t('panel.unpin') : t('panel.pin')}
         </button>

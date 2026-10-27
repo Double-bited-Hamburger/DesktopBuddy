@@ -92,8 +92,8 @@ const state = await duck.evaluate(`(async () => {
 
 check('duck canvas has drawn pixels', state.opaque > 0, `${state.opaque} opaque px`)
 check(
-  'window.buddy exposes getConfig/onPoints/duck/panel',
-  state.api.join() === 'duck,getConfig,onPoints,panel',
+  'window.buddy exposes getConfig/onPoints/duck/panel/snack',
+  state.api.join() === 'duck,getConfig,onPoints,panel,snack',
 )
 check(
   'renderer is sandboxed (no require/process)',

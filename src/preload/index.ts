@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { isSnack } from '../core/toys/snacks'
 import type { AppConfig, BuddyApi, Loadout, PointsEvent } from '../shared/ipc'
 import { FALL_EVENTS, IPC } from '../shared/ipc'
 
@@ -41,8 +42,17 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.loadout, handler)
     },
     earn: (source) => ipcRenderer.send(IPC.earn, source),
+    onChase: (listener) => {
+      const handler = (_event: unknown, direction: unknown) => {
+        if (direction === 1 || direction === -1 || direction === 0) listener(direction)
+      }
+      ipcRenderer.on(IPC.chase, handler)
+      return () => ipcRenderer.off(IPC.chase, handler)
+    },
     onFed: (listener) => {
-      const handler = () => listener()
+      const handler = (_event: unknown, snack: unknown) => {
+        if (isSnack(snack)) listener(snack)
+      }
       ipcRenderer.on(IPC.fed, handler)
       return () => ipcRenderer.off(IPC.fed, handler)
     },
@@ -53,7 +63,10 @@ const api: BuddyApi = {
     close: () => ipcRenderer.send(IPC.panelClose),
     setPinned: (pinned) => ipcRenderer.send(IPC.panelSetPinned, pinned),
     equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
-    feed: () => ipcRenderer.send(IPC.feed),
+    feed: (snack) => ipcRenderer.send(IPC.feed, snack),
+  },
+  snack: {
+    click: () => ipcRenderer.send(IPC.snackClick),
   },
 }
 

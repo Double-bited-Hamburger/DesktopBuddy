@@ -19,7 +19,7 @@ function cspPlugin(): Plugin {
 }
 
 // Main and preload entries are auto-detected (src/main/index.ts, src/preload/index.ts).
-// The renderer has three pages: the always-on duck, the on-demand panel and the optional pill.
+// Renderer pages: the always-on duck, the on-demand panel, the optional pill and a carried snack.
 export default defineConfig({
   main: {},
   preload: {},
@@ -34,6 +34,7 @@ export default defineConfig({
           duck: resolve('src/renderer/duck/index.html'),
           panel: resolve('src/renderer/panel/index.html'),
           pill: resolve('src/renderer/pill/index.html'),
+          snack: resolve('src/renderer/snack/index.html'),
         },
       },
     },

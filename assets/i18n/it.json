@@ -34,5 +34,8 @@
   "points.hint": "Guadagni punti cliccando, accarezzando e lanciando la tua papera",
   "tray.feed": "Dai il pane",
   "tray.pill": "Mostra i punti",
-  "panel.feed": "Dai il pane"
+  "panel.feed": "Dai",
+  "tray.cigar": "Dai un sigaro",
+  "snack.bread": "🍞 Pane",
+  "snack.cigar": "🚬 Sigaro"
 }

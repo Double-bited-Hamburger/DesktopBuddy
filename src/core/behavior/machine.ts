@@ -1,7 +1,18 @@
 import { MEAL_MS } from '../toys/bread'
+import { SMOKE_MS } from '../toys/cigar'
 import type { Rng } from '../types'
 
-export const BEHAVIOR_STATES = ['idle', 'walk', 'sleep', 'quack', 'ouch', 'happy', 'eat'] as const
+export const BEHAVIOR_STATES = [
+  'idle',
+  'walk',
+  'sleep',
+  'quack',
+  'ouch',
+  'happy',
+  'eat',
+  'run',
+  'smoke',
+] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
 
@@ -21,6 +32,9 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     ouch: [2000, 2500],
     happy: [1500, 1500],
     eat: [MEAL_MS, MEAL_MS],
+    // The shell ends a chase when the bread is caught; this is only a safety net.
+    run: [60_000, 60_000],
+    smoke: [SMOKE_MS, SMOKE_MS],
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -31,6 +45,8 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     ouch: { idle: 1 },
     happy: { idle: 1 },
     eat: { idle: 1 },
+    run: { idle: 1 },
+    smoke: { idle: 1 },
   },
 }
 
@@ -49,6 +65,8 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       ouch: forever,
       happy: forever,
       eat: forever,
+      run: forever,
+      smoke: forever,
     },
     next: {
       idle: { idle: 1 },
@@ -58,6 +76,8 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       ouch: { ouch: 1 },
       happy: { happy: 1 },
       eat: { eat: 1 },
+      run: { run: 1 },
+      smoke: { smoke: 1 },
     },
   }
 }
@@ -137,6 +157,17 @@ export class BehaviorMachine {
   /** Fed a slice of bread: the duck eats it (see core/toys/bread.ts), then idles. */
   eat(): void {
     this.enter('eat')
+  }
+
+  /** Caught a cigar: the duck smokes it like a boss (see core/toys/cigar.ts), then idles. */
+  smoke(): void {
+    this.enter('smoke')
+  }
+
+  /** Bread on the floor: run for it, facing the way the shell says. */
+  chase(direction: Direction): void {
+    this.enter('run')
+    this.facing = direction
   }
 
   /** A hard landing: the duck sits on its bottom, dazed, for a moment before getting up. */

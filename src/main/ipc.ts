@@ -1,10 +1,13 @@
 import type { WebContents } from 'electron'
 import { ipcMain } from 'electron'
+import type { Snack } from '../core/toys/snacks'
+import { isSnack } from '../core/toys/snacks'
 import type { AppConfig, EarnSource, Loadout } from '../shared/ipc'
 import { EARN_SOURCES, IPC } from '../shared/ipc'
 import type { DuckWindow } from './duck-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
+import type { SnackWindow } from './snack-window'
 
 interface IpcDeps {
   /** The current config (the loadout changes when items are equipped). */
@@ -13,22 +16,34 @@ interface IpcDeps {
   readonly equip: (slot: unknown, id: unknown) => Promise<Loadout | undefined>
   /** Earns for a click or pet, subject to economy.json cooldowns and caps. */
   readonly earn: (source: EarnSource) => void
-  /** Serves bread (from the panel), and pays for it once the duck has eaten it. */
-  readonly feed: () => void
+  /** Hands the user a snack (from the panel), paid for once the duck has finished it. */
+  readonly feed: (snack: Snack) => void
   readonly ate: () => void
   readonly duck: DuckWindow
   readonly panel: PanelWindow
   readonly pill: PillWindow
+  readonly snack: SnackWindow
 }
 
 /**
  * Registers every IPC channel. Each handler checks *which window* sent the message, so the
  * panel can never move the duck and the duck can never drive the panel.
  */
-export function registerIpc({ config, equip, earn, feed, ate, duck, panel, pill }: IpcDeps): void {
+export function registerIpc({
+  config,
+  equip,
+  earn,
+  feed,
+  ate,
+  duck,
+  panel,
+  pill,
+  snack,
+}: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
   const fromPill = (sender: WebContents) => sender === pill.webContents
+  const fromSnack = (sender: WebContents) => sender === snack.webContents
 
   ipcMain.handle(IPC.getConfig, (event): AppConfig => {
     if (!fromDuck(event.sender) && !fromPanel(event.sender) && !fromPill(event.sender))
@@ -67,8 +82,12 @@ export function registerIpc({ config, equip, earn, feed, ate, duck, panel, pill 
     if (fromDuck(event.sender)) ate()
   })
 
-  ipcMain.on(IPC.feed, (event) => {
-    if (fromPanel(event.sender)) feed()
+  ipcMain.on(IPC.feed, (event, kind: unknown) => {
+    if (fromPanel(event.sender) && isSnack(kind)) feed(kind)
+  })
+
+  ipcMain.on(IPC.snackClick, (event) => {
+    if (fromSnack(event.sender)) snack.click()
   })
 
   ipcMain.on(IPC.openPanel, (event) => {

@@ -41,8 +41,14 @@ possible if the RAM budget cannot be met.
   the `PointsLedger`, applies cooldowns and daily caps from `economy.json`, saves `ledger.json`
   (batched 1 s, flushed on quit) and broadcasts `points` to the duck (+N popup) and the panel
   (counter). At most one earn message per click/pet; the popup redraws at 5 Hz for 1.2 s.
-- **Bread:** panel/tray → main `feed` → duck `fed` → 1.8 s meal (redraws only on the 4 fall steps
-  and 3 bites) → duck `ate` → main pays `play` if it served that slice.
+- **Snacks (bread, cigar):** panel menu/tray → main `feed(kind)` → a tiny 8×8 snack window
+  (`snack/#kind`, created on demand, destroyed when taken) follows the cursor at 60 Hz until a
+  click drops or throws it; it flies at 30 fps and lands on the work-area floor. Main then runs the
+  duck to it (30 fps, `core/chase.ts`) or launches it in a gentle jump (max 2) when it is far or
+  on another monitor; on arrival the window closes and the duck gets `fed(kind)`. The duck pecks it
+  off the ground, then eats (1.8 s) or smokes (6.3 s, puffs every 1.5 s), redrawing only when the
+  snack, a puff or a pose changes → duck `ate` → main pays `play` once if the duck caught it. All
+  these timers exist only while a snack is out.
 - **Points pill (optional):** a third renderer page in a 120×32 click-through window. It costs a
   renderer process (tens of MB) only while the setting is on; off by default, so the resting app
   is still one window. It has no timers and repaints only on `points` events.
