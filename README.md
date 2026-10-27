@@ -9,10 +9,10 @@ throw it, dress it up. Free and open source, with no paywalls.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-f7d84a?style=flat-square)](LICENSE)
 [![Art: CC BY 4.0](https://img.shields.io/badge/art-CC%20BY%204.0-f2872b?style=flat-square)](LICENSE)
-![Windows 11](https://img.shields.io/badge/Windows-11-2a1f2d?style=flat-square&logo=windows11&logoColor=white)
-![Electron](https://img.shields.io/badge/Electron-45-2a1f2d?style=flat-square&logo=electron&logoColor=9feaf9)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-2a1f2d?style=flat-square&logo=typescript&logoColor=3178c6)
-![Preact](https://img.shields.io/badge/Preact-panels-2a1f2d?style=flat-square&logo=preact&logoColor=673ab8)
+![Windows 11](https://img.shields.io/badge/Windows-11-0078d4?style=flat-square&logo=windows11&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-45-47848f?style=flat-square&logo=electron&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)
+![Preact](https://img.shields.io/badge/Preact-panels-673ab8?style=flat-square&logo=preact&logoColor=white)
 <br>
 ![No telemetry](https://img.shields.io/badge/telemetry-none-8ccaa6?style=flat-square)
 ![No paywalls](https://img.shields.io/badge/paywalls-none-8ccaa6?style=flat-square)
