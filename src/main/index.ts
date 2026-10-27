@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import type { Tray } from 'electron'
-import { app } from 'electron'
+import { app, powerMonitor } from 'electron'
 import catalogJson from '../../assets/economy/catalog.json'
 import economyJson from '../../assets/economy/economy.json'
 import en from '../../assets/i18n/en.json'
@@ -13,16 +13,20 @@ import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
 import { loadSettings, saveSettings } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
+import { focusReward } from '../core/tracker/focus'
 import type { AppConfig, PointsEvent } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
+import { ActivityControls } from './activity-controls'
 import { DuckWindow } from './duck-window'
 import { FileStorage } from './file-storage'
+import { windowsForeground } from './foreground-windows'
 import { registerIpc } from './ipc'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
 import { ProgressService } from './progress'
 import { SnackWindow } from './snack-window'
+import { TrackerService } from './tracker'
 import { createTray } from './tray'
 
 // Keep a reference so the tray icon is not garbage collected.
@@ -145,7 +149,36 @@ async function start(): Promise<void> {
       console.error('Could not save settings', error),
     )
   }
-  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill, snack, progress })
+  // Activity tracking (opt-in) and focus sessions. A finished session pays points and counts
+  // for quests whether or not tracking is on.
+  const tracker = new TrackerService(
+    storage,
+    () => powerMonitor.getSystemIdleTime(),
+    windowsForeground(),
+    () => settings.tracking,
+    economy.focus,
+  )
+  tracker.onFocusDone = (session) => {
+    const reward = focusReward(economy.focus, session)
+    if (reward > 0) {
+      points.grant('focus', reward)
+      announce('focus', reward)
+    }
+    progress.record('focus')
+  }
+  tracker.sync()
+  powerMonitor.on('lock-screen', () => void tracker.pause())
+  powerMonitor.on('suspend', () => void tracker.pause())
+  const activity = new ActivityControls(
+    tracker,
+    economy.focus,
+    () => settings.tracking,
+    async (tracking) => {
+      settings = { ...settings, tracking }
+      await saveSettings(storage, settings)
+    },
+  )
+  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill, snack, progress, activity })
 
   tray = createTray(t, {
     togglePanel: () => panel.toggle(),
@@ -161,7 +194,8 @@ async function start(): Promise<void> {
   app.on('will-quit', (event) => {
     if (flushed) return
     event.preventDefault()
-    Promise.all([points.flush(), progress.flush()]).finally(() => {
+    tracker.stop()
+    Promise.all([points.flush(), progress.flush(), tracker.pause()]).finally(() => {
       flushed = true
       app.quit()
     })

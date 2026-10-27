@@ -10,11 +10,13 @@ import { SNACKS } from '../../core/toys/snacks'
 import type { Loadout, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
 import { Quests } from './quests'
+import { Stats } from './stats'
 import { Store } from './store'
+import { Today } from './today'
 
 const dictionaries = { en, it }
 
-const SCREENS = ['bag', 'store', 'quests'] as const
+const SCREENS = ['bag', 'store', 'quests', 'today', 'stats'] as const
 type Screen = (typeof SCREENS)[number]
 
 /** "Feed" opens a tiny menu: what goes in the user's hand for the duck. */
@@ -132,6 +134,8 @@ function App() {
         />
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}
+      {screen === 'today' && <Today t={t} />}
+      {screen === 'stats' && <Stats t={t} language={language} />}
     </main>
   )
 }

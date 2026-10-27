@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Catalog } from '../catalog/catalog'
+import { FocusConfigSchema } from '../tracker/focus'
 import { boxOdds, FreeGiftSchema, GiftBoxSchema } from './gifts'
 import { PricesSchema } from './inventory'
 import { SourceRuleSchema } from './ledger'
@@ -17,6 +18,8 @@ export const EconomyConfigSchema = z.object({
   duplicateRefund: z.number().min(0).max(1),
   prices: PricesSchema,
   quests: QuestConfigSchema,
+  /** Focus sessions (Today screen): offered lengths and points per finished minute. */
+  focus: FocusConfigSchema,
 })
 
 export type EconomyConfig = z.infer<typeof EconomyConfigSchema>

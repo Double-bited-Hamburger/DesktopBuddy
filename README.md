@@ -39,6 +39,7 @@ throw it, dress it up. Free and open source, with no paywalls.
 | finish **quests** (3 a day + weekly)   | —                                          | **+10…200** |
 | open **gifts** in the Store            | new skins, hats, glasses (odds shown, pity) | spend 80–700 |
 | open the **Bag** (right-click)         | wears what you've found, live              |          — |
+| run a **focus session** (15/25/50 min) | keeps time while you work                  | **+1/min** |
 
 <div align="center">
 <img src="docs/media/wardrobe.svg" alt="Six duck skins wearing different hats and glasses" width="720">
@@ -160,7 +161,7 @@ palette:
 | 4 · Petting, points & caps, bread, points pill | ✅ |
 | 1 · Hand-drawn duck to replace the placeholder | 🎨 |
 | 5 · Store, gift boxes (visible odds + pity), quests | ✅ |
-| 6 · Opt-in, local focus tracking (Today / Stats) | 🔜 |
+| 6 · Opt-in, local focus tracking (Today / Stats) | ✅ |
 | 7 · Settings, chiptune sounds, polish   | 🔜 |
 | 8 · Friends (opt-in, self-hostable)     | 🔜 |
 

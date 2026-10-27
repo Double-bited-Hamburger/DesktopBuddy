@@ -154,6 +154,35 @@ Tracker spike (library choice + measured CPU) → opt-in tracking, Today timelin
 breaks, Stats, streaks. **Exit:** `PRIVACY.md` matches what is stored; erase-all works; sampler CPU
 recorded.
 
+- [x] **Core** (`src/core/tracker`): day files in minute buckets (`activity.ts`, `MinuteBucketer`),
+      `summarizeDay` (active / focus / distraction / breaks ≥ 5 min / focus rate / timeline / top
+      apps), default + user categories, `streakOf` (30 min focus or a finished session),
+      `focus.ts` (lengths and points from economy.json). Tests for all of it
+- [x] **Main:** `TrackerService` samples every 5 s **only while tracking is on** (no timer when
+      off), writes a day file at most every 30 s and on pause/lock/suspend/quit; focus sessions
+      are one timeout. `ActivityControls` validates every panel request; export goes through a
+      save dialog
+- [x] **Panel:** Today (opt-in card that says exactly what is recorded, focus session with
+      countdown, tiles, timeline, top apps with category toggle and "never record", turn off,
+      export, two-step erase) and Stats (7-day bars, streak / best, week's top apps)
+- [x] **Economy:** a finished focus session pays 1 pt per minute (`focus` source) and counts for
+      the new "Finish a focus session" quests (daily 20, weekly ×5 = 150)
+- [x] Verified live over CDP (2026-10-27) on a throwaway `BUDDY_DATA_DIR`: off by default; on →
+      off wrote the current minute (idle, no app); the day file has only the documented fields;
+      categories and ignore list saved; bad focus lengths/categories and erase from the duck page
+      rejected; streak 4 from seeded days; erase removed every activity file; smoke test green;
+      the three screens checked visually
+- [x] **App names** via `koffi` (prebuilt FFI, no compiler): user32 `GetForegroundWindow` +
+      `GetWindowThreadProcessId`, kernel32 `OpenProcess` (limited query) +
+      `QueryFullProcessImageNameW` + `CloseHandle`, behind `ForegroundSource`
+      (`src/main/foreground-windows.ts`). Falls back to active/idle only if it can't load.
+      Measured 2026-10-27: **≈27 µs CPU per sample** (10 000 samples = 266 ms CPU), i.e. ≈0.0005 %
+      of one core at one sample per 5 s. Verified in the dev app on a throwaway `BUDDY_DATA_DIR`:
+      `appNames: true` and the foreground process name written to the day file
+- [ ] **Not verified:** whole-app CPU with tracking on (`npm run perf` not run); a real midnight
+      rollover and lock/suspend in the app (covered by code paths, not exercised); export dialog
+      (needs a human to pick a file); koffi inside a packaged build (Phase 9: unpack from asar)
+
 ## Phase 7 — Settings & polish
 
 General (theme, language, size), Sounds (chip-style quack via WebAudio), Duck (behaviors), Danger

@@ -107,6 +107,13 @@ check(
     Number.isInteger(state.config.points),
 )
 
+// Opening the panel toggles it: close one left open by an earlier probe so this really opens it.
+const leftOpen = (await listPages()).find((p) => p.url.includes('/panel/'))
+if (leftOpen) {
+  const stale = await attach(leftOpen)
+  await stale.evaluate('window.buddy.panel.close()')
+  await sleep(500)
+}
 await duck.evaluate('window.buddy.duck.openPanel()')
 const panel = await attach(await waitForPage('/panel/', 8000))
 await sleep(800)

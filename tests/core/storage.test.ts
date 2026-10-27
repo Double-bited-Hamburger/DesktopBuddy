@@ -45,6 +45,7 @@ describe('settings', () => {
       volume: 0.5,
       showPointsPill: false,
       loadout: { skin: 'classic', hat: null, face: null },
+      tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })
   })
 

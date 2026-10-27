@@ -8,9 +8,12 @@ import type {
   EarnSource,
   GiftResult,
   Loadout,
+  StatsView,
   StoreView,
+  TodayView,
 } from '../shared/ipc'
 import { EARN_SOURCES, IPC } from '../shared/ipc'
+import type { ActivityControls } from './activity-controls'
 import type { DuckWindow } from './duck-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
@@ -33,6 +36,8 @@ interface IpcDeps {
   readonly snack: SnackWindow
   /** Inventory, gifts, featured item and quests. */
   readonly progress: ProgressService
+  /** Tracking settings, Today/Stats views, erase/export and focus sessions. */
+  readonly activity: ActivityControls
 }
 
 /**
@@ -50,6 +55,7 @@ export function registerIpc({
   pill,
   snack,
   progress,
+  activity,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -141,4 +147,48 @@ export function registerIpc({
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
     return progress.claimQuest(id)
   })
+
+  // Activity channels are panel-only; ActivityControls validates every payload.
+  const panelOnly =
+    <A extends unknown[], R>(handler: (...args: A) => R) =>
+    (event: { sender: WebContents }, ...args: A): R => {
+      if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+      return handler(...args)
+    }
+  ipcMain.handle(
+    IPC.activityToday,
+    panelOnly((): Promise<TodayView> => activity.today()),
+  )
+  ipcMain.handle(
+    IPC.activityStats,
+    panelOnly((): Promise<StatsView> => activity.stats()),
+  )
+  ipcMain.handle(
+    IPC.activitySetEnabled,
+    panelOnly((enabled: unknown) => activity.setEnabled(enabled)),
+  )
+  ipcMain.handle(
+    IPC.activitySetCategory,
+    panelOnly((app: unknown, category: unknown) => activity.setCategory(app, category)),
+  )
+  ipcMain.handle(
+    IPC.activitySetIgnored,
+    panelOnly((app: unknown, ignored: unknown) => activity.setIgnored(app, ignored)),
+  )
+  ipcMain.handle(
+    IPC.activityErase,
+    panelOnly(() => activity.erase()),
+  )
+  ipcMain.handle(
+    IPC.activityExport,
+    panelOnly(() => activity.exportAll()),
+  )
+  ipcMain.handle(
+    IPC.focusStart,
+    panelOnly((minutes: unknown) => activity.startFocus(minutes)),
+  )
+  ipcMain.handle(
+    IPC.focusStop,
+    panelOnly(() => activity.stopFocus()),
+  )
 }

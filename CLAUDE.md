@@ -5,7 +5,8 @@ desktop, walks along the taskbar, can be dressed (duck types/skins, hats, faces,
 points when you pet and play with it or finish quests, and spends them in a store. Later: focus
 tracking (Today/Stats) and friends. It must stay **cheap on CPU and RAM**.
 
-Status: **Phases 0, 2–5 done** (duck, behaviors, dress-up, points & snacks, store/gifts/quests).
+Status: **Phases 0, 2–6 done** (duck, behaviors, dress-up, points & snacks, store/gifts/quests,
+opt-in Today/Stats + focus sessions).
 See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no

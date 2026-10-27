@@ -3,12 +3,27 @@
 DesktopBuddy is local-first. The principles are fixed; the exact list of stored fields is filled in
 as each feature lands.
 
-## Today (Phase 0)
+## Today (Phase 6)
 
 - **No network access at all.** No telemetry, analytics, crash reporting or update checks.
-- **No tracking.** Nothing observes other apps or input.
-- Stored on disk, in `<userData>/data/` (Windows: `%APPDATA%\desktop-buddy\data\`): `settings.json`
-  (scale, language, volume, loadout).
+- **Activity tracking is off by default.** The Today screen explains exactly what is recorded and
+  records nothing until the user presses "Yes, track my day". It can be turned off any time.
+- **What tracking reads while on:** every 5 s, the seconds since the last keyboard/mouse input
+  (Electron `powerMonitor.getSystemIdleTime`, which reports a number, not the input itself).
+  On Windows it also reads the **foreground app's process name** (e.g. `Code`) through five Win32
+  calls (`src/main/foreground-windows.ts`: foreground window → its process id → the process's
+  image path, of which only the file name is kept). **Window titles are never read.** Elevated or
+  protected apps refuse the query; their minutes are recorded without a name. Where app names are
+  unavailable (other OSes, or the native library fails to load) only active/idle is recorded,
+  and the UI says so.
+- Samples are not stored. Each minute becomes one bucket: active or idle, plus the most-seen app
+  name (when available). Apps on the ignore list are never written.
+- **Focus sessions** the user finishes are recorded (start minute and length) even with tracking
+  off, because the user started them on purpose. They pay points and count for quests.
+- **Erase:** "Erase all activity" deletes every `activity-*` file (two clicks). **Export:** the
+  user picks a file in a save dialog and gets every stored day as JSON; nothing is written
+  anywhere else.
+- Stored on disk, in `<userData>/data/` (Windows: `%APPDATA%\desktop-buddy\data\`).
 
 ## Principles for later phases
 
@@ -29,8 +44,9 @@ as each feature lands.
 
 | Key                   | Contents                                                             | Since   |
 | --------------------- | -------------------------------------------------------------------- | ------- |
-| `settings`            | scale, language, volume, points-pill toggle, loadout (skin/hat/face) | Phase 0 |
+| `settings`            | scale, language, volume, points-pill toggle, loadout (skin/hat/face); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 |
 | `ledger`              | points history `{ts, source, delta}`                                 | Phase 4 |
-| `inventory`           | owned item ids, equipped slots                                       | Phase 3 |
-| `quests`              | quest progress                                                       | Phase 5 |
-| `activity-YYYY-MM-DD` | per-minute app name + active/idle (opt-in)                           | Phase 6 |
+| `inventory`           | owned item ids, opens-without-a-hit per gift box, last free-gift time | Phase 5 |
+| `quests`              | progress per active quest: period, count, claimed                    | Phase 5 |
+| `activity-YYYY-MM-DD` | `day`; `apps` (process names seen, empty while app names are off); `minutes` as `[minute of day, app index or -1, active 1/0]`; `sessions` as `[start minute, length]` | Phase 6 |
+| `*-backup-<time>`     | a copy of a save file that failed validation, kept instead of deleted | Phase 4 |

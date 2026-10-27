@@ -7,7 +7,9 @@ import type {
   GiftResult,
   Loadout,
   PointsEvent,
+  StatsView,
   StoreView,
+  TodayView,
 } from '../shared/ipc'
 import { FALL_EVENTS, IPC } from '../shared/ipc'
 
@@ -82,6 +84,20 @@ const api: BuddyApi = {
     openGift: (box): Promise<GiftResult> => ipcRenderer.invoke(IPC.openGift, box),
     buyFeatured: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.buyFeatured),
     claimQuest: (id): Promise<number> => ipcRenderer.invoke(IPC.claimQuest, id),
+    activity: {
+      today: (): Promise<TodayView> => ipcRenderer.invoke(IPC.activityToday),
+      stats: (): Promise<StatsView> => ipcRenderer.invoke(IPC.activityStats),
+      setEnabled: (enabled): Promise<TodayView> =>
+        ipcRenderer.invoke(IPC.activitySetEnabled, enabled),
+      setCategory: (app, category): Promise<TodayView> =>
+        ipcRenderer.invoke(IPC.activitySetCategory, app, category),
+      setIgnored: (app, ignored): Promise<TodayView> =>
+        ipcRenderer.invoke(IPC.activitySetIgnored, app, ignored),
+      erase: (): Promise<number> => ipcRenderer.invoke(IPC.activityErase),
+      export: (): Promise<boolean> => ipcRenderer.invoke(IPC.activityExport),
+      startFocus: (minutes): Promise<TodayView> => ipcRenderer.invoke(IPC.focusStart, minutes),
+      stopFocus: (): Promise<TodayView> => ipcRenderer.invoke(IPC.focusStop),
+    },
   },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),

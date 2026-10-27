@@ -3,7 +3,16 @@ import type { Clock } from '../types'
 import { localDayKey } from './ledger'
 
 /** Things the player does that quests can count. */
-export const QUEST_EVENTS = ['click', 'pet', 'throw', 'bread', 'cigar', 'gift', 'equip'] as const
+export const QUEST_EVENTS = [
+  'click',
+  'pet',
+  'throw',
+  'bread',
+  'cigar',
+  'gift',
+  'equip',
+  'focus',
+] as const
 export type QuestEvent = (typeof QUEST_EVENTS)[number]
 
 export const QuestSchema = z.object({

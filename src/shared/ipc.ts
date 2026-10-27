@@ -4,6 +4,7 @@ import type { RarityChance } from '../core/economy/gifts'
 import type { QuestView } from '../core/economy/quests'
 import type { Settings } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
+import type { Category, DaySummary, Streak } from '../core/tracker/summary'
 
 /** Channel names shared by main, preload and renderers. */
 export const IPC = {
@@ -32,6 +33,15 @@ export const IPC = {
   openGift: 'panel:open-gift',
   buyFeatured: 'panel:buy-featured',
   claimQuest: 'panel:claim-quest',
+  activityToday: 'panel:activity-today',
+  activityStats: 'panel:activity-stats',
+  activitySetEnabled: 'panel:activity-set-enabled',
+  activitySetCategory: 'panel:activity-set-category',
+  activitySetIgnored: 'panel:activity-set-ignored',
+  activityErase: 'panel:activity-erase',
+  activityExport: 'panel:activity-export',
+  focusStart: 'panel:focus-start',
+  focusStop: 'panel:focus-stop',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -95,6 +105,37 @@ export type GiftResult =
 export type BuyResult =
   | { readonly ok: true; readonly item: string }
   | { readonly ok: false; readonly reason: 'points' | 'owned' }
+
+/** The Today screen: tracking state, today's summary and the focus session. */
+export interface TodayView {
+  /** Activity tracking is on (opt-in). */
+  readonly enabled: boolean
+  /** The tracker can name apps; without it only active / idle / break time is recorded. */
+  readonly appNames: boolean
+  readonly summary: DaySummary
+  /** Lowercase process names that are never recorded. */
+  readonly ignore: readonly string[]
+  /** A running focus session (works with tracking off too). */
+  readonly focus?: { readonly startedAt: number; readonly minutes: number; readonly endsAt: number }
+  readonly focusLengths: readonly number[]
+  readonly pointsPerMinute: number
+}
+
+/** The Stats screen: the last 7 days (oldest first), streaks and the week's top apps. */
+export interface StatsView {
+  readonly days: readonly {
+    readonly day: number
+    readonly activeMinutes: number
+    readonly focusMinutes: number
+    readonly sessions: number
+  }[]
+  readonly streak: Streak
+  readonly topApps: readonly {
+    readonly app: string
+    readonly minutes: number
+    readonly category: Category
+  }[]
+}
 
 /** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
 export type ChaseDirection = 1 | -1 | 0
@@ -165,6 +206,22 @@ export interface BuddyApi {
     buyFeatured(): Promise<BuyResult>
     /** Claims a finished quest; resolves to the points paid (0 if it couldn't be claimed). */
     claimQuest(id: string): Promise<number>
+    /** Opt-in activity tracking and focus sessions (Today / Stats). */
+    activity: {
+      today(): Promise<TodayView>
+      stats(): Promise<StatsView>
+      setEnabled(enabled: boolean): Promise<TodayView>
+      /** Overrides an app's category (by process name). */
+      setCategory(app: string, category: Category): Promise<TodayView>
+      /** Never records this app again (or stops ignoring it). */
+      setIgnored(app: string, ignored: boolean): Promise<TodayView>
+      /** Deletes every stored day; resolves to how many day files were removed. */
+      erase(): Promise<number>
+      /** Asks where to save a JSON copy of all activity; false if the user cancelled. */
+      export(): Promise<boolean>
+      startFocus(minutes: number): Promise<TodayView>
+      stopFocus(): Promise<TodayView>
+    }
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

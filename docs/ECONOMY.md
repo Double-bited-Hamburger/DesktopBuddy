@@ -28,7 +28,7 @@ Everything is free and earnable; there is no real money and no locked "premium" 
 | Quests        | 10–200 per quest      | —        | by quest pool | 3 daily drawn from the pool, all weekly ones      |
 | Free gift     | one paper gift        | 2 h      | —             | Ready on first launch; a duplicate pays 20 pts    |
 | Refunds       | ½ the box price       | —        | —             | When a bought box gives an item you already own   |
-| Focus session | per completed session | —        | —             | Phase 6, from `focus.completed`                   |
+| Focus session | 1 per minute (15/25/50) | —      | —             | Paid only when it runs to the end (`focus` in economy.json) |
 
 `earn(source)` returns `{ granted }` or `{ granted: 0, reason }` with `unknown-source`, `cooldown`
 or `daily-cap`; at the cap it pays out only what is left. `grant` is for rewards limited by other
@@ -75,6 +75,8 @@ Old days and weeks simply stop counting; nothing claimable is lost before its pe
 | Pet the duck         | weekly |     60 |    150 |
 | Feed it bread        | weekly |     10 |    100 |
 | Open gifts           | weekly |      5 |    200 |
+| Finish a focus session | daily  |    1 |     20 |
+| Finish a focus session | weekly |    5 |    150 |
 
 ## Items
 

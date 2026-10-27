@@ -128,6 +128,13 @@
         "reward": 10
       },
       {
+        "id": "focus-1",
+        "period": "daily",
+        "event": "focus",
+        "target": 1,
+        "reward": 20
+      },
+      {
         "id": "pet-60",
         "period": "weekly",
         "event": "pet",
@@ -147,7 +154,18 @@
         "event": "gift",
         "target": 5,
         "reward": 200
+      },
+      {
+        "id": "focus-5",
+        "period": "weekly",
+        "event": "focus",
+        "target": 5,
+        "reward": 150
       }
     ]
+  },
+  "focus": {
+    "lengths": [15, 25, 50],
+    "pointsPerMinute": 1
   }
 }

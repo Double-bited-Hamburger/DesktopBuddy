@@ -17,6 +17,16 @@ export const SettingsSchema = z.object({
   /** The small points pill near the system tray. Off by default to stay unobtrusive. */
   showPointsPill: z.boolean().default(false),
   loadout: LoadoutSchema.prefault({}),
+  /** Activity tracking for Today/Stats: off until the user turns it on (see docs/PRIVACY.md). */
+  tracking: z
+    .object({
+      enabled: z.boolean().default(false),
+      /** Lowercase process names that are never recorded. */
+      ignore: z.array(z.string()).default([]),
+      /** The user's own categories by lowercase process name (on top of the defaults). */
+      categories: z.record(z.string(), z.enum(['focus', 'distraction', 'neutral'])).default({}),
+    })
+    .prefault({}),
 })
 
 export type Settings = z.infer<typeof SettingsSchema>

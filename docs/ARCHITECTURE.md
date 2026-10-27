@@ -60,6 +60,13 @@ possible if the RAM budget cannot be met.
   Quest events come from main's own handlers (click/pet/throw/snack/gift/equip), never from a page
   claiming progress. No new window and no timer: the panel's free-gift countdown ticks every 30 s
   only while the Store screen is open.
+- **Activity (opt-in):** `TrackerService` (main) has **no timer while tracking is off**. On, it
+  samples every 5 s (idle seconds; app name from a `ForegroundSource`: on Windows five Win32 calls
+  through `koffi`, ≈27 µs CPU per sample), folds
+  samples into one bucket per minute (core `MinuteBucketer`) and writes `activity-<date>` at most
+  every 30 s, plus on lock/suspend/quit. Today/Stats are built on request (core `summarizeDay`,
+  `streakOf`); the panel refreshes Today every 30 s and ticks the focus countdown every 1 s, both
+  only while that screen is open. A focus session is one main-process timeout.
 - **IPC:** contract in `src/shared/ipc.ts`; each handler in `src/main/ipc.ts` checks the sender
   window and payload. The panel cannot drive the duck and vice versa.
 
