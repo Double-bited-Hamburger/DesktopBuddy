@@ -146,6 +146,20 @@ with the renderer at 0.00%. Most likely cause: click-through with `forward: true
 process every system mouse move, so a user moving the mouse during a run inflates main. Not yet
 verified — measure once with the mouse untouched, or with forwarding off, to confirm.
 
+### Quick check after Phase 7 (2026-10-28)
+
+Built app with every feature so far (sounds, settings, snacks, store, tracker code; tracking off,
+pill off, default settings), 1 run × 30 s after 8 s warm-up — a quick check, not the full pass:
+
+| State | CPU (% of one core)                                 | Private RAM |
+| ----- | --------------------------------------------------- | ----------- |
+| free  | **0.92%** (main 0.38 · GPU 0.25 · renderer 0.29) ✅ | 83.4 MB ✅  |
+| idle  | **0.15%** (GPU 0.15, main and renderer 0.00) ✅     | 80.1 MB ✅  |
+
+Both under budget, in line with the Phase 2 numbers: the new features cost nothing measurable
+while idle (no audio device is open when quiet). One run is inside the noise above, so the
+full Phase 7 exit pass (all states, tracking on, ≥ 3 runs) is still to do.
+
 Next steps (measure each): **first get a quiet baseline** (mouse untouched, longer 120 s windows,
 ≥ 5 runs) to confirm or kill the mouse-forwarding theory, since without it ±1–2% swings hide
 real changes; then, for walking, `app.disableHardwareAcceleration()` (test transparency side

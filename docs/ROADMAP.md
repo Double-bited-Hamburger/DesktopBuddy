@@ -202,7 +202,9 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
       settings; six bad patches rejected; volume/naps/theme saved and pushed to the duck page;
       autostart refused in dev; size flags a restart; Italian + light switch live through the real
       controls; erase deleted every file and the app restarted fresh; screenshots dark/light/it
-- [ ] **Full perf pass** (`npm run perf` with everything on) — the phase exit, not run yet
+- [x] Quick perf check (2026-10-28, 1 run × 30 s): free mix **0.92%**, idle **0.15%**, 80–83 MB —
+      under budget (see ARCHITECTURE)
+- [ ] **Full perf pass** (all states, tracking on, ≥ 3 runs) — the phase exit
 - [ ] **Not verified:** hearing the sounds (no audio check is possible from here — listen!);
       the export dialog and the restart button (need a human); autostart in an installed build
       (Phase 8); a relaunch in dev mode comes back without the Vite server (dev-only)
