@@ -1,0 +1,34 @@
+# Packaging (electron-builder). `npm run dist` builds the app, then a Windows installer in release/.
+# Must match app.setAppUserModelId in src/main/index.ts (taskbar, notifications, Start menu).
+appId: dev.desktopbuddy.app
+productName: DesktopBuddy
+copyright: DesktopBuddy contributors (MIT)
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+# koffi loads a native .node file, which can't be read from inside the asar archive.
+asarUnpack:
+  - node_modules/koffi/**
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+# Per-user install: no admin prompt, Start menu + desktop shortcuts, launches when done.
+# Unsigned for now (Phase 8 decision), so Windows SmartScreen asks once: More info -> Run anyway.
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: DesktopBuddy
+  runAfterFinish: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  # Uninstalling keeps your points and items unless you erase them in Settings first.
+  deleteAppDataOnUninstall: false
+artifactName: DesktopBuddy-Setup-${version}.${ext}

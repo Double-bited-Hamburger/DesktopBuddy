@@ -258,6 +258,10 @@ async function start(): Promise<void> {
   })
 }
 
+// Saves live in %APPDATA%desktop-buddy in every build. Pinned, because an installed build is
+// named "DesktopBuddy" (productName) and Electron would otherwise move them to a new folder.
+app.setPath('userData', join(app.getPath('appData'), 'desktop-buddy'))
+
 // Dev-only: `BUDDY_DATA_DIR` keeps test runs away from the real saves (points, items, quests).
 // It also gets its own single-instance lock, so a test app can run next to the real one.
 if (!app.isPackaged && process.env.BUDDY_DATA_DIR)

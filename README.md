@@ -177,6 +177,10 @@ Details and what's still unverified: [docs/ROADMAP.md](docs/ROADMAP.md).
 | `npm run build`     | production bundles (`npm run preview` runs them)    |
 | `npm run bake`      | `.pxl` → PNG sheets, validates the art rules        |
 | `npm run readme-art`| regenerates the pictures in this README from `.pxl` |
+| `npm run dist`      | Windows installer → `release/DesktopBuddy-Setup-*.exe` (Start menu + desktop icon) |
+
+The installer isn't signed yet, so Windows SmartScreen asks once: **More info → Run anyway**.
+Linux is planned: see [docs/LINUX.md](docs/LINUX.md).
 
 ## 🤝 Principles
 

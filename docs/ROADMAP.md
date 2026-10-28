@@ -219,6 +219,20 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
 Installer (electron-builder), signing decision, auto-update, CONTRIBUTING + art guide, final
 license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi` from asar.
 
+- [x] **App icon** drawn from the duck's idle frame by `npm run icon` (`tools/make-icon.ts`):
+      `build/icon.ico` (16–256 px, whole-pixel scaling) + `build/icon.png` (512 px, for Linux)
+- [x] **Windows installer** (`npm run dist` → `release/DesktopBuddy-Setup-<version>.exe`):
+      per-user NSIS (no admin), Start menu + desktop shortcuts, runs when done, uninstaller keeps
+      the saves; appId matches `setAppUserModelId`. `koffi` unpacked from asar (checked: it loads
+      from the package). Saves pinned to `%APPDATA%desktop-buddy` so the installed app finds
+      the same points as `npm run dev`. Version 0.1.0
+- [ ] Not signed yet: SmartScreen asks once (More info → Run anyway). Signing is still a decision
+- [ ] **Not verified:** installing and running the installed app (left to the user, as it uses
+      the real saves); autostart from the installed app; the uninstaller
+- [ ] Auto-update, CONTRIBUTING + art guide, licenses, CREDITS
+- [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
+      AppImage + .deb from CI)
+
 ## Phase 9 — Friends (opt-in, last)
 
 Self-hostable relay, invite codes, visiting ducks, chat bubbles. Separate design + security
@@ -230,5 +244,6 @@ the network. **Exit:** works against a local relay; off by default.
 - **Website blocking** — needs an elevated hosts-file edit or a browser extension; separate design
   and an explicit user decision (it modifies system settings).
 - Sitting on other apps' title bars — needs native window enumeration.
-- macOS/Linux — the `PlatformAdapter` seam exists; transparency/always-on-top differ per OS.
+- macOS — the `PlatformAdapter` seam exists; transparency/always-on-top differ per OS. (Linux
+  has its own plan: [LINUX.md](LINUX.md).)
 - Tauri shell — only if the Electron budget can't be met.

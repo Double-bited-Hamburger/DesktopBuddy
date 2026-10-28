@@ -1,6 +1,6 @@
 {
   "name": "desktop-buddy",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "An open-source 16-bit pixel-art desktop duck: skins, accessories, quests and a points store.",
   "license": "MIT",
@@ -11,6 +11,9 @@
     "build": "electron-vite build",
     "prebuild": "npm run bake",
     "preview": "electron-vite preview",
+    "icon": "tsx tools/make-icon.ts",
+    "dist": "npm run build && electron-builder --win",
+    "dist:dir": "npm run build && electron-builder --win --dir",
     "bake": "tsx tools/bake-sprites.ts",
     "typecheck": "tsc -p tsconfig.core.json --noEmit && tsc -p tsconfig.json --noEmit",
     "lint": "biome check .",
@@ -28,6 +31,7 @@
     "@types/node": "^26.6.5",
     "@types/pngjs": "^6.0.5",
     "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "pngjs": "^7.0.0",
     "preact": "^11.0.2",
@@ -39,5 +43,6 @@
   },
   "dependencies": {
     "koffi": "^3.3.4"
-  }
+  },
+  "author": "DesktopBuddy contributors"
 }
