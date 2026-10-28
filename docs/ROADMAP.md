@@ -188,6 +188,25 @@ recorded.
 General (theme, language, size), Sounds (chip-style quack via WebAudio), Duck (behaviors), Danger
 zone (export/erase), autostart, full perf pass. **Exit:** budget met with all features on.
 
+- [x] **Settings screen** (6th tab; the tabs are now a 3×2 grid so Italian fits): language (live:
+      panel, tray, pill), theme (system / light / dark panel), duck size 2–6× (restart button),
+      points pill, volume + test quack, the duck's own behaviors (walks around / naps / random
+      quacks — core `behaviorConfigFor`, applied live), start with Windows (installed builds
+      only), Danger zone (export everything as JSON, two-click erase everything + restart)
+- [x] **Chip sounds** as data (core `sound/chip.ts`): quack (click or a quack it chose), chirp
+      (petted), three chomps in time with eating bread, a falling whistle on a hard landing.
+      Played with WebAudio; the audio device is closed when quiet
+- [x] Core tests: strict settings patches (a patch must not reset fields it leaves out — caught
+      live and fixed test-first), behavior switches, sound timing
+- [x] Verified live over CDP (2026-10-28) on a throwaway `BUDDY_DATA_DIR`: duck page can't call
+      settings; six bad patches rejected; volume/naps/theme saved and pushed to the duck page;
+      autostart refused in dev; size flags a restart; Italian + light switch live through the real
+      controls; erase deleted every file and the app restarted fresh; screenshots dark/light/it
+- [ ] **Full perf pass** (`npm run perf` with everything on) — the phase exit, not run yet
+- [ ] **Not verified:** hearing the sounds (no audio check is possible from here — listen!);
+      the export dialog and the restart button (need a human); autostart in an installed build
+      (Phase 8); a relaunch in dev mode comes back without the Vite server (dev-only)
+
 ## Phase 8 — Release & community
 
 Installer (electron-builder), signing decision, auto-update, CONTRIBUTING + art guide, final

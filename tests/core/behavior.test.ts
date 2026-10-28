@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   BEHAVIOR_STATES,
   BehaviorMachine,
+  behaviorConfigFor,
   DEFAULT_BEHAVIOR_CONFIG,
   pinnedBehaviorConfig,
 } from '../../src/core/behavior/machine'
@@ -150,6 +151,39 @@ describe('pinnedBehaviorConfig', () => {
     const machine = new BehaviorMachine(sequence([0.5]), pinnedBehaviorConfig())
     machine.enter('sleep')
     machine.poke()
+    expect(machine.state).toBe('idle')
+  })
+})
+
+describe('behaviorConfigFor', () => {
+  const all = { wander: true, naps: true, chatter: true }
+
+  it('keeps the defaults when everything is on', () => {
+    expect(behaviorConfigFor(all)).toEqual(DEFAULT_BEHAVIOR_CONFIG)
+  })
+
+  it('removes switched-off idle choices', () => {
+    const idle = behaviorConfigFor({ wander: false, naps: true, chatter: false }).next.idle
+    expect(Object.keys(idle).sort()).toEqual(['idle', 'sleep'])
+  })
+
+  it('never walks once wandering is off', () => {
+    const machine = new BehaviorMachine(() => 0.3, behaviorConfigFor({ ...all, wander: false }))
+    for (let i = 0; i < 50; i++) {
+      machine.update(60_000)
+      expect(machine.state).not.toBe('walk')
+    }
+  })
+
+  it('stays idle when every choice is off', () => {
+    const idle = behaviorConfigFor({ wander: false, naps: false, chatter: false }).next.idle
+    expect(idle).toEqual({ idle: 0.25 })
+  })
+
+  it('can be reconfigured while running', () => {
+    const machine = new BehaviorMachine(() => 0)
+    machine.configure(behaviorConfigFor({ wander: false, naps: false, chatter: false }))
+    machine.update(60_000)
     expect(machine.state).toBe('idle')
   })
 })

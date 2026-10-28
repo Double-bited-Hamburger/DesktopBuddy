@@ -8,6 +8,7 @@ import type {
   EarnSource,
   GiftResult,
   Loadout,
+  SettingsView,
   StatsView,
   StoreView,
   TodayView,
@@ -18,6 +19,7 @@ import type { DuckWindow } from './duck-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
+import type { SettingsControls } from './settings-controls'
 import type { SnackWindow } from './snack-window'
 
 interface IpcDeps {
@@ -38,6 +40,8 @@ interface IpcDeps {
   readonly progress: ProgressService
   /** Tracking settings, Today/Stats views, erase/export and focus sessions. */
   readonly activity: ActivityControls
+  /** The Settings screen: validated patches, autostart, export / erase everything, restart. */
+  readonly settings: SettingsControls
 }
 
 /**
@@ -56,6 +60,7 @@ export function registerIpc({
   snack,
   progress,
   activity,
+  settings,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -191,4 +196,29 @@ export function registerIpc({
     IPC.focusStop,
     panelOnly(() => activity.stopFocus()),
   )
+
+  // Settings channels are panel-only too; SettingsControls validates every payload.
+  ipcMain.handle(
+    IPC.settingsGet,
+    panelOnly((): SettingsView => settings.view()),
+  )
+  ipcMain.handle(
+    IPC.settingsSet,
+    panelOnly((patch: unknown) => settings.set(patch)),
+  )
+  ipcMain.handle(
+    IPC.settingsSetAutostart,
+    panelOnly((enabled: unknown) => settings.setAutostart(enabled)),
+  )
+  ipcMain.handle(
+    IPC.settingsExport,
+    panelOnly(() => settings.exportAll()),
+  )
+  ipcMain.handle(
+    IPC.settingsErase,
+    panelOnly(() => settings.eraseAll()),
+  )
+  ipcMain.on(IPC.settingsRestart, (event) => {
+    if (fromPanel(event.sender)) settings.restart()
+  })
 }

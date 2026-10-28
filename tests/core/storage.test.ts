@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SETTINGS, loadSettings, saveSettings } from '../../src/core/settings/settings'
+import {
+  applySettingsPatch,
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+} from '../../src/core/settings/settings'
 import { assertValidStorageKey, MemoryStorage } from '../../src/core/storage/storage'
 
 describe('MemoryStorage', () => {
@@ -44,6 +49,8 @@ describe('settings', () => {
       language: 'en',
       volume: 0.5,
       showPointsPill: false,
+      theme: 'system',
+      duck: { wander: true, naps: true, chatter: true },
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })
@@ -92,5 +99,43 @@ describe('settings', () => {
     await expect(
       saveSettings(new MemoryStorage(), { ...DEFAULT_SETTINGS, scale: 0 }),
     ).rejects.toThrow()
+  })
+})
+
+describe('applySettingsPatch', () => {
+  it('changes only what the patch names', () => {
+    const next = applySettingsPatch(DEFAULT_SETTINGS, { volume: 0, duck: { naps: false } })
+    expect(next?.volume).toBe(0)
+    expect(next?.duck).toEqual({ wander: true, naps: false, chatter: true })
+    expect(next?.scale).toBe(DEFAULT_SETTINGS.scale)
+    expect(next?.loadout).toEqual(DEFAULT_SETTINGS.loadout)
+  })
+
+  it('keeps every setting the patch leaves out, not the defaults', () => {
+    const mine = applySettingsPatch(DEFAULT_SETTINGS, {
+      volume: 0.2,
+      theme: 'dark',
+      language: 'it',
+      showPointsPill: true,
+      scale: 4,
+    })
+    expect(mine).toBeDefined()
+    const next = mine && applySettingsPatch(mine, { scale: 5 })
+    expect(next).toEqual({ ...mine, scale: 5 })
+  })
+
+  it.each([
+    ['an unknown field', { loadout: { hat: 'crown' } }],
+    ['tracking (it has its own path)', { tracking: { enabled: true } }],
+    ['a fractional scale', { scale: 2.5 }],
+    ['a scale out of range', { scale: 9 }],
+    ['an unknown language', { language: 'fr' }],
+    ['a loud volume', { volume: 2 }],
+    ['an unknown theme', { theme: 'pink' }],
+    ['a non-boolean switch', { duck: { wander: 'yes' } }],
+    ['an unknown duck switch', { duck: { fly: true } }],
+    ['not an object', 'scale=4'],
+  ])('rejects %s', (_label, patch) => {
+    expect(applySettingsPatch(DEFAULT_SETTINGS, patch)).toBeUndefined()
   })
 })

@@ -2,7 +2,7 @@ import type { BehaviorState } from '../core/behavior/machine'
 import type { Rarity, Slot } from '../core/catalog/catalog'
 import type { RarityChance } from '../core/economy/gifts'
 import type { QuestView } from '../core/economy/quests'
-import type { Settings } from '../core/settings/settings'
+import type { DuckPrefs, Settings, SettingsPatch, Theme } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
 
@@ -42,6 +42,13 @@ export const IPC = {
   activityExport: 'panel:activity-export',
   focusStart: 'panel:focus-start',
   focusStop: 'panel:focus-stop',
+  duckPrefs: 'duck:prefs',
+  settingsGet: 'panel:settings-get',
+  settingsSet: 'panel:settings-set',
+  settingsSetAutostart: 'panel:settings-set-autostart',
+  settingsExport: 'panel:settings-export',
+  settingsErase: 'panel:settings-erase',
+  settingsRestart: 'panel:settings-restart',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -51,6 +58,11 @@ export interface AppConfig {
   readonly loadout: Loadout
   /** Points balance right now (updates arrive through `onPoints`). */
   readonly points: number
+  /** Sound volume, 0 = silent. */
+  readonly volume: number
+  /** What the duck does on its own. */
+  readonly duck: DuckPrefs
+  readonly theme: Theme
   /** Dev-only (`BUDDY_PIN_STATE`, unpackaged builds): keep the duck in one state, for perf runs. */
   readonly pinState?: BehaviorState
 }
@@ -137,6 +149,27 @@ export interface StatsView {
   }[]
 }
 
+/** What the duck page needs to know when the Settings screen changes something. */
+export interface DuckLivePrefs {
+  readonly volume: number
+  readonly duck: DuckPrefs
+}
+
+/** The Settings screen. Scale changes apply after a restart (`restartNeeded`). */
+export interface SettingsView {
+  readonly scale: number
+  readonly language: Settings['language']
+  readonly volume: number
+  readonly showPointsPill: boolean
+  readonly theme: Theme
+  readonly duck: DuckPrefs
+  /** The scale saved differs from the one the duck was started with. */
+  readonly restartNeeded: boolean
+  /** Start with Windows. Only offered in an installed build (`available`). */
+  readonly autostart: { readonly available: boolean; readonly enabled: boolean }
+  readonly appVersion: string
+}
+
 /** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
 export type ChaseDirection = 1 | -1 | 0
 
@@ -171,6 +204,8 @@ export interface BuddyApi {
      * send `walk` again after landing.
      */
     onFall(listener: (event: FallEvent) => void): () => void
+    /** Volume or behavior switches changed in Settings. Returns an unsubscribe function. */
+    onPrefs(listener: (prefs: DuckLivePrefs) => void): () => void
     /** The loadout changed (equipped from the Bag): redraw with the new outfit. */
     onLoadout(listener: (loadout: Loadout) => void): () => void
     /** Run after a snack (main moves the window), or stop (0). */
@@ -221,6 +256,19 @@ export interface BuddyApi {
       export(): Promise<boolean>
       startFocus(minutes: number): Promise<TodayView>
       stopFocus(): Promise<TodayView>
+    }
+    /** The Settings screen. Main validates every patch. */
+    settings: {
+      get(): Promise<SettingsView>
+      /** Changes some settings; resolves to the view now in effect. */
+      set(patch: SettingsPatch): Promise<SettingsView>
+      setAutostart(enabled: boolean): Promise<SettingsView>
+      /** Asks where to save a JSON copy of every save file; false if the user cancelled. */
+      exportAll(): Promise<boolean>
+      /** Deletes every save file (points, items, quests, activity, settings) and restarts. */
+      eraseAll(): Promise<void>
+      /** Restarts the app (to apply a new size). */
+      restart(): void
     }
   }
   snack: {

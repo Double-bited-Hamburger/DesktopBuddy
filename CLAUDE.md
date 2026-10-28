@@ -6,7 +6,7 @@ points when you pet and play with it or finish quests, and spends them in a stor
 tracking (Today/Stats) and friends. It must stay **cheap on CPU and RAM**.
 
 Status: **Phases 0, 2–6 done** (duck, behaviors, dress-up, points & snacks, store/gifts/quests,
-opt-in Today/Stats + focus sessions).
+opt-in Today/Stats + focus sessions); Phase 7 (Settings + chip sounds) built, perf pass left.
 See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no

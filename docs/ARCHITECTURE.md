@@ -60,6 +60,14 @@ possible if the RAM budget cannot be met.
   Quest events come from main's own handlers (click/pet/throw/snack/gift/equip), never from a page
   claiming progress. No new window and no timer: the panel's free-gift countdown ticks every 30 s
   only while the Store screen is open.
+- **Sounds:** `ChipPlayer` (renderer) plays the chip sounds from core `sound/chip.ts` with
+  WebAudio oscillators. The `AudioContext` is created on the first sound and **closed 1.5 s after
+  the last one ends**, so a quiet duck keeps no audio thread. Volume 0 never creates one.
+- **Settings:** `SettingsControls` (main) validates every patch with core `applySettingsPatch`
+  (strict: unknown fields, loadout and tracking are rejected) and applies it live: pill window,
+  tray (language), duck page (`duck:prefs`: volume + behavior switches). Size needs a restart.
+  "Erase everything" stops the tracker, flushes, deletes every key, then `app.relaunch` +
+  `app.exit` (skips the will-quit flush, so nothing in memory is written back).
 - **Activity (opt-in):** `TrackerService` (main) has **no timer while tracking is off**. On, it
   samples every 5 s (idle seconds; app name from a `ForegroundSource`: on Windows five Win32 calls
   through `koffi`, ≈27 µs CPU per sample), folds

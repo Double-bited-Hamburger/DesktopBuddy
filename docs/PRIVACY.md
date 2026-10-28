@@ -23,6 +23,10 @@ as each feature lands.
 - **Erase:** "Erase all activity" deletes every `activity-*` file (two clicks). **Export:** the
   user picks a file in a save dialog and gets every stored day as JSON; nothing is written
   anywhere else.
+- **Everything else (Settings > Danger zone):** "Export everything" saves every save file
+  (settings, points history, items, quests, activity) as one JSON file the user picks. "Erase
+  everything" (two clicks) deletes every save file and restarts the app as new.
+- **Sounds** are generated in code (WebAudio oscillators); no microphone, no audio files.
 - Stored on disk, in `<userData>/data/` (Windows: `%APPDATA%\desktop-buddy\data\`).
 
 ## Principles for later phases
@@ -44,7 +48,7 @@ as each feature lands.
 
 | Key                   | Contents                                                             | Since   |
 | --------------------- | -------------------------------------------------------------------- | ------- |
-| `settings`            | scale, language, volume, points-pill toggle, loadout (skin/hat/face); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 |
+| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter), loadout (skin/hat/face); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
 | `ledger`              | points history `{ts, source, delta}`                                 | Phase 4 |
 | `inventory`           | owned item ids, opens-without-a-hit per gift box, last free-gift time | Phase 5 |
 | `quests`              | progress per active quest: period, count, claimed                    | Phase 5 |

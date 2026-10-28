@@ -162,7 +162,7 @@ palette:
 | 1 · Hand-drawn duck to replace the placeholder | 🎨 |
 | 5 · Store, gift boxes (visible odds + pity), quests | ✅ |
 | 6 · Opt-in, local focus tracking (Today / Stats) | ✅ |
-| 7 · Settings, chiptune sounds, polish   | 🔜 |
+| 7 · Settings, chiptune sounds, polish   | 🚧 (perf pass left) |
 | 8 · Installer, auto-update, contributor guides | 🔜 |
 | 9 · Friends (opt-in, self-hostable) — last | 🔜 |
 

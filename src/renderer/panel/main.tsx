@@ -5,19 +5,37 @@ import it from '../../../assets/i18n/it.json'
 import type { Slot } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
 import { createTranslator } from '../../core/i18n/i18n'
+import type { Theme } from '../../core/settings/settings'
 import type { Snack } from '../../core/toys/snacks'
 import { SNACKS } from '../../core/toys/snacks'
-import type { Loadout, StoreView } from '../../shared/ipc'
+import type { Loadout, SettingsView, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
 import { Quests } from './quests'
+import { Settings } from './settings'
 import { Stats } from './stats'
 import { Store } from './store'
 import { Today } from './today'
 
 const dictionaries = { en, it }
 
-const SCREENS = ['bag', 'store', 'quests', 'today', 'stats'] as const
+const SCREENS = ['bag', 'store', 'quests', 'today', 'stats', 'settings'] as const
 type Screen = (typeof SCREENS)[number]
+
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+/** Colors the panel: `system` follows the OS light/dark setting, also when it changes. */
+function useTheme(theme: Theme): void {
+  useEffect(() => {
+    const apply = () => {
+      const dark = theme === 'dark' || (theme === 'system' && darkQuery.matches)
+      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+    }
+    apply()
+    if (theme !== 'system') return
+    darkQuery.addEventListener('change', apply)
+    return () => darkQuery.removeEventListener('change', apply)
+  }, [theme])
+}
 
 /** "Feed" opens a tiny menu: what goes in the user's hand for the duck. */
 function FeedMenu({ t }: { t: Translator }) {
@@ -52,11 +70,14 @@ function App() {
   const [language, setLanguage] = useState('en')
   const [screen, setScreen] = useState<Screen>('bag')
   const [store, setStore] = useState<StoreView | undefined>()
+  const [theme, setTheme] = useState<Theme>('system')
+  useTheme(theme)
 
   useEffect(() => {
     window.buddy.getConfig().then((config) => {
       setT(() => createTranslator(config.language, dictionaries))
       setLanguage(config.language)
+      setTheme(config.theme)
       setLoadout(config.loadout)
       setPoints((shown) => shown ?? config.points)
     })
@@ -83,6 +104,15 @@ function App() {
       .equip(slot, id)
       .then(setLoadout)
       .catch((error) => console.error('Equip failed', error))
+  }
+
+  /** Language and theme apply to the whole panel as soon as Settings saves them. */
+  const settingsChanged = (view: SettingsView) => {
+    if (view.language !== language) {
+      setT(() => createTranslator(view.language, dictionaries))
+      setLanguage(view.language)
+    }
+    setTheme(view.theme)
   }
 
   const ready = (store?.quests ?? []).filter((q) => !q.claimed && q.count >= q.target).length
@@ -136,6 +166,7 @@ function App() {
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}
       {screen === 'today' && <Today t={t} />}
       {screen === 'stats' && <Stats t={t} language={language} />}
+      {screen === 'settings' && <Settings t={t} onChange={settingsChanged} />}
     </main>
   )
 }

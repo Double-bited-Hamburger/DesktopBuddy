@@ -11,10 +11,11 @@ import { equipItem, parseCatalog } from '../core/catalog/catalog'
 import { checkEconomy } from '../core/economy/config'
 import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
+import type { Settings } from '../core/settings/settings'
 import { loadSettings, saveSettings } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
 import { focusReward } from '../core/tracker/focus'
-import type { AppConfig, PointsEvent } from '../shared/ipc'
+import type { AppConfig, DuckLivePrefs, PointsEvent } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
 import { DuckWindow } from './duck-window'
@@ -25,6 +26,7 @@ import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
 import { ProgressService } from './progress'
+import { SettingsControls } from './settings-controls'
 import { SnackWindow } from './snack-window'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
@@ -53,7 +55,7 @@ async function start(): Promise<void> {
 
   const storage = new FileStorage(join(app.getPath('userData'), 'data'))
   let settings = await loadSettings(storage)
-  const t = createTranslator(settings.language, { en, it })
+  let t = createTranslator(settings.language, { en, it })
   const catalog = parseCatalog(catalogJson)
   const pinState = pinStateFromEnv()
   const economy = parseEconomy(economyJson)
@@ -64,6 +66,9 @@ async function start(): Promise<void> {
     language: settings.language,
     loadout: settings.loadout,
     points: points.balance,
+    volume: settings.volume,
+    duck: settings.duck,
+    theme: settings.theme,
     pinState,
   })
 
@@ -178,15 +183,62 @@ async function start(): Promise<void> {
       await saveSettings(storage, settings)
     },
   )
-  registerIpc({ config, equip, earn, feed, ate, duck, panel, pill, snack, progress, activity })
-
-  tray = createTray(t, {
-    togglePanel: () => panel.toggle(),
-    feed,
-    pillShown: settings.showPointsPill,
-    setPill,
-    quit: () => app.quit(),
+  const flushAll = async () => {
+    await Promise.all([points.flush(), progress.flush(), tracker.pause()])
+  }
+  const buildTray = () => {
+    tray?.destroy()
+    tray = createTray(t, {
+      togglePanel: () => panel.toggle(),
+      feed,
+      pillShown: settings.showPointsPill,
+      setPill,
+      quit: () => app.quit(),
+    })
+  }
+  /** Saves settings from the Settings screen and applies what changed right away. */
+  const applySettings = async (next: Settings) => {
+    const before = settings
+    settings = next
+    await saveSettings(storage, settings)
+    if (next.language !== before.language) {
+      t = createTranslator(next.language, { en, it })
+      buildTray()
+      if (next.showPointsPill) pill.setVisible(false) // reopened below in the new language
+    } else if (next.showPointsPill !== before.showPointsPill) buildTray() // the tray checkbox
+    pill.setVisible(next.showPointsPill)
+    if (
+      next.volume !== before.volume ||
+      JSON.stringify(next.duck) !== JSON.stringify(before.duck)
+    ) {
+      const prefs: DuckLivePrefs = { volume: next.volume, duck: next.duck }
+      duck.window.webContents.send(IPC.duckPrefs, prefs)
+    }
+  }
+  const settingsControls = new SettingsControls({
+    storage,
+    settings: () => settings,
+    apply: applySettings,
+    startScale: settings.scale,
+    flush: flushAll,
+    stop: () => tracker.stop(),
   })
+  registerIpc({
+    config,
+    equip,
+    earn,
+    feed,
+    ate,
+    duck,
+    panel,
+    pill,
+    snack,
+    progress,
+    activity,
+    settings: settingsControls,
+  })
+
+  buildTray()
   app.on('second-instance', () => panel.open())
   app.on('before-quit', () => tray?.destroy())
   // Write any batched points before the app goes away.
@@ -195,7 +247,7 @@ async function start(): Promise<void> {
     if (flushed) return
     event.preventDefault()
     tracker.stop()
-    Promise.all([points.flush(), progress.flush(), tracker.pause()]).finally(() => {
+    flushAll().finally(() => {
       flushed = true
       app.quit()
     })

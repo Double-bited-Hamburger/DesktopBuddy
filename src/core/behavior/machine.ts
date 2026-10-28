@@ -82,6 +82,31 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
   }
 }
 
+/** The user's switches for what the duck does on its own (see settings `duck`). */
+export interface BehaviorPrefs {
+  readonly wander: boolean
+  readonly naps: boolean
+  readonly chatter: boolean
+}
+
+/**
+ * `base` with the switched-off idle choices removed: no walking, no naps or no random quacks.
+ * Clicks, petting and snacks still work; only what the duck picks by itself changes.
+ */
+export function behaviorConfigFor(
+  prefs: BehaviorPrefs,
+  base: BehaviorConfig = DEFAULT_BEHAVIOR_CONFIG,
+): BehaviorConfig {
+  const off: BehaviorState[] = []
+  if (!prefs.wander) off.push('walk')
+  if (!prefs.naps) off.push('sleep')
+  if (!prefs.chatter) off.push('quack')
+  const idle = Object.fromEntries(
+    Object.entries(base.next.idle).filter(([state]) => !off.includes(state as BehaviorState)),
+  )
+  return { ...base, next: { ...base.next, idle: Object.keys(idle).length ? idle : { idle: 1 } } }
+}
+
 function between(range: readonly [number, number], rng: Rng): number {
   return range[0] + rng() * (range[1] - range[0])
 }
@@ -106,7 +131,7 @@ function pickWeighted(
  */
 export class BehaviorMachine {
   private readonly rng: Rng
-  private readonly config: BehaviorConfig
+  private config: BehaviorConfig
   private current: BehaviorState = 'idle'
   private facing: Direction = 1
   private remainingMs: number
@@ -128,6 +153,11 @@ export class BehaviorMachine {
   /** Milliseconds until the next decision (`update` may change state then). */
   get msUntilDecision(): number {
     return Math.max(0, this.remainingMs)
+  }
+
+  /** Swaps the config (settings changed). The current state runs out as planned. */
+  configure(config: BehaviorConfig): void {
+    this.config = config
   }
 
   /** Advances time. Returns true when the state changed. */

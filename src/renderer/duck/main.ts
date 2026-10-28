@@ -1,6 +1,10 @@
 import type { AnimationSet } from '../../core/anim/clock'
 import { AnimationClock } from '../../core/anim/clock'
-import { BehaviorMachine, pinnedBehaviorConfig } from '../../core/behavior/machine'
+import {
+  BehaviorMachine,
+  behaviorConfigFor,
+  pinnedBehaviorConfig,
+} from '../../core/behavior/machine'
 import { PetDetector } from '../../core/behavior/pet'
 import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
@@ -9,6 +13,7 @@ import { breadAt, MEAL_MS, msUntilBreadChange } from '../../core/toys/bread'
 import { msUntilSmokeChange, SMOKE_MS, smokeAt } from '../../core/toys/cigar'
 import type { Snack } from '../../core/toys/snacks'
 import type { WalkDirection } from '../../shared/ipc'
+import { ChipPlayer } from '../shared/chip-player'
 import { drawDressed, loadDressedDuck } from '../shared/outfit'
 import { loadSprite } from '../shared/sprites'
 
@@ -104,8 +109,9 @@ async function main(): Promise<void> {
 
   const machine = new BehaviorMachine(
     Math.random,
-    config.pinState ? pinnedBehaviorConfig() : undefined,
+    config.pinState ? pinnedBehaviorConfig() : behaviorConfigFor(config.duck),
   )
+  const sound = new ChipPlayer(config.volume)
   const clock = new AnimationClock(animations, 'idle')
   if (config.pinState) {
     machine.enter(config.pinState)
@@ -126,6 +132,12 @@ async function main(): Promise<void> {
 
   // Equipping from the Bag swaps the outfit live; the version is part of the redraw key.
   let outfitVersion = 0
+  // Settings: volume and the "what it does on its own" switches apply right away.
+  window.buddy.duck.onPrefs((prefs) => {
+    sound.volume = prefs.volume
+    if (!config.pinState) machine.configure(behaviorConfigFor(prefs.duck))
+  })
+
   window.buddy.duck.onLoadout((loadout) => {
     const version = ++outfitVersion
     loadDressedDuck(loadout)
@@ -269,7 +281,8 @@ async function main(): Promise<void> {
     lastTick = now
 
     if (!busy()) {
-      machine.update(dt)
+      // A quack the duck chose by itself (clicks play theirs in endDrag).
+      if (machine.update(dt) && machine.state === 'quack') sound.play('quack')
       clock.play(machine.state) // a no-op unless the state changed (by time or by a click)
       clock.advance(dt)
     }
@@ -303,8 +316,10 @@ async function main(): Promise<void> {
   window.buddy.duck.onFed((kind) => {
     if (busy()) return // held or flying: it can't eat now
     wake() // catch up first so the treat starts now
-    if (kind === 'bread') machine.eat()
-    else machine.smoke()
+    if (kind === 'bread') {
+      machine.eat()
+      sound.play('chomp')
+    } else machine.smoke()
     clock.play(machine.state, true) // a second snack starts the animation over
     treat = { kind, since: lastTick }
     wake()
@@ -326,7 +341,10 @@ async function main(): Promise<void> {
       render()
       return
     }
-    if (event === 'hurt') machine.hurt() // landed on its bottom: sits dazed for a moment
+    if (event === 'hurt') {
+      machine.hurt() // landed on its bottom: sits dazed for a moment
+      sound.play('ouch')
+    }
     lastTick = performance.now() // time in the air does not count towards the current state
     wake()
   })
@@ -360,6 +378,7 @@ async function main(): Promise<void> {
     // Stroking back and forth across the duck pets it.
     if (petting.move(e.timeStamp, e.screenX)) {
       wake() // catch the machine up to now first, or the time since its last tick eats the pet
+      if (machine.state !== 'happy') sound.play('chirp')
       machine.pet()
       window.buddy.duck.earn('pet')
       wake()
@@ -390,6 +409,7 @@ async function main(): Promise<void> {
     const moved = Math.hypot(e.screenX - pressedAt.x, e.screenY - pressedAt.y)
     if (e.type === 'pointerup' && moved < CLICK_SLOP_PX) {
       machine.quack()
+      sound.play('quack')
       window.buddy.duck.earn('click')
     }
     lastTick = performance.now() // time held in the hand does not count as idling

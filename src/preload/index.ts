@@ -4,9 +4,11 @@ import type {
   AppConfig,
   BuddyApi,
   BuyResult,
+  DuckLivePrefs,
   GiftResult,
   Loadout,
   PointsEvent,
+  SettingsView,
   StatsView,
   StoreView,
   TodayView,
@@ -44,6 +46,12 @@ const api: BuddyApi = {
       }
       ipcRenderer.on(IPC.fall, handler)
       return () => ipcRenderer.off(IPC.fall, handler)
+    },
+    onPrefs: (listener) => {
+      const handler = (_event: unknown, prefs: DuckLivePrefs) =>
+        listener({ volume: prefs.volume, duck: prefs.duck })
+      ipcRenderer.on(IPC.duckPrefs, handler)
+      return () => ipcRenderer.off(IPC.duckPrefs, handler)
     },
     onLoadout: (listener) => {
       // Main only ever sends a validated loadout; still hand over plain data, not the event.
@@ -97,6 +105,15 @@ const api: BuddyApi = {
       export: (): Promise<boolean> => ipcRenderer.invoke(IPC.activityExport),
       startFocus: (minutes): Promise<TodayView> => ipcRenderer.invoke(IPC.focusStart, minutes),
       stopFocus: (): Promise<TodayView> => ipcRenderer.invoke(IPC.focusStop),
+    },
+    settings: {
+      get: (): Promise<SettingsView> => ipcRenderer.invoke(IPC.settingsGet),
+      set: (patch): Promise<SettingsView> => ipcRenderer.invoke(IPC.settingsSet, patch),
+      setAutostart: (enabled): Promise<SettingsView> =>
+        ipcRenderer.invoke(IPC.settingsSetAutostart, enabled),
+      exportAll: (): Promise<boolean> => ipcRenderer.invoke(IPC.settingsExport),
+      eraseAll: (): Promise<void> => ipcRenderer.invoke(IPC.settingsErase),
+      restart: () => ipcRenderer.send(IPC.settingsRestart),
     },
   },
   snack: {

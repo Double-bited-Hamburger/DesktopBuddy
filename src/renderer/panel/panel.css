@@ -356,7 +356,10 @@ body {
 }
 
 /* --- today / stats ------------------------------------------------------------------------- */
+/* Six screens: two rows of three, so long translations ("Statistiche") never overflow. */
 .panel .nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
 }
 
@@ -543,4 +546,118 @@ body {
 
 .bar-focus {
   width: 100%;
+}
+
+/* --- settings ------------------------------------------------------------------------------ */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 2px 6px;
+}
+
+.settings h2 {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.settings h2:first-child {
+  margin-top: 0;
+}
+
+.settings .row {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.settings .choices,
+.settings .actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.settings .choices button {
+  padding: 3px 6px;
+}
+
+.settings .actions {
+  justify-content: flex-start;
+}
+
+.settings select {
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.settings input[type="checkbox"],
+.settings input[type="range"] {
+  accent-color: var(--accent);
+}
+
+.settings .note {
+  margin: 0;
+}
+
+.settings .about {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.panel button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- dark panel (Settings > Panel colors) --------------------------------------------------- */
+:root[data-theme="dark"] {
+  --cream: #2a211b;
+  --paper: #3a2e26;
+  --ink: #f1e6d4;
+  --muted: #b39d86;
+  --accent: #e0862a;
+  --edge: #15100c;
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .points {
+  color: #3b2a20;
+}
+
+:root[data-theme="dark"] .panel .tile[aria-pressed="true"] {
+  background: #5a3f22;
+}
+
+:root[data-theme="dark"] .card.free {
+  background: #4a3f1c;
+}
+
+:root[data-theme="dark"] .rarity-common {
+  color: #b9a998;
+}
+:root[data-theme="dark"] .rarity-uncommon {
+  color: #6cc778;
+}
+:root[data-theme="dark"] .rarity-rare {
+  color: #7fa6ff;
+}
+:root[data-theme="dark"] .rarity-epic {
+  color: #c48af0;
+}
+:root[data-theme="dark"] .rarity-legendary {
+  color: #f0a64a;
+}
+:root[data-theme="dark"] .rarity-exotic {
+  color: #ff6f86;
 }
