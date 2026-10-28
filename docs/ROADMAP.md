@@ -204,7 +204,10 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
       controls; erase deleted every file and the app restarted fresh; screenshots dark/light/it
 - [x] Quick perf check (2026-10-28, 1 run × 30 s): free mix **0.92%**, idle **0.15%**, 80–83 MB —
       under budget (see ARCHITECTURE)
-- [ ] **Full perf pass** (all states, tracking on, ≥ 3 runs) — the phase exit
+- [x] **Full perf pass** (2026-10-28, 4 states × 3 runs, tracking off and on, own save folders):
+      RAM 77–86 MB everywhere; sleep 0.1–0.3%; idle 0.84–1.00% and free 1.01–1.30% (at the line);
+      walk 2.6–3.4%. Tracking costs nothing measurable. Details in ARCHITECTURE
+- [ ] **Phase exit not met:** walking is still over 1% (see ARCHITECTURE "Next steps")
 - [x] **Fix (user report, 2026-10-28):** "Restart now" after a size change broke `npm run dev`:
       the relaunched copy outlived the Vite server and held the single-instance lock, so the next
       `npm run dev` quit at once. The size now applies live (duck and snack windows resize, the
@@ -227,8 +230,15 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
       from the package). Saves pinned to `%APPDATA%desktop-buddy` so the installed app finds
       the same points as `npm run dev`. Version 0.1.0
 - [ ] Not signed yet: SmartScreen asks once (More info → Run anyway). Signing is still a decision
-- [ ] **Not verified:** installing and running the installed app (left to the user, as it uses
-      the real saves); autostart from the installed app; the uninstaller
+- [x] **Installer tested (2026-10-28)**, with the real saves backed up first (SHA-256) and
+      restored byte-for-byte afterwards: silent per-user install in 10 s (no admin) →
+      `%LOCALAPPDATA%ProgramsDesktopBuddy`, Start menu + desktop shortcuts pointing at the exe,
+      "Installed apps" entry 0.1.0. The installed app ran from `app.asar`, read the real saves
+      (112 pts), app names on (koffi from asar.unpacked), dev pin ignored; Start with Windows on →
+      `HKCU…Run` value `dev.desktopbuddy.app` = the installed exe, off → removed. Silent
+      uninstall removed the app, shortcuts, the entry and the Run value, and kept the saves
+- [ ] **Not verified:** the installer's own windows (only the silent mode was run); SmartScreen's
+      prompt (it only appears for downloaded files); a real Windows login with autostart on
 - [ ] Auto-update, CONTRIBUTING + art guide, licenses, CREDITS
 - [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
       AppImage + .deb from CI)

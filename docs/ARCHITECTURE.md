@@ -162,6 +162,51 @@ Both under budget, in line with the Phase 2 numbers: the new features cost nothi
 while idle (no audio device is open when quiet). One run is inside the noise above, so the
 full Phase 7 exit pass (all states, tracking on, ≥ 3 runs) is still to do.
 
+### Full pass after Phase 7 (2026-10-28, nobody at the PC)
+
+Built app, 4 states × 3 runs, 40 s windows after 10 s warm-up, each run on its own empty save
+folder (the script now always sets `BUDDY_DATA_DIR`; before this fix it ran on the real saves).
+Tracking on = sampling every 5 s with koffi app names; every tracking run proved it wrote a day file.
+
+| State | Tracking off: CPU (3 runs)         | Tracking on: CPU (3 runs)          | RAM      |
+| ----- | ---------------------------------- | ---------------------------------- | -------- |
+| sleep | **0.31%** (0.15 / 0.34 / 0.42) ✅  | **0.11%** (0.04 / 0.04 / 0.27) ✅  | 77 MB ✅ |
+| idle  | **1.00%** (1.12 / 0.65 / 1.23) ≈   | **0.84%** (1.00 / 0.92 / 0.61) ✅  | 80–82 MB ✅ |
+| free  | **1.01%** (1.15 / 0.69 / 1.19) ≈   | **1.30%** (1.11 / 1.61 / 1.19) ❌  | 79–83 MB ✅ |
+| walk  | **2.57%** (2.64 / 2.15 / 2.91) ❌  | **3.38%** (2.95 / 3.51 / 3.68) ❌  | 81–83 MB ✅ |
+
+What it says:
+
+- **Tracking costs nothing measurable.** Idle and sleep came out *lower* with it on. The
+  differences are the run-to-run noise described above, not the 5 s sampler (≈ 27 µs per sample).
+- **RAM is fine everywhere** (77–86 MB, budget 120 MB).
+- **CPU:** sleep is well under. Idle and the free mix sit right at 1%, so whether a run lands
+  above or below depends on the noise and on how much of the window the duck spent walking.
+  Walking itself is still ≈ 2.5–3.5%, the one real overrun, and it is the moving transparent
+  window (main + GPU), not the page.
+- **Phase 7 exit ("budget met with all features on") is therefore not met yet**, because of
+  walking. The next steps below (quiet baseline, then the walk) are now the open work.
+
+### Battery (estimate, 2026-10-28)
+
+Machine: ASUS TUF A16 (FA608), Ryzen 7 260 + Radeon 780M, RTX 5060 Laptop, 90 Wh battery
+(86.3 Wh full now). Windows estimates ≈ 9 h of normal use, i.e. ≈ 9.5 W average. **Not measured
+on battery yet** (the PC was plugged in): this is an estimate from the CPU numbers above.
+
+| Duck | Extra draw (estimate) | Battery time (of ≈ 9 h) |
+| ---- | --------------------- | ----------------------- |
+| asleep / idle | ≈ 0.05–0.15 W | − 3 to 8 min |
+| normal mix | ≈ 0.2–0.4 W | − 10 to 20 min |
+| walking nonstop | ≈ 0.5–0.8 W | − 30 to 45 min |
+| **if it woke the RTX 5060** | + 3–5 W | − 2 to 3 h (must not happen) |
+
+GPU check: with only the external monitor active (wired to the RTX 5060), the duck's GPU process
+rendered on the NVIDIA adapter, as everything on that screen does; the RTX was awake for the
+monitor anyway (P8, 3.5 W). On battery with the laptop panel (driven by the Radeon) it should
+pick the Radeon, which is **to be verified unplugged**. If it doesn't, fixes are to force the
+low-power GPU or `app.disableHardwareAcceleration()` (a 120 px canvas is cheap to composite on
+the CPU).
+
 Next steps (measure each): **first get a quiet baseline** (mouse untouched, longer 120 s windows,
 ≥ 5 runs) to confirm or kill the mouse-forwarding theory, since without it ±1–2% swings hide
 real changes; then, for walking, `app.disableHardwareAcceleration()` (test transparency side

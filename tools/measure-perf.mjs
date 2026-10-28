@@ -2,13 +2,15 @@
 //
 //   npm run build
 //   npm run perf -- --states=idle,walk,sleep,free --seconds=40 --warmup=10 --runs=2 --json=perf.json
+//   npm run perf -- --tracking        (activity tracking on, sampling every 5 s)
 //
 // Each run launches `electron .` (the built `out/`) with BUDDY_PIN_STATE set (`free` = no pin,
 // the normal behavior mix), waits for warm-up, then reads every Electron process's CPU time
 // twice, `--seconds` apart, through CIM. CPU is reported as % of ONE core. Close any other
 // DesktopBuddy/Electron app first: the measurement attributes processes by name and tree.
+// Every run gets its own empty save folder (BUDDY_DATA_DIR), so the real saves are never touched.
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -17,12 +19,19 @@ const root = resolve(import.meta.dirname, '..')
 const electronExe = join(root, 'node_modules', 'electron', 'dist', 'electron.exe')
 
 function parseArgs() {
-  const options = { states: ['idle', 'walk', 'sleep', 'free'], seconds: 40, warmup: 10, runs: 2 }
+  const options = {
+    states: ['idle', 'walk', 'sleep', 'free'],
+    seconds: 40,
+    warmup: 10,
+    runs: 2,
+    tracking: false,
+  }
   for (const arg of process.argv.slice(2)) {
     const [key, value = ''] = arg.replace(/^--/, '').split('=')
     if (key === 'states') options.states = value.split(',').filter(Boolean)
     else if (key === 'seconds' || key === 'warmup' || key === 'runs') options[key] = Number(value)
     else if (key === 'json') options.json = value
+    else if (key === 'tracking') options.tracking = true
     else throw new Error(`Unknown option ${arg}`)
   }
   return options
@@ -82,12 +91,26 @@ function electronRunning() {
   return /electron\.exe/i.test(out.stdout)
 }
 
-async function measureOnce(state, options, script) {
+/** A fresh save folder for one run: empty, or with tracking switched on. */
+function dataDirFor(dir, state, run, tracking) {
+  const userData = join(dir, `data-${state}-${run}`)
+  mkdirSync(join(userData, 'data'), { recursive: true })
+  if (tracking)
+    writeFileSync(
+      join(userData, 'data', 'settings.json'),
+      JSON.stringify({ version: 1, tracking: { enabled: true } }),
+    )
+  return userData
+}
+
+async function measureOnce(state, run, options, dir, script) {
   const env = { ...process.env }
+  env.BUDDY_DATA_DIR = dataDirFor(dir, state, run, options.tracking)
   delete env.ELECTRON_RENDERER_URL // load the built pages, never a dev server
   if (state === 'free') delete env.BUDDY_PIN_STATE
   else env.BUDDY_PIN_STATE = state
 
+  const startedAt = performance.now()
   const child = spawn(electronExe, ['.'], { cwd: root, env, stdio: 'ignore' })
   try {
     await sleep(options.warmup * 1000)
@@ -113,12 +136,23 @@ async function measureOnce(state, options, script) {
       (sum, r) => ({ cpu: sum.cpu + r.cpu, memMb: sum.memMb + r.memMb }),
       { cpu: 0, memMb: 0 },
     )
+    // Proof that tracking really ran (outside the measured window): the first day file appears
+    // once a minute has closed plus the 30 s save delay, so up to ~90 s after start.
+    if (options.tracking) {
+      const dataDir = join(env.BUDDY_DATA_DIR, 'data')
+      const tracked = () => readdirSync(dataDir).some((f) => f.startsWith('activity-'))
+      while (!tracked() && performance.now() - startedAt < TRACKING_PROOF_MS) await sleep(2000)
+      if (!tracked()) throw new Error('tracking was on but no activity file was written')
+    }
     return { state, wallMs, roles, total }
   } finally {
     spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' })
     await sleep(1500)
   }
 }
+
+/** How long a tracking run may take to write its first day file (a minute + the save delay). */
+const TRACKING_PROOF_MS = 100_000
 
 const fmt = (n) => n.toFixed(2).padStart(6)
 
@@ -132,11 +166,12 @@ async function main() {
   const script = join(dir, 'snapshot.ps1')
   writeFileSync(script, SNAPSHOT_PS1, 'ascii')
 
+  if (options.tracking) console.log('activity tracking: on')
   const results = []
   try {
     for (const state of options.states) {
       for (let run = 1; run <= options.runs; run++) {
-        const result = await measureOnce(state, options, script)
+        const result = await measureOnce(state, run, options, dir, script)
         results.push(result)
         const parts = Object.entries(result.roles)
           .map(([role, r]) => `${role} ${r.cpu.toFixed(2)}%`)
