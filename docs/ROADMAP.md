@@ -181,22 +181,23 @@ recorded.
       `appNames: true` and the foreground process name written to the day file
 - [ ] **Not verified:** whole-app CPU with tracking on (`npm run perf` not run); a real midnight
       rollover and lock/suspend in the app (covered by code paths, not exercised); export dialog
-      (needs a human to pick a file); koffi inside a packaged build (Phase 9: unpack from asar)
+      (needs a human to pick a file); koffi inside a packaged build (Phase 8: unpack from asar)
 
 ## Phase 7 — Settings & polish
 
 General (theme, language, size), Sounds (chip-style quack via WebAudio), Duck (behaviors), Danger
 zone (export/erase), autostart, full perf pass. **Exit:** budget met with all features on.
 
-## Phase 8 — Friends (opt-in)
-
-Self-hostable relay, invite codes, visiting ducks, chat bubbles. Separate design + security
-review first (`social-engineer`). **Exit:** works against a local relay; off by default.
-
-## Phase 9 — Release & community
+## Phase 8 — Release & community
 
 Installer (electron-builder), signing decision, auto-update, CONTRIBUTING + art guide, final
-license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`.
+license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi` from asar.
+
+## Phase 9 — Friends (opt-in, last)
+
+Self-hostable relay, invite codes, visiting ducks, chat bubbles. Separate design + security
+review first (`social-engineer`). Deliberately the last phase: it is the only feature that uses
+the network. **Exit:** works against a local relay; off by default.
 
 ## Deferred / stretch
 

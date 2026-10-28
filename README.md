@@ -163,7 +163,8 @@ palette:
 | 5 · Store, gift boxes (visible odds + pity), quests | ✅ |
 | 6 · Opt-in, local focus tracking (Today / Stats) | ✅ |
 | 7 · Settings, chiptune sounds, polish   | 🔜 |
-| 8 · Friends (opt-in, self-hostable)     | 🔜 |
+| 8 · Installer, auto-update, contributor guides | 🔜 |
+| 9 · Friends (opt-in, self-hostable) — last | 🔜 |
 
 Details and what's still unverified: [docs/ROADMAP.md](docs/ROADMAP.md).
 

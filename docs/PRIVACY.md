@@ -35,7 +35,7 @@ as each feature lands.
 4. **User control.** Editable ignore list; editable focus/distraction categories; pause any time;
    one-click **erase all activity** (and erase everything) in Settings → Danger zone; export as
    JSON.
-5. **Friends (Phase 8)** is opt-in and off by default. It uses a **self-hostable** relay; only what
+5. **Friends (Phase 9)** is opt-in and off by default. It uses a **self-hostable** relay; only what
    the user chooses to share (name, loadout, chat messages) is sent. No tracking data is ever sent.
 6. **No dark data.** Every stored field is listed here; a change to what is stored updates this
    file in the same change.

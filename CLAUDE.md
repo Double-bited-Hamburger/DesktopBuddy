@@ -102,8 +102,8 @@ do small cross-cutting edits yourself. Each agent reads this file and the doc it
 | `qa-tester`         | `tests/`, manual checklists                             | Writing/hardening tests, Electron smoke tests, phase-exit verification               |
 | `perf-guardian`     | measurement + budget in `docs/ARCHITECTURE.md`          | After any change to the tick loop, windows, IPC rate, bundle size; before phase exit |
 
-Planned (created when their phase starts): `social-engineer` (Friends relay/protocol, Phase 8),
-`release-engineer` (installer, signing, auto-update, Phase 9).
+Planned (created when their phase starts): `release-engineer` (installer, signing, auto-update, Phase 8),
+`social-engineer` (Friends relay/protocol, Phase 9 — the last phase).
 
 **Hand-offs:** artist → sprite-engineer → ui-engineer (previews); behavior-designer →
 desktop-shell (movement APIs); economy-designer → ui-engineer (screens); tracker-engineer →
