@@ -35,8 +35,8 @@ const RESUME_MS = { land: 250, hurt: 2300 } as const
  */
 export class DuckWindow {
   readonly window: BrowserWindow
-  private readonly scale: number
-  private readonly size: number
+  private scale: number
+  private size: number
   private drag: { cursor: Point; bounds: Rectangle } | undefined
   /**
    * Cached position state, so walk steps never query windows or displays: every display's work
@@ -329,6 +329,29 @@ export class DuckWindow {
     this.floor =
       floorAt(this.areas, centerX, this.scale, bounds.y) ??
       floorBounds(screen.getDisplayMatching(bounds).workArea, this.scale)
+  }
+
+  /**
+   * A new size from Settings, applied live: everything in flight is stopped, the window grows or
+   * shrinks around the duck's middle and lands on the floor again. The canvas stretches to fill
+   * the window, so the page only needs the scale for hit-testing (sent with the prefs).
+   */
+  setScale(scale: number): void {
+    if (scale === this.scale) return
+    this.walk(0)
+    this.stopRun()
+    this.target = undefined
+    this.drag = undefined
+    if (this.flightTimer) this.stopFlight('land')
+    const bounds = this.window.getBounds()
+    const middle = bounds.x + bounds.width / 2
+    this.scale = scale
+    this.size = STAGE_SIZE * scale
+    this.x = Math.round(middle - this.size / 2)
+    this.refreshFloor({ ...bounds, x: this.x, width: this.size, height: this.size })
+    this.x = clamp(this.x, this.floor.minX, this.floor.maxX)
+    this.y = this.floor.y
+    this.place()
   }
 
   /** Puts the duck straight onto the floor of the display it is on. Used when displays change. */

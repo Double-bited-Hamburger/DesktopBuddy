@@ -135,8 +135,6 @@
   "settings.theme.light": "Light",
   "settings.theme.dark": "Dark",
   "settings.size": "Duck size",
-  "settings.restartNeeded": "The new size applies after a restart.",
-  "settings.restart": "Restart now",
   "settings.pill": "Points pill by the tray",
   "settings.sounds": "Sounds",
   "settings.volume": "Volume",

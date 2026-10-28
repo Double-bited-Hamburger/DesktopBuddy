@@ -207,11 +207,16 @@ async function start(): Promise<void> {
       if (next.showPointsPill) pill.setVisible(false) // reopened below in the new language
     } else if (next.showPointsPill !== before.showPointsPill) buildTray() // the tray checkbox
     pill.setVisible(next.showPointsPill)
+    if (next.scale !== before.scale) {
+      duck.setScale(next.scale)
+      snack.setScale(next.scale)
+    }
     if (
+      next.scale !== before.scale ||
       next.volume !== before.volume ||
       JSON.stringify(next.duck) !== JSON.stringify(before.duck)
     ) {
-      const prefs: DuckLivePrefs = { volume: next.volume, duck: next.duck }
+      const prefs: DuckLivePrefs = { scale: next.scale, volume: next.volume, duck: next.duck }
       duck.window.webContents.send(IPC.duckPrefs, prefs)
     }
   }
@@ -219,7 +224,6 @@ async function start(): Promise<void> {
     storage,
     settings: () => settings,
     apply: applySettings,
-    startScale: settings.scale,
     flush: flushAll,
     stop: () => tracker.stop(),
   })

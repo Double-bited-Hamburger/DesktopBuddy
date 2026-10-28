@@ -49,7 +49,7 @@ const api: BuddyApi = {
     },
     onPrefs: (listener) => {
       const handler = (_event: unknown, prefs: DuckLivePrefs) =>
-        listener({ volume: prefs.volume, duck: prefs.duck })
+        listener({ scale: prefs.scale, volume: prefs.volume, duck: prefs.duck })
       ipcRenderer.on(IPC.duckPrefs, handler)
       return () => ipcRenderer.off(IPC.duckPrefs, handler)
     },
@@ -113,7 +113,6 @@ const api: BuddyApi = {
         ipcRenderer.invoke(IPC.settingsSetAutostart, enabled),
       exportAll: (): Promise<boolean> => ipcRenderer.invoke(IPC.settingsExport),
       eraseAll: (): Promise<void> => ipcRenderer.invoke(IPC.settingsErase),
-      restart: () => ipcRenderer.send(IPC.settingsRestart),
     },
   },
   snack: {

@@ -26,7 +26,7 @@ export interface SnackSpot {
  * picks it up again. The window exists only from "Feed" until the duck takes it.
  */
 export class SnackWindow {
-  private readonly size: number
+  private size: number
   private win: BrowserWindow | null = null
   private followTimer: ReturnType<typeof setInterval> | undefined
   private flightTimer: ReturnType<typeof setInterval> | undefined
@@ -41,6 +41,16 @@ export class SnackWindow {
 
   constructor(scale: number) {
     this.size = SNACK_STAGE * scale
+  }
+
+  /** A new size from Settings. A snack that is out is taken away; the next one has the new size. */
+  setScale(scale: number): void {
+    if (SNACK_STAGE * scale === this.size) return
+    this.size = SNACK_STAGE * scale
+    if (this.win && !this.win.isDestroyed()) {
+      this.taken()
+      this.onLifted()
+    }
   }
 
   get webContents(): WebContents | undefined {

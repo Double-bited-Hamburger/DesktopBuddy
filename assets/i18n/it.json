@@ -135,8 +135,6 @@
   "settings.theme.light": "Chiaro",
   "settings.theme.dark": "Scuro",
   "settings.size": "Grandezza papera",
-  "settings.restartNeeded": "La nuova grandezza vale dal prossimo avvio.",
-  "settings.restart": "Riavvia ora",
   "settings.pill": "Pillola dei punti vicino all'orologio",
   "settings.sounds": "Suoni",
   "settings.volume": "Volume",

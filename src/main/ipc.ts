@@ -218,7 +218,4 @@ export function registerIpc({
     IPC.settingsErase,
     panelOnly(() => settings.eraseAll()),
   )
-  ipcMain.on(IPC.settingsRestart, (event) => {
-    if (fromPanel(event.sender)) settings.restart()
-  })
 }

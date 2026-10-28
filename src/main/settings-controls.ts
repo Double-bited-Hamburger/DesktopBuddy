@@ -10,8 +10,6 @@ interface SettingsDeps {
   readonly settings: () => Settings
   /** Saves new settings and applies them (pill, duck, tray, panel language). */
   readonly apply: (next: Settings) => Promise<void>
-  /** The scale the duck window was created with (a new one needs a restart). */
-  readonly startScale: number
   /** Writes what is pending (points, items, quests, activity). */
   readonly flush: () => Promise<void>
   /** Stops every timer that could write a file later (tracking, focus session). */
@@ -38,7 +36,6 @@ export class SettingsControls {
       showPointsPill: s.showPointsPill,
       theme: s.theme,
       duck: s.duck,
-      restartNeeded: s.scale !== this.deps.startScale,
       autostart: {
         // A dev build would register the bare Electron binary, so only installed builds offer it.
         available: app.isPackaged,
@@ -78,18 +75,15 @@ export class SettingsControls {
 
   /**
    * Deletes every save file and starts over. `app.exit` skips the will-quit flush, so nothing
-   * held in memory is written back afterwards.
+   * held in memory is written back afterwards. Only an installed build relaunches itself: in dev
+   * the relaunched copy would outlive `npm run dev` (no Vite server) and hold the single-instance
+   * lock, so the next `npm run dev` would quit at once.
    */
   async eraseAll(): Promise<void> {
     this.deps.stop()
     await this.deps.flush()
     for (const key of await this.deps.storage.list()) await this.deps.storage.remove(key)
-    app.relaunch()
+    if (app.isPackaged) app.relaunch()
     app.exit(0)
-  }
-
-  restart(): void {
-    app.relaunch()
-    app.quit() // the normal quit path flushes points, items and activity first
   }
 }

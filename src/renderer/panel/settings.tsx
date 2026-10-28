@@ -88,14 +88,6 @@ export function Settings({ t, onChange }: SettingsProps) {
           ))}
         </div>
       </div>
-      {view.restartNeeded && (
-        <p class="muted note">
-          {t('settings.restartNeeded')}{' '}
-          <button type="button" onClick={() => window.buddy.panel.settings.restart()}>
-            {t('settings.restart')}
-          </button>
-        </p>
-      )}
       <label class="row">
         <span>{t('settings.pill')}</span>
         <input

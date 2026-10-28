@@ -25,7 +25,7 @@ as each feature lands.
   anywhere else.
 - **Everything else (Settings > Danger zone):** "Export everything" saves every save file
   (settings, points history, items, quests, activity) as one JSON file the user picks. "Erase
-  everything" (two clicks) deletes every save file and restarts the app as new.
+  everything" (two clicks) deletes every save file and restarts the app as new (in dev it just quits).
 - **Sounds** are generated in code (WebAudio oscillators); no microphone, no audio files.
 - Stored on disk, in `<userData>/data/` (Windows: `%APPDATA%\desktop-buddy\data\`).
 

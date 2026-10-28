@@ -112,6 +112,7 @@ async function main(): Promise<void> {
     config.pinState ? pinnedBehaviorConfig() : behaviorConfigFor(config.duck),
   )
   const sound = new ChipPlayer(config.volume)
+  let scale = config.scale
   const clock = new AnimationClock(animations, 'idle')
   if (config.pinState) {
     machine.enter(config.pinState)
@@ -134,6 +135,7 @@ async function main(): Promise<void> {
   let outfitVersion = 0
   // Settings: volume and the "what it does on its own" switches apply right away.
   window.buddy.duck.onPrefs((prefs) => {
+    scale = prefs.scale // main already resized the window; the canvas stretches with it
     sound.volume = prefs.volume
     if (!config.pinState) machine.configure(behaviorConfigFor(prefs.duck))
   })
@@ -352,8 +354,7 @@ async function main(): Promise<void> {
   // --- click-through, click and drag ------------------------------------------------------
   const isOverDuck = (e: MouseEvent): boolean =>
     rendered !== undefined &&
-    alphaAt(rendered, Math.floor(e.clientX / config.scale), Math.floor(e.clientY / config.scale)) >
-      0
+    alphaAt(rendered, Math.floor(e.clientX / scale), Math.floor(e.clientY / scale)) > 0
 
   function setIgnore(ignore: boolean): void {
     if (ignore === ignoring) return

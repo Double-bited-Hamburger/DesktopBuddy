@@ -65,7 +65,9 @@ possible if the RAM budget cannot be met.
   the last one ends**, so a quiet duck keeps no audio thread. Volume 0 never creates one.
 - **Settings:** `SettingsControls` (main) validates every patch with core `applySettingsPatch`
   (strict: unknown fields, loadout and tracking are rejected) and applies it live: pill window,
-  tray (language), duck page (`duck:prefs`: volume + behavior switches). Size needs a restart.
+  tray (language), duck page (`duck:prefs`: scale + volume + behavior switches). Size is live too: `DuckWindow.setScale`
+  stops any walk/flight/chase, resizes around the middle and lands on the floor; the canvas
+  stretches, so the page only updates its hit-test scale. Nothing relaunches in dev.
   "Erase everything" stops the tracker, flushes, deletes every key, then `app.relaunch` +
   `app.exit` (skips the will-quit flush, so nothing in memory is written back).
 - **Activity (opt-in):** `TrackerService` (main) has **no timer while tracking is off**. On, it

@@ -189,10 +189,10 @@ General (theme, language, size), Sounds (chip-style quack via WebAudio), Duck (b
 zone (export/erase), autostart, full perf pass. **Exit:** budget met with all features on.
 
 - [x] **Settings screen** (6th tab; the tabs are now a 3×2 grid so Italian fits): language (live:
-      panel, tray, pill), theme (system / light / dark panel), duck size 2–6× (restart button),
+      panel, tray, pill), theme (system / light / dark panel), duck size 2–6× (applied live),
       points pill, volume + test quack, the duck's own behaviors (walks around / naps / random
       quacks — core `behaviorConfigFor`, applied live), start with Windows (installed builds
-      only), Danger zone (export everything as JSON, two-click erase everything + restart)
+      only), Danger zone (export everything as JSON, two-click erase everything + restart; in dev it just quits)
 - [x] **Chip sounds** as data (core `sound/chip.ts`): quack (click or a quack it chose), chirp
       (petted), three chomps in time with eating bread, a falling whistle on a hard landing.
       Played with WebAudio; the audio device is closed when quiet
@@ -205,9 +205,14 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
 - [x] Quick perf check (2026-10-28, 1 run × 30 s): free mix **0.92%**, idle **0.15%**, 80–83 MB —
       under budget (see ARCHITECTURE)
 - [ ] **Full perf pass** (all states, tracking on, ≥ 3 runs) — the phase exit
+- [x] **Fix (user report, 2026-10-28):** "Restart now" after a size change broke `npm run dev`:
+      the relaunched copy outlived the Vite server and held the single-instance lock, so the next
+      `npm run dev` quit at once. The size now applies live (duck and snack windows resize, the
+      duck lands on its floor again; verified over CDP: 120 → 200 → 80 → 120 px, bottom on the
+      taskbar each time), the restart button is gone, and erase only relaunches installed builds
 - [ ] **Not verified:** hearing the sounds (no audio check is possible from here — listen!);
-      the export dialog and the restart button (need a human); autostart in an installed build
-      (Phase 8); a relaunch in dev mode comes back without the Vite server (dev-only)
+      the export dialog (needs a human); autostart in an installed build (Phase 8); a size change
+      while a snack is out (it is taken away by design, not tried live)
 
 ## Phase 8 — Release & community
 

@@ -48,7 +48,6 @@ export const IPC = {
   settingsSetAutostart: 'panel:settings-set-autostart',
   settingsExport: 'panel:settings-export',
   settingsErase: 'panel:settings-erase',
-  settingsRestart: 'panel:settings-restart',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -151,11 +150,13 @@ export interface StatsView {
 
 /** What the duck page needs to know when the Settings screen changes something. */
 export interface DuckLivePrefs {
+  /** Pixel scale now in effect (the window was resized by main). */
+  readonly scale: number
   readonly volume: number
   readonly duck: DuckPrefs
 }
 
-/** The Settings screen. Scale changes apply after a restart (`restartNeeded`). */
+/** The Settings screen. Every change applies right away. */
 export interface SettingsView {
   readonly scale: number
   readonly language: Settings['language']
@@ -163,8 +164,6 @@ export interface SettingsView {
   readonly showPointsPill: boolean
   readonly theme: Theme
   readonly duck: DuckPrefs
-  /** The scale saved differs from the one the duck was started with. */
-  readonly restartNeeded: boolean
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string
@@ -267,8 +266,6 @@ export interface BuddyApi {
       exportAll(): Promise<boolean>
       /** Deletes every save file (points, items, quests, activity, settings) and restarts. */
       eraseAll(): Promise<void>
-      /** Restarts the app (to apply a new size). */
-      restart(): void
     }
   }
   snack: {
