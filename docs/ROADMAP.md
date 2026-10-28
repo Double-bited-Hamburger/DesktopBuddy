@@ -227,19 +227,37 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
 - [x] **Windows installer** (`npm run dist` → `release/DesktopBuddy-Setup-<version>.exe`):
       per-user NSIS (no admin), Start menu + desktop shortcuts, runs when done, uninstaller keeps
       the saves; appId matches `setAppUserModelId`. `koffi` unpacked from asar (checked: it loads
-      from the package). Saves pinned to `%APPDATA%desktop-buddy` so the installed app finds
+      from the package). Saves pinned to `%APPDATA%\desktop-buddy` so the installed app finds
       the same points as `npm run dev`. Version 0.1.0
 - [ ] Not signed yet: SmartScreen asks once (More info → Run anyway). Signing is still a decision
 - [x] **Installer tested (2026-10-28)**, with the real saves backed up first (SHA-256) and
       restored byte-for-byte afterwards: silent per-user install in 10 s (no admin) →
-      `%LOCALAPPDATA%ProgramsDesktopBuddy`, Start menu + desktop shortcuts pointing at the exe,
+      `%LOCALAPPDATA%\Programs\DesktopBuddy`, Start menu + desktop shortcuts pointing at the exe,
       "Installed apps" entry 0.1.0. The installed app ran from `app.asar`, read the real saves
       (112 pts), app names on (koffi from asar.unpacked), dev pin ignored; Start with Windows on →
       `HKCU…Run` value `dev.desktopbuddy.app` = the installed exe, off → removed. Silent
       uninstall removed the app, shortcuts, the entry and the Run value, and kept the saves
 - [ ] **Not verified:** the installer's own windows (only the silent mode was run); SmartScreen's
       prompt (it only appears for downloaded files); a real Windows login with autostart on
-- [ ] Auto-update, CONTRIBUTING + art guide, licenses, CREDITS
+- [ ] 📌 **Auto-update from GitHub Releases, never losing data** (asked for 2026-10-28). Today an
+      update means running a newer installer by hand: it replaces the app and keeps the saves,
+      because they live outside it. Plan:
+  - `electron-updater` with the GitHub provider: CI builds the installer + `latest.yml` and
+    attaches them to a GitHub Release; the app checks at start and then every 6 h (one request,
+    no telemetry), downloads in the background and installs **on quit**, or at once from a tray
+    item "Restart to update"
+  - Settings switch "Check for updates" (on by default, can be turned off), shown in About with the
+    version. The only network the app makes outside Friends, and documented in PRIVACY
+  - **Data safety:** saves stay in `%APPDATA%\desktop-buddy`, which the installer never touches;
+    flush every save before the update restarts the app; each save file keeps its `version` and
+    migrates forward on read (zod), and an unknown newer version is backed up and left alone
+    instead of overwritten; a `backup-<old version>` copy of the save folder is made before the
+    first start of a new version
+  - Updates are checked against the release's SHA-512 (electron-updater). Unsigned builds still
+    work but SmartScreen may ask; signing stays a separate decision
+  - **Test before shipping:** install 0.1.0 with throwaway saves, publish 0.1.1 to a test release,
+    check the update applies on quit and every point, item and setting is still there
+- [ ] CONTRIBUTING + art guide, licenses, CREDITS
 - [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
       AppImage + .deb from CI)
 
