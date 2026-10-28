@@ -217,6 +217,121 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
       the export dialog (needs a human); autostart in an installed build (Phase 8); a size change
       while a snack is out (it is taken away by design, not tried live)
 
+## Phase 7b — Screen time + points for active time (planned 2026-10-28)
+
+Owner's idea: Android-style screen time (which app, for how long) and points for working at the
+computer, while playing with the duck still pays more. **No new data is recorded**: both features
+read the minute buckets the opt-in tracker already writes (app process name + active/idle).
+Counting key presses was considered and **rejected**: it needs a global keyboard hook (what
+keyloggers use), antivirus may flag it, and the opt-in screen promises "never keystrokes".
+Active minutes come from the last-input time Windows already gives us, without any key.
+
+**Exit:** both work with tracking on, say clearly what they need with tracking off, `npm run check`
+green, no measurable CPU change (nothing new runs on a timer).
+
+### A. Screen time (in Stats, a second tab: "Overview" | "Screen time")
+
+- **Day picker** ‹ Today › back through the saved day files (no future days).
+- **Big total** for the day ("5 h 12 min") and the change against the 7-day average (▲/▼, no
+  judgement words).
+- **Per hour** chart: 24 pixel columns, active minutes per hour, coloured by category.
+- **Apps, most used first:** name, time, a bar proportional to the top app, category chip (the
+  existing focus/distraction/neutral, still clickable on Today). No app icons: we store process
+  names, not exe paths; a pixel letter tile in the category colour stands in.
+- **Tap an app** → its last 7 days (bars), daily average, and its hours today.
+- Core (pure, tested): `screenTimeOfDay(activity, categories)` → `{ total, hours[24] by category,
+  apps }` (reuses `bucketsOf`/`categoryOf`); `appHistory(days, app)` → minutes per day + average.
+- IPC (panel-only, validated): `activity.screenTime(day)` — `day` an int yyyymmdd within the kept
+  days, not in the future; `activity.appHistory(app)` — a string ≤ 64 chars that appears in the
+  day files. Both read existing files only.
+- i18n: new `screen.*` keys in en + it (Italian length checked in the 3×2 nav and the tabs).
+
+### B. Points for active time
+
+- Rule in `economy.json` (balance is data): `"activeTime": { "minutesPerPoint": 10, "dailyCap": 30 }`
+  → at most **30 pts/day** (5 h active). For comparison, duck play caps are click 100, pet 80,
+  play 150, and focus sessions pay 1 pt/min — **the duck stays the best way to earn**.
+- Core (pure, tested): `activeTimePointsDue(activeMinutesToday, earnedToday, rule)` →
+  `min(cap, floor(active / minutesPerPoint)) − earnedToday`. Derived from the day file, so a
+  restart never loses or double-pays minutes, and the daily cap holds across restarts.
+- Main: when the tracker writes an **active** minute, ask the function and `points.grant('active',
+  due)` if > 0 (no new timer). Tracking off → no active-time points; Today says so in one line.
+- Visible: Today shows "Active time: 12 / 30 pts today"; the ledger source `active` shows in any
+  points history. Odds/caps documented in ECONOMY.md "Sources".
+- Abuse: a mouse jiggler can at most reach the same 30/day cap, which is small by design.
+- Optional quest later: "Be active for 2 h" (quest pool, data only).
+
+### Steps
+
+1. Core + tests: `screenTimeOfDay`, `appHistory`, `activeTimePointsDue`; economy schema + json +
+   ECONOMY.md.
+2. Main: grant on active minutes; the two IPC handlers with sender + payload checks.
+3. Panel: Stats tabs, Screen time view, app detail, Today's active-time line; en + it.
+4. Verify on a throwaway `BUDDY_DATA_DIR` with seeded day files (several apps, two weeks):
+   screenshots light/dark/it, points granted once per 10 active minutes, cap at 30, restart
+   doesn't double-pay; quick perf check.
+
+## Phase 7c — A livelier duck (owner's ideas, 2026-10-29)
+
+Make the duck feel alive. Everything stays cosmetic and kind: no penalties, no points lost, the
+duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤ 16 colours).
+
+- [ ] **Feed several pieces at once:** drop up to 5 snacks (a tray item "Feed a handful" or drop
+      again while one is out). The duck eats the nearest, then walks/flies to the next, until
+      none are left. Each piece is its own small snack window, created on drop and destroyed
+      when eaten (budget: no window while nothing is out). Points per piece as today (capped)
+- [ ] **Coffee ☕ (new snack, tray + Bag):** the duck drinks it, its eyes go wide, and either
+      runs around faster for a minute **or** (the favourite) a pixel sofa appears and it sits
+      and reads a newspaper for a while. Coffee counts per day are saved
+- [ ] **Too much coffee:** 3+ coffees in a day → the next morning it looks tired (half-closed
+      eyes, slower walk, yawns) for the first ~10 min after the app starts. Thresholds in data
+- [ ] **Cigars have a downside:** the duck coughs after smoking. An **addiction bar** (visible
+      on the duck's card in the Bag) fills with each cigar and drains over hours. High → more
+      coughing and dizzy stars ✨ circling its head; full → it refuses the next cigar ("I need
+      fresh air") until the bar drops. It never rewards smoking more: cigars pay the same capped
+      play points as bread, and nothing pushes you to give them
+- [ ] **Better walk:** more frames with a waddle, head bob and tail wag; turns with a little
+      pause instead of flipping instantly. Must not raise the walk CPU (still the open Phase 7
+      problem): same 12 fps tick, only the frames change
+- [ ] **Time of day:** yawns more late at night (and may say it's late), a tiny coffee cup in
+      the morning, seasonal touches (snow on the taskbar in December) — all local clock, no data
+- [ ] **Yawning** as its own animation, used when tired, late, or waking up
+
+## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)
+
+The duck helps you look after yourself. Every part can be turned off in Settings; nothing locks
+the PC, and the duck never screams.
+
+- [ ] **Rubber-duck mode:** click "Talk to the duck" → a small box "Tell me what's wrong". You
+      type out the bug, the duck nods and quacks softly. Nothing is saved or sent; the text is
+      gone when the box closes
+- [ ] **Focus companion:** during a focus session the duck wears tiny headphones, stays still and
+      quiet; at the end it does a happy dance
+- [ ] **Break buddy (opt-in):** after a set time of nonstop activity (default 50 min, from the
+      tracker's active minutes) the duck jumps up and holds a **wooden sign** across the screen:
+      "Time to take a break — look out of the window and see some grass", with a button
+      **"I'm finishing right now"**.
+  - The button → the sign drops, the duck lands on the taskbar and **stares at you** for the
+    break (default 5 min). If you keep using the PC, it starts **quacking — softly at first**,
+    at the user's volume, a quack every ~20 s, never louder than normal sounds
+  - **Calm it** with a coffee or a cigar → it lets you work **30 more minutes**, then asks again
+  - Walking away (idle for the break length) ends the break with a happy "Welcome back"
+  - **Never interrupts** a fullscreen game, a presentation or a call: Windows reports these
+    (`SHQueryUserNotificationState`, via koffi); the break waits until it's over. Escape always
+    closes the sign. The sign is a window created on demand and destroyed after
+  - Lengths in Settings (work 25–90 min, break 3–15 min); the duck only nudges, it never forces
+- [ ] **Welcome back:** when you leave, the duck curls up and naps; when you return it wakes,
+      stretches and waves (uses the idle time the tracker already reads)
+- [ ] **Your name and the duck's name (both optional):** on first run (or from Settings) the
+      duck introduces itself and asks your name, then asks if you'd like to name it. The names
+      appear in its bubbles ("Marco, I'm hungry!", "Nice work, Marco!"). Saved locally in
+      settings, erasable with everything else; "skip" is always offered
+- [ ] **Hunger on a duck's clock:** pet ducks are usually fed twice a day (morning and evening)
+      and nibble in between, so the duck gets peckish a few hours after its last meal and really
+      hungry around breakfast and dinner time. Then it says so, with your name. Only while you're
+      at the PC; it's never punished and never sad for long (it just eats when fed). Timings in
+      data so they're easy to tune
+
 ## Phase 8 — Release & community
 
 Installer (electron-builder), signing decision, auto-update, CONTRIBUTING + art guide, final
@@ -260,6 +375,20 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
 - [ ] CONTRIBUTING + art guide, licenses, CREDITS
 - [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
       AppImage + .deb from CI)
+
+## Phase 8b — A local friend duck (before Friends)
+
+A second duck on the **same** PC, no network: earned in play (a rare item) or switched on in
+Settings. The two ducks meet on the taskbar, play tag, run through each other, dance together,
+share a snack and nap side by side. Each duck can wear its own outfit.
+
+- Core: a small "pair" behaviour layer on top of `BehaviorMachine` (who leads, meet-up point,
+  joint animations), deterministic with the injected `Rng`, with tests
+- Shell: a second duck window, only while the friend is out. **Budget:** must stay under the
+  idle/free limits with both ducks (measure; if two windows cost too much, draw both in one
+  wider window while they're close)
+- This is also the dress rehearsal for Phase 9: a visiting duck from a friend reuses the same
+  pair behaviours
 
 ## Phase 9 — Friends (opt-in, last)
 
