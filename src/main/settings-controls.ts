@@ -36,6 +36,7 @@ export class SettingsControls {
       showPointsPill: s.showPointsPill,
       theme: s.theme,
       duck: s.duck,
+      breaks: s.breaks,
       autostart: {
         // A dev build would register the bare Electron binary, so only installed builds offer it.
         available: app.isPackaged,

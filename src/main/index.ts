@@ -9,15 +9,19 @@ import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
 import { equipItem, parseCatalog } from '../core/catalog/catalog'
 import { checkEconomy } from '../core/economy/config'
+import { localDayKey } from '../core/economy/ledger'
 import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
 import type { Settings } from '../core/settings/settings'
 import { loadSettings, saveSettings } from '../core/settings/settings'
+import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
 import type { Snack } from '../core/toys/snacks'
 import { focusReward } from '../core/tracker/focus'
 import type { AppConfig, DuckLivePrefs, PointsEvent } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
+import { BreakBuddy } from './break-buddy'
+import { windowsBusy } from './busy-windows'
 import { DuckWindow } from './duck-window'
 import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
@@ -42,6 +46,13 @@ function lockDownWebContents(): void {
   })
 }
 
+/** Dev-only: `BUDDY_BREAK_SECONDS=60,20` makes the break buddy ask after 60 s, for a 20 s break. */
+function breakSecondsFromEnv(): readonly [number, number] | undefined {
+  if (app.isPackaged) return undefined
+  const [work, rest] = (process.env.BUDDY_BREAK_SECONDS ?? '').split(',').map(Number)
+  return work && rest && work > 0 && rest > 0 ? [work, rest] : undefined
+}
+
 /** `BUDDY_PIN_STATE=walk` keeps the duck walking, etc. Ignored in packaged builds. */
 function pinStateFromEnv(): BehaviorState | undefined {
   if (app.isPackaged) return undefined
@@ -61,6 +72,11 @@ async function start(): Promise<void> {
   const economy = parseEconomy(economyJson)
   checkEconomy(economy, catalog)
   const points = await PointsService.load(storage, economy)
+  // Too many coffees yesterday: a sleepy start today. `BUDDY_TIRED=1` forces it in dev builds.
+  let coffeeLog = await loadCoffeeLog(storage)
+  const tired =
+    tiredToday(coffeeLog, localDayKey(Date.now())) ||
+    (!app.isPackaged && process.env.BUDDY_TIRED === '1')
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
@@ -69,6 +85,7 @@ async function start(): Promise<void> {
     volume: settings.volume,
     duck: settings.duck,
     theme: settings.theme,
+    tired,
     pinState,
   })
 
@@ -127,6 +144,16 @@ async function start(): Promise<void> {
   // handful; the duck runs or jumps to the nearest piece, eats it, then goes for the next. Each
   // piece is paid for once finished (capped like any play), and only for a piece it actually
   // caught, so the duck page can't claim treats it was never given.
+  // The break buddy (opt-in): see break-buddy.ts.
+  const breaks = new BreakBuddy({
+    duck,
+    idleSeconds: () => powerMonitor.getSystemIdleTime(),
+    busy: windowsBusy(),
+    settings: () => settings.breaks,
+    scale: () => settings.scale,
+    testSeconds: breakSecondsFromEnv(),
+  })
+  breaks.sync()
   const snacks = new SnackPile(settings.scale, () => duck.middleX)
   let snackCaught: Snack | undefined
   snacks.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
@@ -147,6 +174,13 @@ async function start(): Promise<void> {
   const ate = () => {
     if (snackCaught) {
       progress.record(snackCaught)
+      if (snackCaught !== 'bread') breaks.calm() // a coffee or a cigar: the staring duck lets it go
+      if (snackCaught === 'coffee') {
+        coffeeLog = recordCoffee(coffeeLog, localDayKey(Date.now()))
+        saveCoffeeLog(storage, coffeeLog).catch((error) =>
+          console.error('Could not save the coffee count', error),
+        )
+      }
       snackCaught = undefined
       earn('play')
     }
@@ -217,6 +251,7 @@ async function start(): Promise<void> {
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
     }
+    if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
     if (
       next.scale !== before.scale ||
       next.volume !== before.volume ||
@@ -247,6 +282,7 @@ async function start(): Promise<void> {
     progress,
     activity,
     settings: settingsControls,
+    breaks,
   })
 
   buildTray()
@@ -258,6 +294,7 @@ async function start(): Promise<void> {
     if (flushed) return
     event.preventDefault()
     tracker.stop()
+    breaks.stop()
     flushAll().finally(() => {
       flushed = true
       app.quit()
@@ -265,7 +302,7 @@ async function start(): Promise<void> {
   })
 }
 
-// Saves live in %APPDATA%desktop-buddy in every build. Pinned, because an installed build is
+// Saves live in %APPDATA%\desktop-buddy in every build. Pinned, because an installed build is
 // named "DesktopBuddy" (productName) and Electron would otherwise move them to a new folder.
 app.setPath('userData', join(app.getPath('appData'), 'desktop-buddy'))
 

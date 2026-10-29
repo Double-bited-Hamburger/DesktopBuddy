@@ -51,6 +51,7 @@ describe('settings', () => {
       showPointsPill: false,
       theme: 'system',
       duck: { wander: true, naps: true, chatter: true },
+      breaks: { enabled: false, workMinutes: 50, breakMinutes: 5 }, // the break buddy is opt-in
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })
@@ -111,6 +112,12 @@ describe('applySettingsPatch', () => {
     expect(next?.loadout).toEqual(DEFAULT_SETTINGS.loadout)
   })
 
+  it('turns the break buddy on without touching its timings', () => {
+    const longer = applySettingsPatch(DEFAULT_SETTINGS, { breaks: { workMinutes: 60 } })
+    const next = longer && applySettingsPatch(longer, { breaks: { enabled: true } })
+    expect(next?.breaks).toEqual({ enabled: true, workMinutes: 60, breakMinutes: 5 })
+  })
+
   it('keeps every setting the patch leaves out, not the defaults', () => {
     const mine = applySettingsPatch(DEFAULT_SETTINGS, {
       volume: 0.2,
@@ -134,6 +141,8 @@ describe('applySettingsPatch', () => {
     ['an unknown theme', { theme: 'pink' }],
     ['a non-boolean switch', { duck: { wander: 'yes' } }],
     ['an unknown duck switch', { duck: { fly: true } }],
+    ['a break reminder every 5 minutes', { breaks: { workMinutes: 5 } }],
+    ['an unknown break field', { breaks: { snooze: 1 } }],
     ['not an object', 'scale=4'],
   ])('rejects %s', (_label, patch) => {
     expect(applySettingsPatch(DEFAULT_SETTINGS, patch)).toBeUndefined()

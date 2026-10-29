@@ -1,0 +1,34 @@
+# A mug of coffee for the duck, held at the beak. Drawn for a duck facing right: the handle is on
+# the right, away from the beak. Sipped from full (steaming) to empty.
+name: coffee
+size: 7x6
+palette:
+  K #2a1f2d
+  H #fffaf0
+  S #d9c49a
+  C #6b4220
+  T #e4e1dc
+
+@frame coffee-full
+.T.T...
+KKKKK..
+KCCCKK.
+KHHHK.K
+KHHSKK.
+.KKKK..
+
+@frame coffee-half
+.......
+KKKKK..
+KHHHKK.
+KCCCK.K
+KHHSKK.
+.KKKK..
+
+@frame coffee-empty
+.......
+KKKKK..
+KHHHKK.
+KHHHK.K
+KHHSKK.
+.KKKK..

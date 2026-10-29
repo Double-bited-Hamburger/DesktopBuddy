@@ -1,0 +1,32 @@
+# The newspaper the duck reads on its sofa, held up in front of its chest. Drawn for a duck facing
+# right. Two frames: the page as it is, and after the duck turns it.
+name: newspaper
+size: 12x10
+palette:
+  K #2a1f2d
+  P #efe8da
+  G #b9b4ad
+
+@frame paper
+KKKKKKKKKKKK
+KPPPPPPPPPPK
+KPKKKKKKKPPK
+KPPPPPPPPPPK
+KPGGGPGGGGPK
+KPGGGPGGGGPK
+KPPPPPGGGGPK
+KPGGGPPPPPPK
+KPGGGPGGGGPK
+KKKKKKKKKKKK
+
+@frame paper-turned
+KKKKKKKKKKKK
+KPPPPPPPPPPK
+KPPKKKKKKKPK
+KPPPPPPPPPPK
+KPGGGGPGGGPK
+KPPPPPPGGGPK
+KPGGGGPGGGPK
+KPGGGGPPPPPK
+KPGGGGPGGGPK
+KKKKKKKKKKKK

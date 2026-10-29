@@ -1,6 +1,10 @@
 import { MEAL_MS } from '../toys/bread'
 import { SMOKE_MS } from '../toys/cigar'
+import { DRINK_MS } from '../toys/coffee'
 import type { Rng } from '../types'
+
+/** The longest a stare can last on its own (a break is given up on well before this). */
+export const STARE_MAX_MS = 30 * 60_000
 
 export const BEHAVIOR_STATES = [
   'idle',
@@ -12,6 +16,11 @@ export const BEHAVIOR_STATES = [
   'eat',
   'run',
   'smoke',
+  'drink',
+  'read',
+  'zoom',
+  'yawn',
+  'stare',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -35,6 +44,12 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     // The shell ends a chase when the bread is caught; this is only a safety net.
     run: [60_000, 60_000],
     smoke: [SMOKE_MS, SMOKE_MS],
+    drink: [DRINK_MS, DRINK_MS],
+    read: [15_000, 25_000], // on the sofa with the newspaper
+    zoom: [5000, 8000], // racing around, wide awake
+    yawn: [1600, 1600],
+    // Break time: the shell ends the stare (see core/care/breaks.ts); this is only a safety net.
+    stare: [STARE_MAX_MS, STARE_MAX_MS],
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -47,6 +62,12 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     eat: { idle: 1 },
     run: { idle: 1 },
     smoke: { idle: 1 },
+    // After a coffee: usually the sofa and the newspaper, sometimes a sprint.
+    drink: { read: 0.65, zoom: 0.35 },
+    read: { idle: 1 },
+    zoom: { idle: 1 },
+    yawn: { idle: 1 },
+    stare: { idle: 1 },
   },
 }
 
@@ -67,6 +88,11 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       eat: forever,
       run: forever,
       smoke: forever,
+      drink: forever,
+      read: forever,
+      zoom: forever,
+      yawn: forever,
+      stare: forever,
     },
     next: {
       idle: { idle: 1 },
@@ -78,6 +104,11 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       eat: { eat: 1 },
       run: { run: 1 },
       smoke: { smoke: 1 },
+      drink: { drink: 1 },
+      read: { read: 1 },
+      zoom: { zoom: 1 },
+      yawn: { yawn: 1 },
+      stare: { stare: 1 },
     },
   }
 }
@@ -105,6 +136,18 @@ export function behaviorConfigFor(
     Object.entries(base.next.idle).filter(([state]) => !off.includes(state as BehaviorState)),
   )
   return { ...base, next: { ...base.next, idle: Object.keys(idle).length ? idle : { idle: 1 } } }
+}
+
+/**
+ * The morning after too much coffee: the duck walks less and yawns a lot (see `tiredToday` in
+ * core/toys/coffee.ts). Built on top of the user's switches, so a duck told not to wander still
+ * won't.
+ */
+export function tiredBehaviorConfig(config: BehaviorConfig): BehaviorConfig {
+  const idle: Partial<Record<BehaviorState, number>> = { ...config.next.idle }
+  if (idle.walk) idle.walk /= 2
+  idle.yawn = 0.3
+  return { ...config, next: { ...config.next, idle } }
 }
 
 function between(range: readonly [number, number], rng: Rng): number {
@@ -194,6 +237,17 @@ export class BehaviorMachine {
     this.enter('smoke')
   }
 
+  /** Fed a coffee: the duck sips it (see core/toys/coffee.ts), then reads or zooms around. */
+  drink(): void {
+    this.enter('drink')
+  }
+
+  /** Break time and the user is still at the PC: the duck stares, waiting, facing `direction`. */
+  stare(direction: Direction): void {
+    this.enter('stare')
+    this.facing = direction
+  }
+
   /** Bread on the floor: run for it, facing the way the shell says. */
   chase(direction: Direction): void {
     this.enter('run')
@@ -207,12 +261,12 @@ export class BehaviorMachine {
 
   /** The shell reports that a walking duck reached the edge of its floor. */
   hitEdge(): void {
-    if (this.current === 'walk') this.facing = this.facing === 1 ? -1 : 1
+    if (this.current === 'walk' || this.current === 'zoom') this.facing = this.facing === 1 ? -1 : 1
   }
 
   enter(state: BehaviorState): void {
     this.current = state
     this.remainingMs = between(this.config.durationMs[state], this.rng)
-    if (state === 'walk') this.facing = this.rng() < 0.5 ? -1 : 1
+    if (state === 'walk' || state === 'zoom') this.facing = this.rng() < 0.5 ? -1 : 1
   }
 }

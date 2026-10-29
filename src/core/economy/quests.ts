@@ -9,6 +9,7 @@ export const QUEST_EVENTS = [
   'throw',
   'bread',
   'cigar',
+  'coffee',
   'gift',
   'equip',
   'focus',

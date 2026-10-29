@@ -29,6 +29,13 @@ as each feature lands.
 - **Sounds** are generated in code (WebAudio oscillators); no microphone, no audio files.
 - Stored on disk, in `<userData>/data/` (Windows: `%APPDATA%\desktop-buddy\data\`).
 
+## Break buddy (Phase 7d, opt-in)
+
+- Off until turned on in Settings → Breaks. It reads only the system idle time (seconds since the
+  last input, the same number as Today) and asks Windows whether something fullscreen is on
+  (`SHQueryUserNotificationState`: a yes/no state, nothing about which app).
+- Nothing is stored: the minutes at the PC live in memory and start over on every break or restart.
+
 ## Principles for later phases
 
 1. **Opt-in.** Activity tracking (Today/Stats, Phase 6) is off until the user turns it on after a

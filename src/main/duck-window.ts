@@ -14,6 +14,7 @@ import {
   WALK_SPEED,
   walkStep,
 } from '../core/stage'
+import { ZOOM_SPEED } from '../core/toys/coffee'
 import type { Point, Rect } from '../core/types'
 import type { ChaseDirection, FallEvent, WalkDirection } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
@@ -51,6 +52,8 @@ export class DuckWindow {
   /** Cursor positions during a drag, to measure how fast the duck was thrown. */
   private samples: Sample[] = []
   private walkDirection: 1 | -1 = 1
+  /** Steps per walk step: 1, or ZOOM_SPEED while zooming after a coffee (same 12 Hz timer). */
+  private walkStride = 1
   /** Called when the user throws the duck (released while moving fast): that counts as play. */
   onThrown: () => void = () => undefined
   /** Called when the duck reaches the snack it was chasing. */
@@ -177,17 +180,23 @@ export class DuckWindow {
    * Starts (1 / -1) or stops (0) walking along the floor. Main owns the step timer so a walking
    * duck costs no per-step IPC or renderer wakeups; the renderer only hears about edge turns.
    */
-  walk(direction: WalkDirection): void {
+  walk(direction: WalkDirection, fast = false): void {
     clearInterval(this.walkTimer)
     this.walkTimer = undefined
     if (direction === 0 || this.drag || this.flightTimer || this.target) return
     this.walkDirection = direction
+    this.walkStride = fast ? ZOOM_SPEED : 1
     this.walkTimer = setInterval(() => this.step(), 1000 / (WALK_SPEED / this.stepPx))
   }
 
   /** One walk step. It uses cached floor, position and work areas: no window or display queries. */
   private step(): void {
-    const next = walkStep(this.x, this.walkDirection, this.stepPx * this.scale, this.floor)
+    const next = walkStep(
+      this.x,
+      this.walkDirection,
+      this.stepPx * this.walkStride * this.scale,
+      this.floor,
+    )
     this.x = next.x
     this.walkDirection = next.direction
     if (next.turned) this.window.webContents.send(IPC.turned, next.direction)
@@ -356,6 +365,30 @@ export class DuckWindow {
     this.x = clamp(this.x, this.floor.minX, this.floor.maxX)
     this.y = this.floor.y
     this.place()
+  }
+
+  /** Off the taskbar for a moment (it is standing on the break sign). */
+  hide(): void {
+    this.walk(0)
+    this.stopRun()
+    this.target = undefined
+    if (this.flightTimer) this.stopFlight('land')
+    this.window.hide()
+  }
+
+  /** Back where it was, if it was hidden. */
+  show(): void {
+    if (!this.window.isVisible()) this.window.showInactive()
+  }
+
+  /** Shown at a screen point in mid-air (where it stood on the sign), landing on its feet. */
+  dropFrom(at: Point): void {
+    this.x = Math.round(at.x)
+    this.y = Math.round(at.y)
+    this.place()
+    this.refreshFloor(this.window.getBounds())
+    this.show()
+    this.fly({ x: this.x, y: Math.min(this.y, this.floor.y), vx: 0, vy: 0 }, true)
   }
 
   /** Puts the duck straight onto the floor of the display it is on. Used when displays change. */

@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import type { BrowserWindow, WebPreferences } from 'electron'
 
-export type Page = 'duck' | 'panel' | 'pill' | 'snack'
+export type Page = 'duck' | 'panel' | 'pill' | 'snack' | 'sign'
 
 /** Security baseline for every window: isolated, sandboxed, no Node in the renderer. */
 export const webPreferences: WebPreferences = {

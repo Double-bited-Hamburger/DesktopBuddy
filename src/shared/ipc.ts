@@ -2,7 +2,7 @@ import type { BehaviorState } from '../core/behavior/machine'
 import type { Rarity, Slot } from '../core/catalog/catalog'
 import type { RarityChance } from '../core/economy/gifts'
 import type { QuestView } from '../core/economy/quests'
-import type { DuckPrefs, Settings, SettingsPatch, Theme } from '../core/settings/settings'
+import type { Breaks, DuckPrefs, Settings, SettingsPatch, Theme } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
 
@@ -49,6 +49,8 @@ export const IPC = {
   settingsSetAutostart: 'panel:settings-set-autostart',
   settingsExport: 'panel:settings-export',
   settingsErase: 'panel:settings-erase',
+  care: 'duck:care',
+  signAnswer: 'sign:answer',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -63,6 +65,8 @@ export interface AppConfig {
   /** What the duck does on its own. */
   readonly duck: DuckPrefs
   readonly theme: Theme
+  /** Too many coffees yesterday: the duck starts the day tired (core/toys/coffee.ts). */
+  readonly tired: boolean
   /** Dev-only (`BUDDY_PIN_STATE`, unpackaged builds): keep the duck in one state, for perf runs. */
   readonly pinState?: BehaviorState
 }
@@ -165,10 +169,22 @@ export interface SettingsView {
   readonly showPointsPill: boolean
   readonly theme: Theme
   readonly duck: DuckPrefs
+  /** The break buddy (opt-in). */
+  readonly breaks: Breaks
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string
 }
+
+/**
+ * The break buddy's news for the duck page: stare (break time, the user is still here), nag (a
+ * soft quack: still typing), welcome (back from a real break) or calm (it lets it go for now).
+ */
+export type CareEvent = 'stare' | 'nag' | 'welcome' | 'calm'
+export const CARE_EVENTS: readonly CareEvent[] = ['stare', 'nag', 'welcome', 'calm']
+
+/** The break sign's buttons: "I'm finishing right now" or "☕ Just 10 more minutes". */
+export type SignChoice = 'finish' | 'later'
 
 /** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
 export type ChaseDirection = 1 | -1 | 0
@@ -194,8 +210,9 @@ export interface BuddyApi {
     /**
      * Starts (1 / -1) or stops (0) walking. Main owns the step timer, so a walking duck costs no
      * per-step IPC or renderer wakeups. Dragging stops the walk; send it again afterwards.
+     * `fast` zooms (after a coffee) at the same step rate, with bigger steps.
      */
-    walk(direction: WalkDirection): void
+    walk(direction: WalkDirection, fast?: boolean): void
     /** Main turned the duck around at an edge of the floor. Returns an unsubscribe function. */
     onTurned(listener: (direction: 1 | -1) => void): () => void
     /**
@@ -206,6 +223,8 @@ export interface BuddyApi {
     onFall(listener: (event: FallEvent) => void): () => void
     /** Volume or behavior switches changed in Settings. Returns an unsubscribe function. */
     onPrefs(listener: (prefs: DuckLivePrefs) => void): () => void
+    /** The break buddy: stare, nag, welcome back or calm down. Returns an unsubscribe function. */
+    onCare(listener: (event: CareEvent) => void): () => void
     /** The loadout changed (equipped from the Bag): redraw with the new outfit. */
     onLoadout(listener: (loadout: Loadout) => void): () => void
     /** Run after a snack (main moves the window), or stop (0). */
@@ -270,6 +289,10 @@ export interface BuddyApi {
       /** Deletes every save file (points, items, quests, activity, settings) and restarts. */
       eraseAll(): Promise<void>
     }
+  }
+  sign: {
+    /** A button on the break sign was pressed. */
+    answer(choice: SignChoice): void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

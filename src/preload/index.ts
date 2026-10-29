@@ -13,7 +13,7 @@ import type {
   StoreView,
   TodayView,
 } from '../shared/ipc'
-import { FALL_EVENTS, IPC } from '../shared/ipc'
+import { CARE_EVENTS, FALL_EVENTS, IPC } from '../shared/ipc'
 
 // The renderers only ever see this object. Every call maps to one fixed channel;
 // the main process validates the sender and the payload.
@@ -30,7 +30,7 @@ const api: BuddyApi = {
     dragStart: () => ipcRenderer.send(IPC.dragStart),
     dragMove: () => ipcRenderer.send(IPC.dragMove),
     dragEnd: () => ipcRenderer.send(IPC.dragEnd),
-    walk: (direction) => ipcRenderer.send(IPC.walk, direction),
+    walk: (direction, fast) => ipcRenderer.send(IPC.walk, direction, fast === true),
     onTurned: (listener) => {
       // Hand the renderer only the validated value, never the raw IPC event.
       const handler = (_event: unknown, direction: unknown) => {
@@ -52,6 +52,14 @@ const api: BuddyApi = {
         listener({ scale: prefs.scale, volume: prefs.volume, duck: prefs.duck })
       ipcRenderer.on(IPC.duckPrefs, handler)
       return () => ipcRenderer.off(IPC.duckPrefs, handler)
+    },
+    onCare: (listener) => {
+      const handler = (_event: unknown, what: unknown) => {
+        const known = CARE_EVENTS.find((e) => e === what)
+        if (known) listener(known)
+      }
+      ipcRenderer.on(IPC.care, handler)
+      return () => ipcRenderer.off(IPC.care, handler)
     },
     onLoadout: (listener) => {
       // Main only ever sends a validated loadout; still hand over plain data, not the event.
@@ -115,6 +123,9 @@ const api: BuddyApi = {
       exportAll: (): Promise<boolean> => ipcRenderer.invoke(IPC.settingsExport),
       eraseAll: (): Promise<void> => ipcRenderer.invoke(IPC.settingsErase),
     },
+  },
+  sign: {
+    answer: (choice) => ipcRenderer.send(IPC.signAnswer, choice),
   },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),

@@ -26,7 +26,7 @@ patterns (pressure timers, hidden odds).
 | 7 | Settings screen + chip sounds | built; **exit not met: walking costs ~2.6–3.4% CPU** (budget 1%) |
 | 7b | Android-style screen time + points for active time (no keystroke counting — rejected) | planned |
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day | planned |
-| 7d | Care: rubber-duck mode, focus companion, break buddy with the wooden sign, welcome back, names, hunger | planned |
+| 7d | Care: break buddy with the wooden sign ✅; rubber-duck mode, focus companion, welcome back, names, hunger | in progress |
 | 8 | Release: icon + NSIS installer ✅; auto-update 📌, CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
 | 8b | A local friend duck on the same PC (play, dance, tag) | planned |
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |

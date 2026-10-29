@@ -19,7 +19,11 @@ throw it, dress it up. Free and open source, with no paywalls.
 ![Tested with Vitest](https://img.shields.io/badge/tested%20with-Vitest-8ccaa6?style=flat-square&logo=vitest&logoColor=white)
 [![Last commit](https://img.shields.io/github/last-commit/Double-bited-Hamburger/DesktopBuddy?style=flat-square&color=b8732e)](https://github.com/Double-bited-Hamburger/DesktopBuddy/commits/main)
 
-[Quick start](#-quick-start) · [What it does](#-what-it-does) · [How it works](#-how-it-works) ·
+### [⬇️ Download for Windows](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/DesktopBuddy-Setup.exe)
+
+<sub>Windows 10 / 11, 64-bit · one click, no admin needed · [all releases](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases)</sub>
+
+[Install](#-install) · [What it does](#-what-it-does) · [How it works](#-how-it-works) ·
 [Add a hat](#-add-a-hat-in-5-minutes) · [Roadmap](#-roadmap)
 
 </div>
@@ -55,7 +59,20 @@ pie showData title Most points a day from each source
     "play: throw or bread (3 pts, 5 s)" : 150
 ```
 
-## 🚀 Quick start
+## 🚀 Install
+
+**Just want the duck?** Download
+[DesktopBuddy-Setup.exe](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/DesktopBuddy-Setup.exe)
+and double-click it. That's it: it installs for your user only (no admin password), puts the duck
+on your taskbar, and adds a Start menu + desktop icon. Nothing to type, no Node, no npm.
+
+- Windows may say "Windows protected your PC" because the app isn't signed yet: click
+  **More info → Run anyway**. Some school or work PCs block unsigned apps completely.
+- Updating = download the new version and run it. Your points and items are kept.
+- Uninstall from Settings → Apps. Your points stay unless you erase them in the duck's Settings.
+- Windows 7 / 8 aren't supported: Electron, which the app is built on, needs Windows 10 or newer.
+
+**Want to change the code?** Build it from source:
 
 ```bash
 git clone https://github.com/Double-bited-Hamburger/DesktopBuddy.git

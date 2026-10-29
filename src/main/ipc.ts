@@ -15,6 +15,7 @@ import type {
 } from '../shared/ipc'
 import { EARN_SOURCES, IPC } from '../shared/ipc'
 import type { ActivityControls } from './activity-controls'
+import type { BreakBuddy } from './break-buddy'
 import type { DuckWindow } from './duck-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
@@ -44,6 +45,8 @@ interface IpcDeps {
   readonly activity: ActivityControls
   /** The Settings screen: validated patches, autostart, export / erase everything, restart. */
   readonly settings: SettingsControls
+  /** The break buddy and its sign window. */
+  readonly breaks: BreakBuddy
 }
 
 /**
@@ -64,14 +67,21 @@ export function registerIpc({
   progress,
   activity,
   settings,
+  breaks,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
   const fromPill = (sender: WebContents) => sender === pill.webContents
   const fromSnack = (sender: WebContents) => snacks.owns(sender)
+  const fromSign = (sender: WebContents) => breaks.owns(sender)
 
   ipcMain.handle(IPC.getConfig, (event): AppConfig => {
-    if (!fromDuck(event.sender) && !fromPanel(event.sender) && !fromPill(event.sender))
+    if (
+      !fromDuck(event.sender) &&
+      !fromPanel(event.sender) &&
+      !fromPill(event.sender) &&
+      !fromSign(event.sender)
+    )
       throw new Error('Unknown sender')
     return config()
   })
@@ -92,9 +102,9 @@ export function registerIpc({
     if (fromDuck(event.sender)) duck.dragEnd()
   })
 
-  ipcMain.on(IPC.walk, (event, direction: unknown) => {
+  ipcMain.on(IPC.walk, (event, direction: unknown, fast: unknown) => {
     if (!fromDuck(event.sender)) return
-    if (direction === 1 || direction === -1 || direction === 0) duck.walk(direction)
+    if (direction === 1 || direction === -1 || direction === 0) duck.walk(direction, fast === true)
   })
 
   ipcMain.on(IPC.earn, (event, source: unknown) => {
@@ -117,6 +127,10 @@ export function registerIpc({
 
   ipcMain.on(IPC.snackClick, (event) => {
     if (fromSnack(event.sender)) snacks.click(event.sender)
+  })
+
+  ipcMain.on(IPC.signAnswer, (event, choice: unknown) => {
+    if (fromSign(event.sender) && (choice === 'finish' || choice === 'later')) breaks.answer(choice)
   })
 
   ipcMain.on(IPC.openPanel, (event) => {

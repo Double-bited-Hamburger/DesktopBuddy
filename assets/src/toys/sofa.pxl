@@ -1,0 +1,59 @@
+# A little sofa that appears when the duck sits down with the newspaper after a coffee. The back is
+# drawn behind the duck and the seat with its armrests in front, so the duck sinks into it.
+name: sofa
+size: 32x23
+palette:
+  K #2a1f2d
+  L #d9705a
+  R #b5473a
+  D #7e2f2a
+
+@frame sofa-back
+..KKKKKKKKKKKKKKKKKKKKKKKKKKKK..
+.KLLLLLLLLLLLLLLLLLLLLLLLLLLLLK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KRRRRRRRRRRRRRRRRRRRRRRRRRRRDK.
+.KDDDDDDDDDDDDDDDDDDDDDDDDDDDDK.
+................................
+................................
+................................
+................................
+................................
+................................
+
+@frame sofa-front
+................................
+................................
+................................
+................................
+................................
+................................
+................................
+................................
+................................
+................................
+................................
+................................
+KKKKK......................KKKKK
+KLLLK......................KLLLK
+KRRDK......................KRRDK
+KRRDK......................KRRDK
+KRRDKKKKKKKKKKKKKKKKKKKKKKKKRRDK
+KRRDKLLLLLLLLLLLLLLLLLLLLLLKRRDK
+KRRDKRRRRRRRRRRRRRRRRRRRRRRKRRDK
+KRRDKRRRRRRRRRRRRRRRRRRRRRRKRRDK
+KRRDKDDDDDDDDDDDDDDDDDDDDDDKRRDK
+KDDDKDDDDDDDDDDDDDDDDDDDDDDKDDDK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK

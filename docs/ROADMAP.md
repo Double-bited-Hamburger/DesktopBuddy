@@ -289,11 +289,22 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
     Fine for a few seconds, but a candidate: draw resting pieces in one shared window
   - **Not verified:** what it looks like (no screenshot of the duck was taken — try it!), the tray
     item itself, picking up a piece from the pile with the real mouse
-- [ ] **Coffee ☕ (new snack, tray + Bag):** the duck drinks it, its eyes go wide, and either
-      runs around faster for a minute **or** (the favourite) a pixel sofa appears and it sits
-      and reads a newspaper for a while. Coffee counts per day are saved
-- [ ] **Too much coffee:** 3+ coffees in a day → the next morning it looks tired (half-closed
-      eyes, slower walk, yawns) for the first ~10 min after the app starts. Thresholds in data
+- [x] **Coffee ☕** (2026-10-29; tray "Give a coffee" + the panel's Feed menu): the duck pecks the
+      mug up, takes three sips (core `toys/coffee.ts`), its eyes pop wide, then 65% of the time a
+      sofa appears under it and it reads the newspaper for 15–25 s (pages turn every 4 s; the
+      sofa's back is drawn behind the duck and its seat in front), otherwise it zooms around for
+      5–8 s at 3× the walk (bigger steps on the same 12 Hz timer, so no extra wakeups). Paid as
+      one play, like bread; counts for quests as `coffee`. New art: `toys/coffee`, `toys/sofa`,
+      `toys/newspaper`, duck frames `wide`, `wide-step`, `tired`, `tired-step`, `yawn`
+- [x] **Too much coffee:** 3+ coffees in a day (saved as `coffee`, only today and yesterday) → the
+      next day it starts tired for 10 min after the app opens: heavy eyelids, half as much
+      walking, and yawns (`tiredBehaviorConfig`, which keeps the user's switches). The numbers are
+      constants in core next to the timings, not economy data, since they earn nothing
+  - Verified over CDP on a throwaway `BUDDY_DATA_DIR` with `BUDDY_TIRED=1` (dev-only switch):
+    tired eyes → peck → three sips → wide eyes → sofa + newspaper, +3 points, `coffee.json`
+    written with today's count (screenshots of the duck's own canvas)
+  - **Not verified:** the zoom branch live (it's random; covered by tests), a real "next morning",
+    hats on the sofa pose, the duck facing left on the sofa
 - [ ] **Cigars have a downside:** the duck coughs after smoking. An **addiction bar** (visible
       on the duck's card in the Bag) fills with each cigar and drains over hours. High → more
       coughing and dizzy stars ✨ circling its head; full → it refuses the next cigar ("I need
@@ -316,19 +327,35 @@ the PC, and the duck never screams.
       gone when the box closes
 - [ ] **Focus companion:** during a focus session the duck wears tiny headphones, stays still and
       quiet; at the end it does a happy dance
-- [ ] **Break buddy (opt-in):** after a set time of nonstop activity (default 50 min, from the
-      tracker's active minutes) the duck jumps up and holds a **wooden sign** across the screen:
-      "Time to take a break — look out of the window and see some grass", with a button
-      **"I'm finishing right now"**.
-  - The button → the sign drops, the duck lands on the taskbar and **stares at you** for the
-    break (default 5 min). If you keep using the PC, it starts **quacking — softly at first**,
-    at the user's volume, a quack every ~20 s, never louder than normal sounds
-  - **Calm it** with a coffee or a cigar → it lets you work **30 more minutes**, then asks again
-  - Walking away (idle for the break length) ends the break with a happy "Welcome back"
-  - **Never interrupts** a fullscreen game, a presentation or a call: Windows reports these
-    (`SHQueryUserNotificationState`, via koffi); the break waits until it's over. Escape always
-    closes the sign. The sign is a window created on demand and destroyed after
-  - Lengths in Settings (work 25–90 min, break 3–15 min); the duck only nudges, it never forces
+- [x] **Break buddy (opt-in, Settings → Breaks):** after 50 min at the PC (counted from the
+      system idle time: no keys, no apps, works with tracking off) the duck hops up on screen next
+      to a **wooden sign**: "Time for a break! Look out of the window and find some grass 🌱",
+      with **"I'm finishing right now"** and **"☕ Just 10 more minutes"**. Brain:
+      `src/core/care/breaks.ts` (`BreakCoach`, tested); shell: `src/main/break-buddy.ts`,
+      `sign-window.ts`, `busy-windows.ts`; page: `src/renderer/sign/`.
+  - Why 50 + 5 min (checked 2026-10-29): eye doctors' 20-20-20 rule (every 20 min, look
+    ~6 m away for 20 s, which the sign's "look out of the window" covers); studies on sitting
+    favour moving every 30–60 min; EU and UK HSE screen-work guidance asks for short, frequent
+    breaks, about 5–10 min an hour. (The popular "52 on / 17 off" comes from one app's own
+    user data, not research, so it isn't the default.)
+  - "Finishing" → the duck drops from the sign onto the taskbar and **stares** (frowning `stare`
+    frame). Still using the PC → a soft quack every 20 s at the user's volume, **6 at most**;
+    after break + 15 min it gives up quietly
+  - **Calm it** with a coffee or a cigar → 30 more minutes; "10 more minutes" → asks again in 10
+  - Stepping away for the break length (from the sign or the stare) ends it with a happy heart;
+    the count starts over. A sleeping laptop (gap > 2 min between samples) never counts as work
+  - **Never over fullscreen** games, videos or presentations (`SHQueryUserNotificationState`
+    via koffi, states 2/3/4/7): asking waits, nags stay quiet. The sign never takes focus and is
+    created on demand, closed on answer. Samples every 30 s while working, 5 s while waiting
+  - Settings: work 30/40/50/60/90 min, break 3/5/10/15 min (schema allows 20–120 / 1–30)
+  - Dev: `BUDDY_BREAK_SECONDS=40,15` shortens both for live tests
+  - Verified 2026-10-29 on a throwaway data folder with faked idle time (main inspector): sign
+    after ~60 s with the duck hidden, "finishing" → duck dropped to the floor and stared, nag →
+    quack bubble, away 20 s → heart, "10 more minutes" → sign gone, duck back. **Not verified:**
+    real mouse/keyboard idle, the sounds heard (volume was 0), a real fullscreen game or video,
+    a video call (Windows may not report calls as busy, so the sign could still appear during
+    one), mixed-DPI or a second monitor, Escape (the sign never has focus, so there is none),
+    Italian text fitting on the plank, the calm path live (core-tested only)
 - [ ] **Welcome back:** when you leave, the duck curls up and naps; when you return it wakes,
       stretches and waves (uses the idle time the tracker already reads)
 - [ ] **Your name and the duck's name (both optional):** on first run (or from Settings) the
@@ -353,6 +380,14 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
       the saves; appId matches `setAppUserModelId`. `koffi` unpacked from asar (checked: it loads
       from the package). Saves pinned to `%APPDATA%\desktop-buddy` so the installed app finds
       the same points as `npm run dev`. Version 0.1.0
+- [x] **One-click installer, 0.2.0 (2026-10-29)**, after the owner's friend found installing from
+      source too hard: `oneClick: true` (no pages, no questions), still per-user without admin.
+      Tested with the real saves backed up and restored hash-identical: silent install 10.9 s,
+      shortcuts + "Installed apps" 0.2.0, the installed app started (6 processes), silent
+      uninstall removed the entry and shortcuts but **left the files the first time** (run 2 s
+      after force-closing the app, most likely still-open handles); a second run removed
+      everything; saves kept. README: a "Download for Windows" link to the latest release.
+      Windows 7/8 can't be supported (Electron needs Windows 10+)
 - [ ] Not signed yet: SmartScreen asks once (More info → Run anyway). Signing is still a decision
 - [x] **Installer tested (2026-10-28)**, with the real saves backed up first (SHA-256) and
       restored byte-for-byte afterwards: silent per-user install in 10 s (no admin) →

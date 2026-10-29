@@ -17,6 +17,16 @@ export const DuckPrefsSchema = z.object({
 })
 export type DuckPrefs = z.infer<typeof DuckPrefsSchema>
 
+/** The break buddy (see core/care/breaks). Off until the user turns it on. */
+export const BreaksSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** Minutes at the PC before the duck asks for a break. */
+  workMinutes: z.number().int().min(20).max(120).default(50),
+  /** How long the break should be. */
+  breakMinutes: z.number().int().min(1).max(30).default(5),
+})
+export type Breaks = z.infer<typeof BreaksSchema>
+
 export const THEMES = ['system', 'light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
 
@@ -32,6 +42,7 @@ export const SettingsSchema = z.object({
   /** Panel colors; `system` follows the OS light/dark setting. */
   theme: z.enum(THEMES).default('system'),
   duck: DuckPrefsSchema.prefault({}),
+  breaks: BreaksSchema.prefault({}),
   loadout: LoadoutSchema.prefault({}),
   /** Activity tracking for Today/Stats: off until the user turns it on (see docs/PRIVACY.md). */
   tracking: z
@@ -81,6 +92,13 @@ export const SettingsPatchSchema = z.strictObject({
       chatter: z.boolean().optional(),
     })
     .optional(),
+  breaks: z
+    .strictObject({
+      enabled: BreaksSchema.shape.enabled.unwrap().optional(),
+      workMinutes: BreaksSchema.shape.workMinutes.unwrap().optional(),
+      breakMinutes: BreaksSchema.shape.breakMinutes.unwrap().optional(),
+    })
+    .optional(),
 })
 
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
@@ -89,16 +107,17 @@ export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
 export function applySettingsPatch(settings: Settings, patch: unknown): Settings | undefined {
   const parsed = SettingsPatchSchema.safeParse(patch)
   if (!parsed.success) return undefined
-  const { duck, ...rest } = parsed.data
-  const defined = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined))
-  const duckDefined = Object.fromEntries(
-    Object.entries(duck ?? {}).filter(([, v]) => v !== undefined),
-  )
+  const { duck, breaks, ...rest } = parsed.data
   return SettingsSchema.parse({
     ...settings,
-    ...defined,
-    duck: { ...settings.duck, ...duckDefined },
+    ...definedOnly(rest),
+    duck: { ...settings.duck, ...definedOnly(duck ?? {}) },
+    breaks: { ...settings.breaks, ...definedOnly(breaks ?? {}) },
   })
+}
+
+function definedOnly(o: object): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined))
 }
 
 export async function saveSettings(storage: StorageAdapter, settings: Settings): Promise<void> {

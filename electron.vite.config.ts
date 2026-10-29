@@ -19,7 +19,8 @@ function cspPlugin(): Plugin {
 }
 
 // Main and preload entries are auto-detected (src/main/index.ts, src/preload/index.ts).
-// Renderer pages: the always-on duck, the on-demand panel, the optional pill and a carried snack.
+// Renderer pages: the always-on duck, the on-demand panel, the optional pill, a carried snack
+// and the break sign.
 export default defineConfig({
   main: {},
   preload: {},
@@ -35,6 +36,7 @@ export default defineConfig({
           panel: resolve('src/renderer/panel/index.html'),
           pill: resolve('src/renderer/pill/index.html'),
           snack: resolve('src/renderer/snack/index.html'),
+          sign: resolve('src/renderer/sign/index.html'),
         },
       },
     },

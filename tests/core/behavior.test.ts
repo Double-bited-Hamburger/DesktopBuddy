@@ -5,7 +5,10 @@ import {
   behaviorConfigFor,
   DEFAULT_BEHAVIOR_CONFIG,
   pinnedBehaviorConfig,
+  STARE_MAX_MS,
+  tiredBehaviorConfig,
 } from '../../src/core/behavior/machine'
+import { DRINK_MS } from '../../src/core/toys/coffee'
 import { sequence } from '../helpers'
 
 // rng call order: constructor (idle duration), then per transition: pick, duration, [facing if walking]
@@ -185,5 +188,57 @@ describe('behaviorConfigFor', () => {
     machine.configure(behaviorConfigFor({ wander: false, naps: false, chatter: false }))
     machine.update(60_000)
     expect(machine.state).toBe('idle')
+  })
+})
+
+describe('coffee', () => {
+  it('drinks for exactly the length of the mug, then reads or zooms', () => {
+    const reads = new BehaviorMachine(sequence([0.5, 0.1]))
+    reads.drink()
+    expect(reads.state).toBe('drink')
+    expect(reads.msUntilDecision).toBe(DRINK_MS)
+    reads.update(DRINK_MS)
+    expect(reads.state).toBe('read')
+
+    const zooms = new BehaviorMachine(sequence([0.5, 0.9]))
+    zooms.drink()
+    zooms.update(DRINK_MS)
+    expect(zooms.state).toBe('zoom')
+  })
+
+  it('gets back to idling after reading or zooming', () => {
+    const machine = new BehaviorMachine(sequence([0.5]))
+    machine.enter('read')
+    machine.update(25_000)
+    expect(machine.state).toBe('idle')
+  })
+})
+
+describe('break time', () => {
+  it('stares the way the shell says until told otherwise, never wandering off', () => {
+    const machine = new BehaviorMachine(sequence([0.5]))
+    machine.stare(-1)
+    expect(machine.state).toBe('stare')
+    expect(machine.direction).toBe(-1)
+    machine.update(STARE_MAX_MS - 1)
+    expect(machine.state).toBe('stare')
+    machine.update(1) // the safety net
+    expect(machine.state).toBe('idle')
+  })
+})
+
+describe('tiredBehaviorConfig', () => {
+  it('walks half as often and yawns', () => {
+    const tired = tiredBehaviorConfig(DEFAULT_BEHAVIOR_CONFIG)
+    expect(tired.next.idle.walk).toBe((DEFAULT_BEHAVIOR_CONFIG.next.idle.walk ?? 0) / 2)
+    expect(tired.next.idle.yawn).toBeGreaterThan(0)
+    expect(DEFAULT_BEHAVIOR_CONFIG.next.idle.yawn).toBeUndefined() // the default is untouched
+  })
+
+  it('keeps the user switches: a duck told not to wander still stays put', () => {
+    const still = tiredBehaviorConfig(
+      behaviorConfigFor({ wander: false, naps: true, chatter: true }),
+    )
+    expect(still.next.idle.walk).toBeUndefined()
   })
 })

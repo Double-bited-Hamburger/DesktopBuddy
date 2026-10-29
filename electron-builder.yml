@@ -17,12 +17,12 @@ win:
     - target: nsis
       arch: [x64]
   icon: build/icon.ico
-# Per-user install: no admin prompt, Start menu + desktop shortcuts, launches when done.
+# One click, per-user: no questions, no admin prompt (works on school/work PCs that allow
+# per-user apps), Start menu + desktop shortcuts, and the duck starts when it's done.
 # Unsigned for now (Phase 8 decision), so Windows SmartScreen asks once: More info -> Run anyway.
 nsis:
-  oneClick: false
+  oneClick: true
   perMachine: false
-  allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: DesktopBuddy

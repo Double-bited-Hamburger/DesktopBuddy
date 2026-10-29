@@ -15,6 +15,15 @@ interface SettingsProps {
   onChange(view: SettingsView): void
 }
 
+/** Break buddy choices (minutes). 50 + 5 is the default: see docs/ROADMAP.md, Phase 7d. */
+const WORK_MINUTES = [30, 40, 50, 60, 90] as const
+const BREAK_MINUTES = [3, 5, 10, 15] as const
+
+/** The choices, plus the saved value if it is not one of them (so a select never lies). */
+function withCurrent(choices: readonly number[], current: number): number[] {
+  return choices.includes(current) ? [...choices] : [...choices, current].sort((a, b) => a - b)
+}
+
 /** Settings: general, sounds, the duck's own behaviors, startup, and the danger zone. */
 export function Settings({ t, onChange }: SettingsProps) {
   const [view, setView] = useState<SettingsView | undefined>()
@@ -139,6 +148,45 @@ export function Settings({ t, onChange }: SettingsProps) {
           />
         </label>
       ))}
+
+      <h2>{t('settings.breaks')}</h2>
+      <label class="row">
+        <span>{t('settings.breaks.enabled')}</span>
+        <input
+          type="checkbox"
+          checked={view.breaks.enabled}
+          onChange={(e) => set({ breaks: { enabled: e.currentTarget.checked } })}
+        />
+      </label>
+      <label class="row">
+        <span>{t('settings.breaks.every')}</span>
+        <select
+          value={view.breaks.workMinutes}
+          disabled={!view.breaks.enabled}
+          onChange={(e) => set({ breaks: { workMinutes: Number(e.currentTarget.value) } })}
+        >
+          {withCurrent(WORK_MINUTES, view.breaks.workMinutes).map((minutes) => (
+            <option key={minutes} value={minutes}>
+              {t('settings.breaks.minutes', { n: minutes })}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label class="row">
+        <span>{t('settings.breaks.for')}</span>
+        <select
+          value={view.breaks.breakMinutes}
+          disabled={!view.breaks.enabled}
+          onChange={(e) => set({ breaks: { breakMinutes: Number(e.currentTarget.value) } })}
+        >
+          {withCurrent(BREAK_MINUTES, view.breaks.breakMinutes).map((minutes) => (
+            <option key={minutes} value={minutes}>
+              {t('settings.breaks.minutes', { n: minutes })}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p class="muted note">{t('settings.breaks.hint')}</p>
 
       <h2>{t('settings.startup')}</h2>
       <label class="row">

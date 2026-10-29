@@ -4,7 +4,7 @@ import { loadSprite } from '../shared/sprites'
 /** Matches SNACK_STAGE in src/main/snack-window.ts: the snack sits on the bottom edge. */
 const STAGE = 8
 /** The frame shown for each snack while it is carried or lying around. */
-const FRAMES = { bread: 'bread-3', cigar: 'cigar' } as const
+const FRAMES = { bread: 'bread-3', cigar: 'cigar', coffee: 'coffee-full' } as const
 
 // The carried snack; main says which one in the URL hash. Drawn once; main moves the window.
 // A click drops/throws it, or picks it up again once it lies on the floor.
