@@ -14,6 +14,8 @@ interface TrayActions {
   /** A found or downloaded update ("Update to 0.3.0"), shown only when there is one. */
   update?: { label: string; run(): void }
   quit(): void
+  /** The duck's name, shown in the tray tooltip when it has one. */
+  duckName?: string
 }
 
 /** Tray icon = the first frame of the duck sheet (32x32). */
@@ -22,7 +24,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
     .createFromPath(placeholderSheet)
     .crop({ x: 0, y: 0, width: 32, height: 32 })
   const tray = new Tray(icon)
-  tray.setToolTip(t('app.name'))
+  tray.setToolTip(actions.duckName ? `${actions.duckName} · ${t('app.name')}` : t('app.name'))
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: t('tray.openPanel'), click: actions.togglePanel },

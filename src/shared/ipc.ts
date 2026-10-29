@@ -2,7 +2,14 @@ import type { BehaviorState } from '../core/behavior/machine'
 import type { Rarity, Slot } from '../core/catalog/catalog'
 import type { RarityChance } from '../core/economy/gifts'
 import type { QuestView } from '../core/economy/quests'
-import type { Breaks, DuckPrefs, Settings, SettingsPatch, Theme } from '../core/settings/settings'
+import type {
+  Breaks,
+  DuckPrefs,
+  Names,
+  Settings,
+  SettingsPatch,
+  Theme,
+} from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
 
@@ -180,6 +187,8 @@ export interface SettingsView {
   readonly breaks: Breaks
   /** The daily update check (opt-in). */
   readonly updates: Settings['updates']
+  readonly names: Names
+  readonly welcomeBack: boolean
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string

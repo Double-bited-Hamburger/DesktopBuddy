@@ -607,7 +607,8 @@ body {
   justify-content: flex-start;
 }
 
-.settings select {
+.settings select,
+.settings .name-input {
   border: 2px solid var(--ink);
   border-radius: 6px;
   background: var(--paper);
@@ -675,4 +676,9 @@ body {
 }
 :root[data-theme="dark"] .rarity-exotic {
   color: #ff6f86;
+}
+
+.settings .name-input {
+  width: 130px;
+  padding: 2px 6px;
 }

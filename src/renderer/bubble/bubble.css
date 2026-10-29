@@ -1,0 +1,87 @@
+/* The duck's speech bubble (src/main/bubble-window.ts): cream paper, a hard 2 px outline and a
+   little stepped tail pointing down at the duck. Flat colors and hard edges, like the sprites. */
+:root {
+  --outline: #2a1f2d;
+  --paper: #f4e9d1;
+  --paper-dark: #d9c49a;
+  --accent: #f2872b;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  color: var(--outline);
+}
+
+main {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+/* It pops up once, in three pixel-y steps. No timers. */
+.pop {
+  animation: pop 240ms steps(3, end) both;
+}
+
+@keyframes pop {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.bubble {
+  align-self: center;
+  max-width: calc(100% - 8px);
+  box-sizing: border-box;
+  padding: 6px 10px 7px;
+  background: var(--paper);
+  border: 2px solid var(--outline);
+  box-shadow: inset 0 -3px 0 var(--paper-dark);
+  border-radius: 6px;
+}
+
+.name {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+/* A stepped triangle: two stacked outlined blocks, the tail's x set by the page. */
+.tail {
+  position: relative;
+  width: 12px;
+  height: 8px;
+  margin-top: -2px;
+  background:
+    linear-gradient(var(--paper), var(--paper)) 2px 0 / 8px 2px no-repeat,
+    linear-gradient(var(--paper), var(--paper)) 4px 2px / 4px 2px no-repeat,
+    linear-gradient(var(--outline), var(--outline)) 0 0 / 2px 4px no-repeat,
+    linear-gradient(var(--outline), var(--outline)) 10px 0 / 2px 4px no-repeat,
+    linear-gradient(var(--outline), var(--outline)) 2px 2px / 2px 4px no-repeat,
+    linear-gradient(var(--outline), var(--outline)) 8px 2px / 2px 4px no-repeat,
+    linear-gradient(var(--outline), var(--outline)) 4px 4px / 4px 4px no-repeat;
+}

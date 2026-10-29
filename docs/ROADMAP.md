@@ -402,12 +402,30 @@ the PC, and the duck never screams.
     a video call (Windows may not report calls as busy, so the sign could still appear during
     one), mixed-DPI or a second monitor, Escape (the sign never has focus, so there is none),
     Italian text fitting on the plank, the calm path live (core-tested only)
-- [ ] **Welcome back:** when you leave, the duck curls up and naps; when you return it wakes,
-      stretches and waves (uses the idle time the tracker already reads)
-- [ ] **Your name and the duck's name (both optional):** on first run (or from Settings) the
-      duck introduces itself and asks your name, then asks if you'd like to name it. The names
-      appear in its bubbles ("Marco, I'm hungry!", "Nice work, Marco!"). Saved locally in
-      settings, erasable with everything else; "skip" is always offered
+- [x] **Names** (built 2026-10-29): Settings → Names has "Duck's name" and "Your name" (both
+      optional, up to 20 characters; control characters and extra spaces are cleaned by
+      `cleanName` in `core/care/welcome.ts`, and the settings schema refuses anything unclean).
+      Saved in `settings` on this PC only, erased with everything else. The duck's name shows
+      on its speech bubble and in the tray tooltip; your name is used when it greets you
+  - Left for later: the first-run introduction ("Hi! What's your name?"), and names in other
+    lines (hunger, praise) once those exist
+- [x] **Welcome back** (built 2026-10-29): after the PC was **locked or asleep for 10 minutes
+      or more** (`lock-screen`/`suspend` → `unlock-screen`/`resume`: no polling), the duck
+      cheers (happy + chirp) and a **speech bubble** pops up over its head for 4.5 s: "Oh hi,
+      Ada! I missed you." (four lines each in EN/IT, with or without your name). At most once in
+      30 minutes, never over fullscreen apps, games or presentations, not during a break
+      request, and switchable off ("says hello when you come back", on by default). The bubble
+      is its own small click-through window, created when the duck speaks and closed after
+      (`main/bubble-window.ts`, `renderer/bubble`), so it costs nothing the rest of the time.
+      The curl-up-and-nap-while-away part is not built (the duck simply naps on its own)
+  - Verified 2026-10-29 in dev on a throwaway data folder, faking the lock through the main
+    inspector (`powerMonitor.emit` and a clock moved 11 minutes ahead): names saved through the
+    real Settings path; a short lock gave no welcome; a long one showed the bubble "QUACKERS · Oh
+    hi, Ada! I missed you." and the duck's happy welcome, and the bubble closed by itself; a
+    second long lock 11 minutes later gave none (cooldown)
+  - **Not verified:** a real lock/unlock or sleep/resume of the PC; the bubble's position on
+    the real screen, at other sizes and next to a screen edge; the chirp heard; Italian lines
+    in the bubble; the Settings text field typed in by hand
 - [ ] **Hunger on a duck's clock:** pet ducks are usually fed twice a day (morning and evening)
       and nibble in between, so the duck gets peckish a few hours after its last meal and really
       hungry around breakfast and dinner time. Then it says so, with your name. Only while you're

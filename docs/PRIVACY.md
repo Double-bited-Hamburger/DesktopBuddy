@@ -60,7 +60,8 @@ as each feature lands.
 
 | Key                   | Contents                                                             | Since   |
 | --------------------- | -------------------------------------------------------------------- | ------- |
-| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter), loadout (skin/hat/face); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
+| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter/fidget), loadout (skin/hat/face), `names` (the duck's name and yours, both optional, empty by default), `welcomeBack`; `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
+| `smoke-bar`           | how full the cigar smoke bar is and when it last changed              | 7c      |
 | `ledger`              | points history `{ts, source, delta}`                                 | Phase 4 |
 | `inventory`           | owned item ids, opens-without-a-hit per gift box, last free-gift time | Phase 5 |
 | `quests`              | progress per active quest: period, count, claimed                    | Phase 5 |

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
+import { cleanName, NAME_MAX } from '../../core/care/welcome'
 import type { Translator } from '../../core/i18n/i18n'
 import type { SettingsPatch } from '../../core/settings/settings'
 import { THEMES } from '../../core/settings/settings'
@@ -9,6 +10,7 @@ import { Updates } from './updates'
 const SCALES = [2, 3, 4, 5, 6] as const
 const LANGUAGES = ['en', 'it'] as const
 const DUCK_SWITCHES = ['wander', 'naps', 'chatter', 'fidget'] as const
+const NAMES = ['duck', 'you'] as const
 
 interface SettingsProps {
   t: Translator
@@ -149,6 +151,34 @@ export function Settings({ t, onChange }: SettingsProps) {
           />
         </label>
       ))}
+
+      <h2>{t('settings.names')}</h2>
+      {NAMES.map((who) => (
+        <label key={who} class="row">
+          <span>{t(`settings.names.${who}`)}</span>
+          <input
+            type="text"
+            class="name-input"
+            maxLength={NAME_MAX * 2}
+            placeholder={t('settings.names.placeholder')}
+            value={view.names[who]}
+            onChange={(e) => {
+              const name = cleanName(e.currentTarget.value)
+              e.currentTarget.value = name
+              if (name !== view.names[who]) set({ names: { [who]: name } })
+            }}
+          />
+        </label>
+      ))}
+      <label class="row">
+        <span>{t('settings.welcomeBack')}</span>
+        <input
+          type="checkbox"
+          checked={view.welcomeBack}
+          onChange={(e) => set({ welcomeBack: e.currentTarget.checked })}
+        />
+      </label>
+      <p class="muted note">{t('settings.names.hint')}</p>
 
       <h2>{t('settings.breaks')}</h2>
       <label class="row">

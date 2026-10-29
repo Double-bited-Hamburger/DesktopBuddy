@@ -7,6 +7,7 @@ import en from '../../assets/i18n/en.json'
 import it from '../../assets/i18n/it.json'
 import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
+import { shouldWelcome, welcomeLine } from '../core/care/welcome'
 import { equipItem, parseCatalog } from '../core/catalog/catalog'
 import { checkEconomy } from '../core/economy/config'
 import { localDayKey } from '../core/economy/ledger'
@@ -30,6 +31,7 @@ import type { AppConfig, DuckLivePrefs, PointsEvent } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
 import { BreakBuddy } from './break-buddy'
+import { BubbleWindow } from './bubble-window'
 import { windowsBusy } from './busy-windows'
 import { DuckWindow } from './duck-window'
 import { FileStorage } from './file-storage'
@@ -70,6 +72,9 @@ function pinStateFromEnv(): BehaviorState | undefined {
   const value = process.env.BUDDY_PIN_STATE
   return BEHAVIOR_STATES.find((state) => state === value)
 }
+
+/** After an unlock or wake-up, the duck waits this long before saying hello. */
+const WELCOME_DELAY_MS = 1500
 
 async function start(): Promise<void> {
   await app.whenReady()
@@ -160,10 +165,11 @@ async function start(): Promise<void> {
   // piece is paid for once finished (capped like any play), and only for a piece it actually
   // caught, so the duck page can't claim treats it was never given.
   // The break buddy (opt-in): see break-buddy.ts.
+  const busyNow = windowsBusy()
   const breaks = new BreakBuddy({
     duck,
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
-    busy: windowsBusy(),
+    busy: busyNow,
     settings: () => settings.breaks,
     scale: () => settings.scale,
     testSeconds: breakSecondsFromEnv(),
@@ -242,6 +248,38 @@ async function start(): Promise<void> {
   tracker.sync()
   powerMonitor.on('lock-screen', () => void tracker.pause())
   powerMonitor.on('suspend', () => void tracker.pause())
+  // Welcome back (core/care/welcome.ts): away = locked or asleep; the duck cheers on the way back.
+  const bubble = new BubbleWindow()
+  let awaySince: number | undefined
+  let lastWelcome = 0
+  const goneAway = () => {
+    awaySince ??= Date.now()
+    bubble.close()
+  }
+  const cameBack = () => {
+    const since = awaySince
+    awaySince = undefined
+    const now = Date.now()
+    if (since === undefined || !settings.welcomeBack) return
+    if (!shouldWelcome(now - since, now, lastWelcome)) return
+    // Give the desktop a moment to come back, then check it's still a good time.
+    setTimeout(() => {
+      if (awaySince !== undefined || busyNow() || breaks.busy || !duck.window.isVisible()) return
+      lastWelcome = Date.now()
+      const line = welcomeLine(Math.random, settings.names.you)
+      bubble.say(
+        t(line.key, line.vars),
+        settings.names.duck,
+        duck.window.getBounds(),
+        settings.scale,
+      )
+      duck.window.webContents.send(IPC.care, 'welcome')
+    }, WELCOME_DELAY_MS)
+  }
+  powerMonitor.on('lock-screen', goneAway)
+  powerMonitor.on('suspend', goneAway)
+  powerMonitor.on('unlock-screen', cameBack)
+  powerMonitor.on('resume', cameBack)
   const activity = new ActivityControls(
     tracker,
     economy.focus,
@@ -286,6 +324,7 @@ async function start(): Promise<void> {
       setPill,
       update: trayUpdate(),
       quit: () => app.quit(),
+      duckName: settings.names.duck,
     })
   }
   /** Saves settings from the Settings screen and applies what changed right away. */
@@ -297,7 +336,11 @@ async function start(): Promise<void> {
       t = createTranslator(next.language, { en, it })
       buildTray()
       if (next.showPointsPill) pill.setVisible(false) // reopened below in the new language
-    } else if (next.showPointsPill !== before.showPointsPill) buildTray() // the tray checkbox
+    } else if (
+      next.showPointsPill !== before.showPointsPill || // the tray checkbox
+      next.names.duck !== before.names.duck // the tray tooltip
+    )
+      buildTray()
     pill.setVisible(next.showPointsPill)
     if (next.scale !== before.scale) {
       duck.setScale(next.scale)
@@ -350,7 +393,10 @@ async function start(): Promise<void> {
 
   buildTray()
   app.on('second-instance', () => panel.open())
-  app.on('before-quit', () => tray?.destroy())
+  app.on('before-quit', () => {
+    tray?.destroy()
+    bubble.close()
+  })
   // Write any batched points before the app goes away.
   let flushed = false
   app.on('will-quit', (event) => {

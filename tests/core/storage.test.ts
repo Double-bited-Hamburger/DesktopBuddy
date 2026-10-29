@@ -53,6 +53,8 @@ describe('settings', () => {
       duck: { wander: true, naps: true, chatter: true, fidget: true },
       breaks: { enabled: false, workMinutes: 50, breakMinutes: 5 }, // the break buddy is opt-in
       updates: { autoCheck: false }, // no network unless the user turns it on
+      names: { duck: '', you: '' }, // no names until the user gives some
+      welcomeBack: true,
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })
@@ -105,6 +107,16 @@ describe('settings', () => {
 })
 
 describe('applySettingsPatch', () => {
+  it('names one name without touching the other, and refuses an unclean one', () => {
+    const named = applySettingsPatch(DEFAULT_SETTINGS, { names: { duck: 'Quackers' } })
+    expect(named?.names).toEqual({ duck: 'Quackers', you: '' })
+    const both = applySettingsPatch(named ?? DEFAULT_SETTINGS, { names: { you: 'Ada' } })
+    expect(both?.names).toEqual({ duck: 'Quackers', you: 'Ada' })
+    expect(applySettingsPatch(DEFAULT_SETTINGS, { names: { you: ' Ada\n' } })).toBeUndefined()
+    expect(applySettingsPatch(DEFAULT_SETTINGS, { names: { you: 'x'.repeat(21) } })).toBeUndefined()
+    expect(applySettingsPatch(DEFAULT_SETTINGS, { welcomeBack: false })?.welcomeBack).toBe(false)
+  })
+
   it('changes only what the patch names', () => {
     const next = applySettingsPatch(DEFAULT_SETTINGS, { volume: 0, duck: { naps: false } })
     expect(next?.volume).toBe(0)

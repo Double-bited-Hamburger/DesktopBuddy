@@ -40,6 +40,8 @@ export class SettingsControls {
       duck: s.duck,
       breaks: s.breaks,
       updates: s.updates,
+      names: s.names,
+      welcomeBack: s.welcomeBack,
       autostart: {
         // A dev build would register the bare Electron binary, so only installed builds offer it.
         available: app.isPackaged,

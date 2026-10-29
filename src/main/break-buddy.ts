@@ -63,6 +63,11 @@ export class BreakBuddy {
     this.sign?.close()
   }
 
+  /** A break is being asked for or taken: other care news waits. */
+  get busy(): boolean {
+    return this.coach !== undefined && this.coach.phase !== 'working'
+  }
+
   owns(sender: WebContents): boolean {
     return this.sign?.webContents === sender
   }

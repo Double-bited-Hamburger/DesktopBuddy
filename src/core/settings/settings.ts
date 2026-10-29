@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isCleanName } from '../care/welcome'
 import type { StorageAdapter } from '../storage/storage'
 
 export const LoadoutSchema = z.object({
@@ -29,6 +30,16 @@ export const BreaksSchema = z.object({
 })
 export type Breaks = z.infer<typeof BreaksSchema>
 
+/** A name as cleanName (core/care/welcome.ts) leaves it; empty means none. */
+const NameSchema = z.string().refine(isCleanName, 'not a clean name')
+
+/** Names, kept on this PC only: the duck's own, and what it calls the user. */
+export const NamesSchema = z.object({
+  duck: NameSchema.default(''),
+  you: NameSchema.default(''),
+})
+export type Names = z.infer<typeof NamesSchema>
+
 export const THEMES = ['system', 'light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
 
@@ -45,6 +56,9 @@ export const SettingsSchema = z.object({
   theme: z.enum(THEMES).default('system'),
   duck: DuckPrefsSchema.prefault({}),
   breaks: BreaksSchema.prefault({}),
+  names: NamesSchema.prefault({}),
+  /** The duck says hello when the user comes back to the PC (see core/care/welcome). */
+  welcomeBack: z.boolean().default(true),
   /** Look for a new version on GitHub once a day. Off: no network unless the user asks. */
   updates: z.object({ autoCheck: z.boolean().default(false) }).prefault({}),
   loadout: LoadoutSchema.prefault({}),
@@ -105,6 +119,8 @@ export const SettingsPatchSchema = z.strictObject({
     })
     .optional(),
   updates: z.strictObject({ autoCheck: z.boolean().optional() }).optional(),
+  names: z.strictObject({ duck: NameSchema.optional(), you: NameSchema.optional() }).optional(),
+  welcomeBack: SettingsSchema.shape.welcomeBack.unwrap().optional(),
 })
 
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
@@ -113,13 +129,14 @@ export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
 export function applySettingsPatch(settings: Settings, patch: unknown): Settings | undefined {
   const parsed = SettingsPatchSchema.safeParse(patch)
   if (!parsed.success) return undefined
-  const { duck, breaks, updates, ...rest } = parsed.data
+  const { duck, breaks, updates, names, ...rest } = parsed.data
   return SettingsSchema.parse({
     ...settings,
     ...definedOnly(rest),
     duck: { ...settings.duck, ...definedOnly(duck ?? {}) },
     breaks: { ...settings.breaks, ...definedOnly(breaks ?? {}) },
     updates: { ...settings.updates, ...definedOnly(updates ?? {}) },
+    names: { ...settings.names, ...definedOnly(names ?? {}) },
   })
 }
 
