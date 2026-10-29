@@ -7,6 +7,7 @@ import en from '../../assets/i18n/en.json'
 import it from '../../assets/i18n/it.json'
 import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
+import { partOfDay } from '../core/care/day'
 import { shouldWelcome, welcomeLine } from '../core/care/welcome'
 import { equipItem, parseCatalog } from '../core/catalog/catalog'
 import { checkEconomy } from '../core/economy/config'
@@ -47,6 +48,7 @@ import { SnackPile } from './snack-pile'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
 import { UpdateService } from './updates'
+import { WeatherService } from './weather'
 
 // Keep a reference so the tray icon is not garbage collected.
 let tray: Tray | undefined
@@ -97,6 +99,16 @@ async function start(): Promise<void> {
     (!app.isPackaged && process.env.BUDDY_TIRED === '1')
   // Cigars fill the smoke bar, which drains over hours (core/toys/smoke-bar.ts).
   let smokeBar = await loadSmokeBar(storage)
+  // Opt-in weather (main/weather.ts): nothing is sent until a city is typed in Settings.
+  let duckReady = false
+  const weather = new WeatherService({
+    storage,
+    city: () => settings.weatherCity,
+    language: () => settings.language,
+    onKind: (kind) => {
+      if (duckReady) duck.window.webContents.send(IPC.weather, kind)
+    },
+  })
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
@@ -106,10 +118,13 @@ async function start(): Promise<void> {
     duck: settings.duck,
     theme: settings.theme,
     tired,
+    weather: weather.kind,
     pinState,
   })
 
   const duck = new DuckWindow(settings.scale)
+  duckReady = true
+  void weather.start()
   const panel = new PanelWindow(() => duck.bounds)
   const pill = new PillWindow()
   pill.setVisible(settings.showPointsPill)
@@ -250,6 +265,7 @@ async function start(): Promise<void> {
   powerMonitor.on('suspend', () => void tracker.pause())
   // Welcome back (core/care/welcome.ts): away = locked or asleep; the duck cheers on the way back.
   const bubble = new BubbleWindow()
+  powerMonitor.on('resume', () => void weather.sync()) // an hour may have gone by asleep
   let awaySince: number | undefined
   let lastWelcome = 0
   const goneAway = () => {
@@ -266,7 +282,7 @@ async function start(): Promise<void> {
     setTimeout(() => {
       if (awaySince !== undefined || busyNow() || breaks.busy || !duck.window.isVisible()) return
       lastWelcome = Date.now()
-      const line = welcomeLine(Math.random, settings.names.you)
+      const line = welcomeLine(Math.random, settings.names.you, partOfDay(new Date().getHours()))
       bubble.say(
         t(line.key, line.vars),
         settings.names.duck,
@@ -348,6 +364,7 @@ async function start(): Promise<void> {
     }
     if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
     if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
+    if (next.weatherCity !== before.weatherCity) await weather.sync() // so the view has the result
     if (
       next.scale !== before.scale ||
       next.volume !== before.volume ||
@@ -362,8 +379,12 @@ async function start(): Promise<void> {
     settings: () => settings,
     apply: applySettings,
     flush: flushAll,
-    stop: () => tracker.stop(),
+    stop: () => {
+      tracker.stop()
+      weather.stop()
+    },
     eraseBackups: () => eraseBackups(app.getPath('userData')),
+    weather: () => weather.view(),
   })
   registerIpc({
     config,
@@ -396,6 +417,7 @@ async function start(): Promise<void> {
   app.on('before-quit', () => {
     tray?.destroy()
     bubble.close()
+    weather.stop()
   })
   // Write any batched points before the app goes away.
   let flushed = false

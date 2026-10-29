@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { CITY_MAX } from '../care/weather'
 import { isCleanName } from '../care/welcome'
 import type { StorageAdapter } from '../storage/storage'
 
@@ -59,6 +60,11 @@ export const SettingsSchema = z.object({
   names: NamesSchema.prefault({}),
   /** The duck says hello when the user comes back to the PC (see core/care/welcome). */
   welcomeBack: z.boolean().default(true),
+  /** Opt-in weather: a city name. Empty = off, no network (see core/care/weather). */
+  weatherCity: z
+    .string()
+    .refine((city) => isCleanName(city, CITY_MAX), 'not a clean city name')
+    .default(''),
   /** Look for a new version on GitHub once a day. Off: no network unless the user asks. */
   updates: z.object({ autoCheck: z.boolean().default(false) }).prefault({}),
   loadout: LoadoutSchema.prefault({}),
@@ -121,6 +127,7 @@ export const SettingsPatchSchema = z.strictObject({
   updates: z.strictObject({ autoCheck: z.boolean().optional() }).optional(),
   names: z.strictObject({ duck: NameSchema.optional(), you: NameSchema.optional() }).optional(),
   welcomeBack: SettingsSchema.shape.welcomeBack.unwrap().optional(),
+  weatherCity: SettingsSchema.shape.weatherCity.unwrap().optional(),
 })
 
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>

@@ -55,6 +55,7 @@ describe('settings', () => {
       updates: { autoCheck: false }, // no network unless the user turns it on
       names: { duck: '', you: '' }, // no names until the user gives some
       welcomeBack: true,
+      weatherCity: '', // no weather (and no network) until the user types a city
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })

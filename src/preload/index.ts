@@ -14,7 +14,7 @@ import type {
   TodayView,
   UpdateView,
 } from '../shared/ipc'
-import { CARE_EVENTS, FALL_EVENTS, IPC } from '../shared/ipc'
+import { CARE_EVENTS, FALL_EVENTS, IPC, WEATHER_KINDS } from '../shared/ipc'
 
 // The renderers only ever see this object. Every call maps to one fixed channel;
 // the main process validates the sender and the payload.
@@ -53,6 +53,12 @@ const api: BuddyApi = {
         listener({ scale: prefs.scale, volume: prefs.volume, duck: prefs.duck })
       ipcRenderer.on(IPC.duckPrefs, handler)
       return () => ipcRenderer.off(IPC.duckPrefs, handler)
+    },
+    onWeather: (listener) => {
+      const handler = (_event: unknown, kind: unknown) =>
+        listener(WEATHER_KINDS.find((k) => k === kind))
+      ipcRenderer.on(IPC.weather, handler)
+      return () => ipcRenderer.off(IPC.weather, handler)
     },
     onCare: (listener) => {
       const handler = (_event: unknown, what: unknown) => {

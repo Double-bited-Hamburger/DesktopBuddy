@@ -11,6 +11,11 @@ as each feature lands.
   `latest.yml` (a version number and a file hash). Downloading the update only happens when you
   click Download. GitHub sees an ordinary web request (your IP address and the app's user agent);
   nothing about you or your duck is sent.
+- **Weather is off by default.** Only if you type a city in Settings → Weather, the app asks
+  Open-Meteo (open-meteo.com, free, no account) where that city is, once, and then the current
+  weather for its position rounded to about 1 km, once an hour. Open-Meteo sees the city name,
+  that rough position, your IP address and the app's user agent; nothing else. Clearing the
+  field stops the requests and forgets the place.
 - **Activity tracking is off by default.** The Today screen explains exactly what is recorded and
   records nothing until the user presses "Yes, track my day". It can be turned off any time.
 - **What tracking reads while on:** every 5 s, the seconds since the last keyboard/mouse input
@@ -60,7 +65,8 @@ as each feature lands.
 
 | Key                   | Contents                                                             | Since   |
 | --------------------- | -------------------------------------------------------------------- | ------- |
-| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter/fidget), loadout (skin/hat/face), `names` (the duck's name and yours, both optional, empty by default), `welcomeBack`; `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
+| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter/fidget), loadout (skin/hat/face), `names` (the duck's name and yours, both optional, empty by default), `welcomeBack`, `weatherCity` (empty = weather off); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
+| `weather`             | the city typed, where it is (name, country, position rounded to ~1 km), the last weather kind and when it was checked; emptied when the city is cleared | 7c |
 | `smoke-bar`           | how full the cigar smoke bar is and when it last changed              | 7c      |
 | `ledger`              | points history `{ts, source, delta}`                                 | Phase 4 |
 | `inventory`           | owned item ids, opens-without-a-hit per gift box, last free-gift time | Phase 5 |

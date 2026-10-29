@@ -34,6 +34,15 @@ describe('welcomeLine', () => {
     expect(welcomeLine(() => 0, 'Ada')).toEqual({ key: 'welcome.named.1', vars: { you: 'Ada' } })
   })
 
+  it('says good morning in the morning and that it is late at night', () => {
+    expect(welcomeLine(() => 0, '', 'morning').key).toBe('welcome.morning')
+    expect(welcomeLine(() => 0, 'Ada', 'night')).toEqual({
+      key: 'welcome.night.named',
+      vars: { you: 'Ada' },
+    })
+    expect(welcomeLine(() => 0, '', 'evening').key).toBe('welcome.1')
+  })
+
   it('picks every line, and never one past the last', () => {
     const keys = new Set([0, 0.3, 0.6, 0.99, 0.999999].map((r) => welcomeLine(() => r, '').key))
     expect(keys.size).toBe(WELCOME_LINES)

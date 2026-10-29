@@ -13,6 +13,9 @@ import {
   tiredBehaviorConfig,
 } from '../../core/behavior/machine'
 import { PetDetector } from '../../core/behavior/pet'
+import { dayBehaviorConfig, msUntilNextPart, partOfDay } from '../../core/care/day'
+import type { WeatherKind } from '../../core/care/weather'
+import { needsUmbrella } from '../../core/care/weather'
 import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
@@ -60,6 +63,8 @@ const NO_SMOKE_SPOT = { x: 27, y: 0 }
 const DIZZY_STEP_MS = 250
 /** A small z, then a bigger one, over the resting duck (after it has sat down). */
 const ZZZ_SPOT = { x: 27, y: 6 }
+/** Rain or snow: the umbrella's top-left (behind the duck, its handle hidden by the head). */
+const UMBRELLA_SPOT = { x: 12, y: 0 }
 const ZZZ_STEP_MS = 1000
 const SIT_DOWN_MS = 400
 /** Looking back: it turns its head after this long, and looks ahead again this long before the end. */
@@ -199,6 +204,7 @@ async function main(): Promise<void> {
   const dizzyFrames = (await loadSprite('emotes', 'dizzy')).frames // a ring: no mirrored copy needed
   const noSmoke = (await loadSprite('emotes', 'no-smoke')).frames[0]
   const zzzFrames = (await loadSprite('emotes', 'zzz')).frames // letters: drawn after mirroring
+  const umbrella = (await loadSprite('toys', 'umbrella')).frames[0] // symmetric enough to reuse
   const sofa = (await loadSprite('toys', 'sofa')).frames // symmetric: no mirrored copy needed
   const sofaBack = sofa.find((f) => f.name === 'sofa-back')
   const sofaFront = sofa.find((f) => f.name === 'sofa-front')
@@ -213,12 +219,26 @@ async function main(): Promise<void> {
   // Too many coffees yesterday: heavy eyelids and yawns for the first TIRED_MS after starting.
   let tired = config.tired && !config.pinState
   let prefs: BehaviorPrefs = config.duck
-  const behaviorFor = () =>
-    tired ? tiredBehaviorConfig(behaviorConfigFor(prefs)) : behaviorConfigFor(prefs)
+  // The local clock shifts the mood: sleepy at night, stretchy in the morning (core/care/day).
+  const behaviorFor = () => {
+    const base = behaviorConfigFor(prefs)
+    return dayBehaviorConfig(
+      tired ? tiredBehaviorConfig(base) : base,
+      partOfDay(new Date().getHours()),
+    )
+  }
+  let weather: WeatherKind | undefined = config.weather
   const machine = new BehaviorMachine(
     Math.random,
     config.pinState ? pinnedBehaviorConfig() : behaviorFor(),
   )
+  // One timer per part of the day (hours apart), to re-weigh the idle choices.
+  const followTheDay = () =>
+    setTimeout(() => {
+      if (!config.pinState) machine.configure(behaviorFor())
+      followTheDay()
+    }, msUntilNextPart(new Date()) + 1000)
+  followTheDay()
   if (tired)
     setTimeout(() => {
       tired = false
@@ -322,13 +342,14 @@ async function main(): Promise<void> {
       sleepingFor >= 0
         ? zzzFrames[Math.floor(sleepingFor / ZZZ_STEP_MS) % zzzFrames.length]
         : undefined
+    const sheltered = calm && needsUmbrella(weather) && machine.state !== 'read' && umbrella
     const declining = calm && machine.state === 'refuse' && noSmoke !== undefined
     const rise = popupStep(now)
     const snack =
       calm && treat && treat.kind !== 'coffee'
         ? snackView(treat.kind, now - treat.since)
         : undefined
-    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}`
+    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(dressed, pose)
     if (!image) return
@@ -339,6 +360,10 @@ async function main(): Promise<void> {
     // The bubble and heart sit above the head on the side the duck faces, the popup on the other.
     const stage: Frame = { name: 'stage', anchors: {}, ...image }
     const layers = [{ frame: stage, offset: { x: 0, y: 0 } }]
+    if (sheltered && umbrella) {
+      const x = facing === 1 ? UMBRELLA_SPOT.x : STAGE_SIZE - UMBRELLA_SPOT.x - umbrella.width
+      layers.unshift({ frame: umbrella, offset: { x, y: UMBRELLA_SPOT.y } })
+    }
     // Reading: the sofa's back goes behind the duck, its seat and the newspaper in front.
     if (page && sofaBack && sofaFront) {
       layers.unshift({ frame: sofaBack, offset: SOFA_SPOT })
@@ -534,6 +559,11 @@ async function main(): Promise<void> {
     machine.refuse()
     sound.play('quack')
     wake()
+  })
+
+  window.buddy.duck.onWeather((kind) => {
+    weather = kind
+    render()
   })
 
   window.buddy.duck.onFed((kind, heavy) => {

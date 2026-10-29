@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
+import { CITY_MAX } from '../../core/care/weather'
 import { cleanName, NAME_MAX } from '../../core/care/welcome'
 import type { Translator } from '../../core/i18n/i18n'
 import type { SettingsPatch } from '../../core/settings/settings'
 import { THEMES } from '../../core/settings/settings'
-import type { SettingsView } from '../../shared/ipc'
+import type { SettingsView, WeatherView } from '../../shared/ipc'
 import { ChipPlayer } from '../shared/chip-player'
 import { Updates } from './updates'
 
@@ -21,6 +22,22 @@ interface SettingsProps {
 /** Break buddy choices (minutes). 50 + 5 is the default: see docs/ROADMAP.md, Phase 7d. */
 const WORK_MINUTES = [30, 40, 50, 60, 90] as const
 const BREAK_MINUTES = [3, 5, 10, 15] as const
+
+/** "Roma, Italia: rain ☂️ (checked 14:05)", or why there is no weather. */
+function weatherLine(t: Translator, weather: WeatherView): string {
+  if (weather.state === 'checking') return t('settings.weather.checking')
+  if (weather.state === 'notFound') return t('settings.weather.notFound')
+  if (weather.state === 'offline' || !weather.kind) return t('settings.weather.offline')
+  const time = new Date(weather.checkedAt ?? Date.now()).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+  return t('settings.weather.now', {
+    place: weather.place ?? weather.city,
+    kind: t(`weather.${weather.kind}`),
+    time,
+  })
+}
 
 /** The choices, plus the saved value if it is not one of them (so a select never lies). */
 function withCurrent(choices: readonly number[], current: number): number[] {
@@ -179,6 +196,28 @@ export function Settings({ t, onChange }: SettingsProps) {
         />
       </label>
       <p class="muted note">{t('settings.names.hint')}</p>
+
+      <h2>{t('settings.weather')}</h2>
+      <label class="row">
+        <span>{t('settings.weather.city')}</span>
+        <input
+          type="text"
+          class="name-input"
+          maxLength={CITY_MAX * 2}
+          placeholder={t('settings.weather.placeholder')}
+          value={view.weather.city}
+          onChange={(e) => {
+            const city = cleanName(e.currentTarget.value, CITY_MAX)
+            e.currentTarget.value = city
+            if (city !== view.weather.city) {
+              setView({ ...view, weather: { city, state: city ? 'checking' : 'off' } })
+              set({ weatherCity: city })
+            }
+          }}
+        />
+      </label>
+      {view.weather.state !== 'off' && <p class="muted note">{weatherLine(t, view.weather)}</p>}
+      <p class="muted note">{t('settings.weather.hint')}</p>
 
       <h2>{t('settings.breaks')}</h2>
       <label class="row">

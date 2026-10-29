@@ -1,4 +1,5 @@
 import type { Rng } from '../types'
+import type { PartOfDay } from './day'
 
 /**
  * Welcome back: when the user unlocks the PC or wakes it after being away a while, the duck
@@ -24,8 +25,18 @@ export function shouldWelcome(awayMs: number, now: number, lastAt: number): bool
 /** How many ways the duck has of saying hello (keys welcome.1… and welcome.named.1…). */
 export const WELCOME_LINES = 4
 
-/** An i18n key and its values: one of the hellos, using the user's name when there is one. */
-export function welcomeLine(rng: Rng, you: string): { key: string; vars: { you: string } } {
+/**
+ * An i18n key and its values: one of the hellos, using the user's name when there is one. In
+ * the morning it says good morning, late at night it says it's late (welcome.morning/.night).
+ */
+export function welcomeLine(
+  rng: Rng,
+  you: string,
+  part: PartOfDay = 'day',
+): { key: string; vars: { you: string } } {
+  const named = you ? '.named' : ''
+  if (part === 'morning' || part === 'night')
+    return { key: `welcome.${part}${named}`, vars: { you } }
   const n = Math.min(WELCOME_LINES, Math.floor(rng() * WELCOME_LINES) + 1)
   return { key: you ? `welcome.named.${n}` : `welcome.${n}`, vars: { you } }
 }
@@ -34,15 +45,15 @@ export function welcomeLine(rng: Rng, you: string): { key: string; vars: { you: 
  * A name as typed, made safe to keep and show: no control or line-break characters, spaces
  * squeezed, trimmed, and at most NAME_MAX characters (emoji count as one).
  */
-export function cleanName(raw: string): string {
+export function cleanName(raw: string, max = NAME_MAX): string {
   const flat = raw
     .replace(/[\p{Cc}\p{Zl}\p{Zp}]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-  return [...flat].slice(0, NAME_MAX).join('').trim()
+  return [...flat].slice(0, max).join('').trim()
 }
 
 /** Whether `name` is already clean (what the settings schema accepts). */
-export function isCleanName(name: string): boolean {
-  return cleanName(name) === name
+export function isCleanName(name: string, max = NAME_MAX): boolean {
+  return cleanName(name, max) === name
 }

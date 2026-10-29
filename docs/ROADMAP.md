@@ -359,8 +359,27 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
   - **Not verified:** how often they show up in a normal session (tests cover the odds); hats
     and glasses on the new frames; the Settings switch clicked (covered by tests); the Italian
     label's fit
-- [ ] **Time of day:** yawns more late at night (and may say it's late), a tiny coffee cup in
-      the morning, seasonal touches (snow on the taskbar in December) — all local clock, no data
+- [x] **Time of day** (local clock, no data): `core/care/day.ts` splits the day into night
+      (23–6), morning (6–11), day and evening (18–23). At night the duck naps about three times
+      as often, walks and hops less and yawns more; in the morning it stretches and shakes more.
+      The duck page reconfigures itself when the part of the day changes (one timer, not a poll),
+      and the user's switches stay off. Welcome back says good morning / it's late at those hours
+  - [x] **Weather, opt-in** (Settings → Weather, off by default): type a city and once an hour
+    the app asks Open-Meteo (free, no account) for the current weather; with rain, snow or a
+    storm the duck holds a red umbrella (`toys/umbrella`). The city is looked up once, in both
+    app languages, picking the biggest town with exactly that name (so "Roma" is Rome, not a
+    village in Romania); only the rounded position (~1 km) is sent for the forecast. Clearing
+    the field forgets the place. Readings older than 3 h are ignored
+  - Verified 2026-10-29 in dev on a throwaway data folder: off by default (no requests);
+    "Roma" → Roma, Italia and "Milano" → Milano, Italia against the real Open-Meteo; a nonsense
+    city says "not found"; clearing the city empties the save; a forced rain reading shows the
+    umbrella and a clear one hides it; the Settings status line
+  - **Not verified:** a real rainy hour end to end; the hourly timer firing after an hour and
+    after sleep/resume (covered by reading the code only); the night/morning odds in a real
+    night (tests cover them); the good-morning welcome seen live; the Italian text's fit; the
+    umbrella with hats on
+  - [ ] Still to do: a tiny coffee cup in the morning, seasonal touches (snow on the taskbar in
+    December)
 - [ ] **Yawning** as its own animation, used when tired, late, or waking up
 
 ## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)

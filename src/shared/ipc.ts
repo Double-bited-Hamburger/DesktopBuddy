@@ -1,4 +1,5 @@
 import type { BehaviorState } from '../core/behavior/machine'
+import type { WeatherKind } from '../core/care/weather'
 import type { Rarity, Slot } from '../core/catalog/catalog'
 import type { RarityChance } from '../core/economy/gifts'
 import type { QuestView } from '../core/economy/quests'
@@ -58,6 +59,7 @@ export const IPC = {
   settingsExport: 'panel:settings-export',
   settingsErase: 'panel:settings-erase',
   care: 'duck:care',
+  weather: 'duck:weather',
   smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
   updateGet: 'panel:update-get',
@@ -81,6 +83,8 @@ export interface AppConfig {
   readonly theme: Theme
   /** Too many coffees yesterday: the duck starts the day tired (core/toys/coffee.ts). */
   readonly tired: boolean
+  /** Opt-in weather right now (rain or snow: the umbrella); undefined when off or unknown. */
+  readonly weather?: WeatherKind
   /** Dev-only (`BUDDY_PIN_STATE`, unpackaged builds): keep the duck in one state, for perf runs. */
   readonly pinState?: BehaviorState
 }
@@ -189,6 +193,7 @@ export interface SettingsView {
   readonly updates: Settings['updates']
   readonly names: Names
   readonly welcomeBack: boolean
+  readonly weather: WeatherView
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string
@@ -200,6 +205,27 @@ export interface SettingsView {
  */
 export type CareEvent = 'stare' | 'nag' | 'welcome' | 'calm'
 export const CARE_EVENTS: readonly CareEvent[] = ['stare', 'nag', 'welcome', 'calm']
+
+/** The weather line in Settings. */
+export interface WeatherView {
+  /** The city typed in Settings ('' = off). */
+  readonly city: string
+  readonly state: 'off' | 'checking' | 'ok' | 'notFound' | 'offline'
+  /** The place Open-Meteo found ("Roma, Italia"). */
+  readonly place?: string
+  readonly kind?: WeatherKind
+  /** When the weather was last read (epoch ms). */
+  readonly checkedAt?: number
+}
+
+export const WEATHER_KINDS: readonly WeatherKind[] = [
+  'clear',
+  'cloudy',
+  'fog',
+  'rain',
+  'snow',
+  'storm',
+]
 
 /** The break sign's buttons: "I'm finishing right now" or "☕ Just 10 more minutes". */
 export type SignChoice = 'finish' | 'later'
@@ -266,6 +292,8 @@ export interface BuddyApi {
     onFall(listener: (event: FallEvent) => void): () => void
     /** Volume or behavior switches changed in Settings. Returns an unsubscribe function. */
     onPrefs(listener: (prefs: DuckLivePrefs) => void): () => void
+    /** The opt-in weather changed (undefined: off or unknown). Returns an unsubscribe function. */
+    onWeather(listener: (kind: WeatherKind | undefined) => void): () => void
     /** The break buddy: stare, nag, welcome back or calm down. Returns an unsubscribe function. */
     onCare(listener: (event: CareEvent) => void): () => void
     /** The loadout changed (equipped from the Bag): redraw with the new outfit. */

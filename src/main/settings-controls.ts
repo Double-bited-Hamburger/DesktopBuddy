@@ -3,7 +3,7 @@ import { app, dialog } from 'electron'
 import type { Settings } from '../core/settings/settings'
 import { applySettingsPatch } from '../core/settings/settings'
 import type { StorageAdapter } from '../core/storage/storage'
-import type { SettingsView } from '../shared/ipc'
+import type { SettingsView, WeatherView } from '../shared/ipc'
 
 interface SettingsDeps {
   readonly storage: StorageAdapter
@@ -16,6 +16,8 @@ interface SettingsDeps {
   readonly stop: () => void
   /** Deletes the save backups made before updates. */
   readonly eraseBackups: () => Promise<void>
+  /** The weather line (opt-in, see main/weather.ts). */
+  readonly weather: () => WeatherView
 }
 
 /**
@@ -42,6 +44,7 @@ export class SettingsControls {
       updates: s.updates,
       names: s.names,
       welcomeBack: s.welcomeBack,
+      weather: this.deps.weather(),
       autostart: {
         // A dev build would register the bare Electron binary, so only installed builds offer it.
         available: app.isPackaged,
