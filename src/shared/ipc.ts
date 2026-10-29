@@ -26,6 +26,7 @@ export const IPC = {
   feed: 'panel:feed',
   feedHandful: 'panel:feed-handful',
   fed: 'duck:fed',
+  refused: 'duck:refused',
   ate: 'duck:ate',
   chase: 'duck:chase',
   snackClick: 'snack:click',
@@ -50,6 +51,7 @@ export const IPC = {
   settingsExport: 'panel:settings-export',
   settingsErase: 'panel:settings-erase',
   care: 'duck:care',
+  smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
   updateGet: 'panel:update-get',
   updateCheck: 'panel:update-check',
@@ -210,6 +212,14 @@ export interface UpdateView {
   readonly checkedAt?: number
 }
 
+/** The smoke bar for the panel: 0..100, and whether (and how long) the duck refuses cigars. */
+export interface SmokeBarView {
+  readonly level: number
+  readonly refuses: boolean
+  /** Milliseconds until it takes a cigar again (0 when it would now). */
+  readonly okInMs: number
+}
+
 /** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
 export type ChaseDirection = 1 | -1 | 0
 
@@ -253,8 +263,13 @@ export interface BuddyApi {
     onLoadout(listener: (loadout: Loadout) => void): () => void
     /** Run after a snack (main moves the window), or stop (0). */
     onChase(listener: (direction: ChaseDirection) => void): () => void
-    /** The duck reached the snack: eat the bread / smoke the cigar, then call `ate`. */
-    onFed(listener: (snack: Snack) => void): () => void
+    /**
+     * The duck reached the snack: eat the bread / smoke the cigar, then call `ate`. `heavy`: a
+     * cigar on a high smoke bar, so a hard cough with dizzy stars follows.
+     */
+    onFed(listener: (snack: Snack, heavy: boolean) => void): () => void
+    /** A cigar was offered with a full smoke bar: the duck turns it down. */
+    onRefused(listener: () => void): () => void
     /** The snack is finished. Main pays `play` points once per snack the duck actually caught. */
     ate(): void
     /**
@@ -276,6 +291,8 @@ export interface BuddyApi {
     feed(snack: Snack): void
     /** Tosses a handful of bread pieces from the cursor; the duck eats them one by one. */
     feedHandful(): void
+    /** How full the duck's smoke bar is (core/toys/smoke-bar.ts). */
+    smokeBar(): Promise<SmokeBarView>
     /** Store, quests and what the player owns. */
     store(): Promise<StoreView>
     /** Something in the store view changed (quest progress, a purchase). Returns unsubscribe. */

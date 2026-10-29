@@ -9,6 +9,7 @@ import type {
   GiftResult,
   Loadout,
   SettingsView,
+  SmokeBarView,
   StatsView,
   StoreView,
   TodayView,
@@ -35,6 +36,8 @@ interface IpcDeps {
   /** Hands the user a snack (from the panel), paid for once the duck has finished it. */
   readonly feed: (snack: Snack) => void
   readonly feedHandful: () => void
+  /** How full the smoke bar is, for the Bag. */
+  readonly smokeBar: () => SmokeBarView
   readonly ate: () => void
   readonly duck: DuckWindow
   readonly panel: PanelWindow
@@ -63,6 +66,7 @@ export function registerIpc({
   earn,
   feed,
   feedHandful,
+  smokeBar,
   ate,
   duck,
   panel,
@@ -128,6 +132,11 @@ export function registerIpc({
 
   ipcMain.on(IPC.feedHandful, (event) => {
     if (fromPanel(event.sender)) feedHandful()
+  })
+
+  ipcMain.handle(IPC.smokeBar, (event): SmokeBarView => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return smokeBar()
   })
 
   ipcMain.on(IPC.snackClick, (event) => {

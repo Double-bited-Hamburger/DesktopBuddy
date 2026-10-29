@@ -120,6 +120,17 @@ describe('placeholder duck source', () => {
       'yawn',
       'stare',
       'savor',
+      'cough',
+      'walk-1',
+      'walk-2',
+      'walk-3',
+      'walk-4',
+      'sit',
+      'crouch',
+      'shake-l',
+      'shake-r',
+      'stretch',
+      'hop',
     ])
     expect(lintPxl(doc)).toEqual([])
     expect(doc.anchors.head).toBeDefined()

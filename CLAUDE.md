@@ -39,8 +39,8 @@ New fun features are cosmetic and kind: no penalties, the duck never gets sick o
 features can be switched off and never lock the PC or interrupt fullscreen apps and calls.
 
 **Measured** (details and history in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)): RAM 77–86 MB;
-sleep 0.1–0.3% CPU; idle 0.84–1.00%; free mix 1.01–1.30%; walk 2.6–3.4%; tracking costs nothing
-measurable. Battery estimate on the owner's laptop (90 Wh, ~9 h): normal use costs ~10–20 min
+sleep 0.1–0.3% CPU; idle 0.42–1.00%; free mix 1.01–1.30%; walk 2.3–3.4% (no-GPU: same CPU,
+−19 MB RAM, kept off); tracking costs nothing measurable. Battery estimate on the owner's laptop (90 Wh, ~9 h): normal use costs ~10–20 min
 per charge. The one thing that would hurt badly is waking the dGPU (RTX 5060) on battery —
 unverified unplugged; fixes would be forcing the low-power GPU or `disableHardwareAcceleration`.
 

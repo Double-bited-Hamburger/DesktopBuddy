@@ -45,3 +45,8 @@ export function msUntilSmokeChange(elapsedMs: number): number {
       : PUFF_STEP_MS - ((inCycle - PUFF_QUIET_MS) % PUFF_STEP_MS)
   return Math.min(wait, SMOKE_MS - elapsedMs)
 }
+
+/** The hard cough after a cigar on a high smoke bar (see core/toys/smoke-bar.ts). */
+export const COUGH_MS = 2800
+/** Turning a cigar down. */
+export const REFUSE_MS = 2000

@@ -207,6 +207,9 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
 - [x] **Full perf pass** (2026-10-28, 4 states × 3 runs, tracking off and on, own save folders):
       RAM 77–86 MB everywhere; sleep 0.1–0.3%; idle 0.84–1.00% and free 1.01–1.30% (at the line);
       walk 2.6–3.4%. Tracking costs nothing measurable. Details in ARCHITECTURE
+- [x] **No-GPU test** (2026-10-29, walk + idle × 3 runs each way): walk 2.54% with the GPU, 2.29%
+      without (inside the noise); idle 0.54% / 0.42%; RAM 87 → 68 MB without. Transparency not
+      checked (PC was locked). Kept the GPU on; `BUDDY_NO_GPU` stays dev-only
 - [ ] **Phase exit not met:** walking is still over 1% (see ARCHITECTURE "Next steps")
 - [x] **Fix (user report, 2026-10-28):** "Restart now" after a size change broke `npm run dev`:
       the relaunched copy outlived the Vite server and held the single-instance lock, so the next
@@ -312,14 +315,50 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
     written with today's count (screenshots of the duck's own canvas)
   - **Not verified:** the zoom branch live (it's random; covered by tests), a real "next morning",
     hats on the sofa pose, the duck facing left on the sofa
-- [ ] **Cigars have a downside:** the duck coughs after smoking. An **addiction bar** (visible
-      on the duck's card in the Bag) fills with each cigar and drains over hours. High → more
-      coughing and dizzy stars ✨ circling its head; full → it refuses the next cigar ("I need
-      fresh air") until the bar drops. It never rewards smoking more: cigars pay the same capped
-      play points as bread, and nothing pushes you to give them
-- [ ] **Better walk:** more frames with a waddle, head bob and tail wag; turns with a little
-      pause instead of flipping instantly. Must not raise the walk CPU (still the open Phase 7
-      problem): same 12 fps tick, only the frames change
+- [x] **Cigars have a downside** (built 2026-10-29): a **smoke bar** (`core/toys/smoke-bar.ts`,
+      saved as `smoke-bar`) fills 25% per cigar and drains 12.5% an hour (full → empty in 8 h).
+      Every cigar still ends with the old cough; from 50% on (counting this cigar) a **hard
+      cough** follows: eyes squeezed shut, three "hack-hack"s (new chip sound) and two dizzy
+      stars circling its head (2.8 s). Over 75% the duck **turns the next cigar down**: no
+      cigar in the hand, a frown and a no-smoking sign by its head, and the Feed menu says
+      "Cigar (needs fresh air)". The Bag shows the bar (only while it isn't empty) with "Needs
+      fresh air: no cigars for 1 h 36 min" when full. Cigars still pay the same capped `play`
+      points as bread
+  - Verified 2026-10-29 in dev on a throwaway data folder: bar 40% → a cigar was smoked, the
+    hard cough with stars played, +3 points, bar saved at 65%; bar 95% → the Feed menu showed
+    "needs fresh air", no cigar was handed out, the duck frowned under the sign, the Bag showed
+    the bar and the wait
+  - **Not verified:** the cough sound heard; the duck facing right during the cough (it faced
+    left); Italian text in the Bag; the daily quest "Share a cigar" still asks for one cigar a
+    day (left as is)
+- [x] **Better walk** (built 2026-10-29): a four-frame waddle (front foot out with the tail
+      up, a one-pixel dip, back foot out with the tail down, a dip), same 4 redraws/s and the same
+      12 Hz window steps as before. At the end of the floor a strolling duck now **stops for
+      600 ms** (a look and a blink) and then walks back (`turn` state); a zooming duck still
+      bounces straight off. A pinned walk (`BUDDY_PIN_STATE=walk`, perf runs) still
+      turns and keeps walking. Hats follow the dip (per-frame anchors)
+- [x] **Sitting rest** (built 2026-10-29): a nap is no longer standing with closed eyes. The duck
+      crouches (400 ms), sits on its belly with its eyes closed, and a small z then a bigger Z
+      float over its head (one redraw a second); when the nap ends it crouches again to get up
+      (`getup` state). A click or pet still wakes it at once
+  - Verified 2026-10-29 in dev on a throwaway data folder: the waddle frames and the sitting duck
+    with its z's, drawn on the duck page
+  - **Not verified:** the turn at a real screen edge (covered by tests only); hats and glasses on
+    the new frames; the tired walk (it reuses the old tired frames); the z's on a dark wallpaper
+    (they're dark, 1 px letters); the CPU of a nap (now 1 wakeup a second instead of none, still
+    inside the 2 fps asleep budget, not measured)
+- [x] **Idle moments** (built 2026-10-29), so it isn't only walking and napping: while idling it
+      sometimes **looks back** over its shoulder (the duck turns around for a second without
+      moving), **shakes off** its feathers (a quick wiggle with a few loose feathers),
+      **stretches a wing** (eyes closed), does **two happy hops**, or **pecks at the ground**
+      for crumbs. Each is short (≤ 4 s) and goes back to idle. They are `FIDGETS` in
+      `core/behavior/machine.ts`, about one idle choice in five, and Settings → Duck has a new
+      switch "stretches, hops and shakes" (on by default) that turns them all off
+  - Verified 2026-10-29 in dev on a throwaway data folder, one pinned run per moment: the
+    shake, wing stretch, hop, looking back and pecking frames on the duck page
+  - **Not verified:** how often they show up in a normal session (tests cover the odds); hats
+    and glasses on the new frames; the Settings switch clicked (covered by tests); the Italian
+    label's fit
 - [ ] **Time of day:** yawns more late at night (and may say it's late), a tiny coffee cup in
       the morning, seasonal touches (snow on the taskbar in December) — all local clock, no data
 - [ ] **Yawning** as its own animation, used when tired, late, or waking up

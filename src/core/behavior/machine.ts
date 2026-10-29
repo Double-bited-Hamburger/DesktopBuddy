@@ -1,10 +1,18 @@
 import { MEAL_MS } from '../toys/bread'
-import { SMOKE_MS } from '../toys/cigar'
+import { COUGH_MS, REFUSE_MS, SMOKE_MS } from '../toys/cigar'
 import { DRINK_MS } from '../toys/coffee'
 import type { Rng } from '../types'
 
 /** The longest a stare can last on its own (a break is given up on well before this). */
 export const STARE_MAX_MS = 30 * 60_000
+/** At the end of the floor the duck stops, looks for a moment, then walks back. */
+export const TURN_MS = 600
+/** Getting up after a rest on its belly. */
+export const GETUP_MS = 400
+/** Small moments while idling: shaking off its feathers and a happy double hop. */
+export const SHAKE_MS = 900
+export const HOP_MS = 1000
+export const STRETCH_MS = 1600
 
 export const BEHAVIOR_STATES = [
   'idle',
@@ -21,6 +29,15 @@ export const BEHAVIOR_STATES = [
   'zoom',
   'yawn',
   'stare',
+  'cough',
+  'refuse',
+  'turn',
+  'getup',
+  'look',
+  'shake',
+  'stretch',
+  'hop',
+  'forage',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -50,12 +67,32 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     yawn: [1600, 1600],
     // Break time: the shell ends the stare (see core/care/breaks.ts); this is only a safety net.
     stare: [STARE_MAX_MS, STARE_MAX_MS],
+    cough: [COUGH_MS, COUGH_MS], // a hard cough after a cigar, seeing stars
+    refuse: [REFUSE_MS, REFUSE_MS], // turns a cigar down: it needs fresh air
+    turn: [TURN_MS, TURN_MS],
+    getup: [GETUP_MS, GETUP_MS],
+    // Small moments while idling, so it isn't only walking and napping:
+    look: [1600, 2400], // looks back over its shoulder, then ahead again
+    shake: [SHAKE_MS, SHAKE_MS], // shakes off its feathers
+    stretch: [STRETCH_MS, STRETCH_MS], // a big wing stretch
+    hop: [HOP_MS, HOP_MS], // two happy little hops
+    forage: [2000, 4000], // pecks at the ground for crumbs
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
-    idle: { walk: 0.55, sleep: 0.15, idle: 0.25, quack: 0.05 },
+    idle: {
+      walk: 0.55,
+      sleep: 0.15,
+      idle: 0.25,
+      quack: 0.05,
+      look: 0.08,
+      shake: 0.03,
+      stretch: 0.04,
+      hop: 0.03,
+      forage: 0.06,
+    },
     walk: { idle: 1 },
-    sleep: { idle: 1 },
+    sleep: { getup: 1 }, // sat down for a rest: it gets up before anything else
     quack: { idle: 1 },
     ouch: { idle: 1 },
     happy: { idle: 1 },
@@ -68,6 +105,15 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     zoom: { idle: 1 },
     yawn: { idle: 1 },
     stare: { idle: 1 },
+    cough: { idle: 1 },
+    refuse: { idle: 1 },
+    turn: { walk: 1 }, // back the other way (see `hitEdge`)
+    getup: { idle: 1 },
+    look: { idle: 1 },
+    shake: { idle: 1 },
+    stretch: { idle: 1 },
+    hop: { idle: 1 },
+    forage: { idle: 1 },
   },
 }
 
@@ -93,6 +139,15 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       zoom: forever,
       yawn: forever,
       stare: forever,
+      cough: forever,
+      refuse: forever,
+      turn: [TURN_MS, TURN_MS], // a pinned walk still turns at the edges and walks back
+      getup: forever,
+      look: forever,
+      shake: forever,
+      stretch: forever,
+      hop: forever,
+      forage: forever,
     },
     next: {
       idle: { idle: 1 },
@@ -109,15 +164,29 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       zoom: { zoom: 1 },
       yawn: { yawn: 1 },
       stare: { stare: 1 },
+      cough: { cough: 1 },
+      refuse: { refuse: 1 },
+      turn: { walk: 1 },
+      getup: { getup: 1 },
+      look: { look: 1 },
+      shake: { shake: 1 },
+      stretch: { stretch: 1 },
+      hop: { hop: 1 },
+      forage: { forage: 1 },
     },
   }
 }
+
+/** The small moments a duck picks while idling (switched off together by `fidget`). */
+export const FIDGETS: readonly BehaviorState[] = ['look', 'shake', 'stretch', 'hop', 'forage']
 
 /** The user's switches for what the duck does on its own (see settings `duck`). */
 export interface BehaviorPrefs {
   readonly wander: boolean
   readonly naps: boolean
   readonly chatter: boolean
+  /** The small idle moments (`FIDGETS`). */
+  readonly fidget: boolean
 }
 
 /**
@@ -132,6 +201,7 @@ export function behaviorConfigFor(
   if (!prefs.wander) off.push('walk')
   if (!prefs.naps) off.push('sleep')
   if (!prefs.chatter) off.push('quack')
+  if (!prefs.fidget) off.push(...FIDGETS)
   const idle = Object.fromEntries(
     Object.entries(base.next.idle).filter(([state]) => !off.includes(state as BehaviorState)),
   )
@@ -177,6 +247,8 @@ export class BehaviorMachine {
   private config: BehaviorConfig
   private current: BehaviorState = 'idle'
   private facing: Direction = 1
+  /** Where a turning duck will walk once it has looked around. */
+  private turnTo: Direction = 1
   private remainingMs: number
 
   constructor(rng: Rng, config: BehaviorConfig = DEFAULT_BEHAVIOR_CONFIG) {
@@ -209,6 +281,7 @@ export class BehaviorMachine {
     if (this.remainingMs > 0) return false
     const before = this.current
     this.enter(pickWeighted(this.config.next[this.current], this.rng))
+    if (before === 'turn' && this.current === 'walk') this.facing = this.turnTo
     return this.current !== before
   }
 
@@ -237,6 +310,16 @@ export class BehaviorMachine {
     this.enter('smoke')
   }
 
+  /** Too much smoke: a hard cough with dizzy stars (after a cigar on a high smoke bar). */
+  cough(): void {
+    this.enter('cough')
+  }
+
+  /** Offered a cigar with a full smoke bar: it turns it down. */
+  refuse(): void {
+    this.enter('refuse')
+  }
+
   /** Fed a coffee: the duck sips it (see core/toys/coffee.ts), then reads or zooms around. */
   drink(): void {
     this.enter('drink')
@@ -259,9 +342,17 @@ export class BehaviorMachine {
     this.enter('ouch')
   }
 
-  /** The shell reports that a walking duck reached the edge of its floor. */
+  /**
+   * The shell reports that a walking duck reached the edge of its floor. A strolling duck stops
+   * and looks for `TURN_MS`, then walks back; a zooming one just bounces.
+   */
   hitEdge(): void {
-    if (this.current === 'walk' || this.current === 'zoom') this.facing = this.facing === 1 ? -1 : 1
+    const back: Direction = this.facing === 1 ? -1 : 1
+    if (this.current === 'zoom') this.facing = back
+    else if (this.current === 'walk') {
+      this.enter('turn')
+      this.turnTo = back
+    }
   }
 
   enter(state: BehaviorState): void {

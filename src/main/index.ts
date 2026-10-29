@@ -15,6 +15,15 @@ import { createTranslator } from '../core/i18n/i18n'
 import type { Settings } from '../core/settings/settings'
 import { loadSettings, saveSettings } from '../core/settings/settings'
 import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
+import {
+  heavyCough,
+  levelAt,
+  loadSmokeBar,
+  msUntilCigarOk,
+  refusesCigar,
+  saveSmokeBar,
+  smoked,
+} from '../core/toys/smoke-bar'
 import type { Snack } from '../core/toys/snacks'
 import { focusReward } from '../core/tracker/focus'
 import type { AppConfig, DuckLivePrefs, PointsEvent } from '../shared/ipc'
@@ -81,6 +90,8 @@ async function start(): Promise<void> {
   const tired =
     tiredToday(coffeeLog, localDayKey(Date.now())) ||
     (!app.isPackaged && process.env.BUDDY_TIRED === '1')
+  // Cigars fill the smoke bar, which drains over hours (core/toys/smoke-bar.ts).
+  let smokeBar = await loadSmokeBar(storage)
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
@@ -165,10 +176,18 @@ async function start(): Promise<void> {
     const kind = snacks.caught()
     if (!kind) return
     snackCaught = kind
-    duck.window.webContents.send(IPC.fed, kind)
+    duck.window.webContents.send(
+      IPC.fed,
+      kind,
+      kind === 'cigar' && heavyCough(smokeBar, Date.now()),
+    )
   }
   const feed = (kind: Snack) => {
     panel.closeUnlessPinned() // out of the way, so the snack can go anywhere
+    if (kind === 'cigar' && refusesCigar(smokeBar, Date.now())) {
+      duck.window.webContents.send(IPC.refused) // a full smoke bar: it needs fresh air
+      return
+    }
     snacks.serve(kind)
   }
   const feedHandful = () => {
@@ -185,8 +204,14 @@ async function start(): Promise<void> {
           console.error('Could not save the coffee count', error),
         )
       }
+      if (snackCaught === 'cigar') {
+        smokeBar = smoked(smokeBar, Date.now())
+        saveSmokeBar(storage, smokeBar).catch((error) =>
+          console.error('Could not save the smoke bar', error),
+        )
+      }
       snackCaught = undefined
-      earn('play')
+      earn('play') // a cigar pays the same capped play points as bread
     }
     snacks.ate()
   }
@@ -303,6 +328,14 @@ async function start(): Promise<void> {
     earn,
     feed,
     feedHandful,
+    smokeBar: () => {
+      const now = Date.now()
+      return {
+        level: Math.round(levelAt(smokeBar, now)),
+        refuses: refusesCigar(smokeBar, now),
+        okInMs: msUntilCigarOk(smokeBar, now),
+      }
+    },
     ate,
     duck,
     panel,

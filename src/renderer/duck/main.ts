@@ -4,7 +4,12 @@ import type { BehaviorPrefs, BehaviorState } from '../../core/behavior/machine'
 import {
   BehaviorMachine,
   behaviorConfigFor,
+  GETUP_MS,
+  HOP_MS,
   pinnedBehaviorConfig,
+  SHAKE_MS,
+  STRETCH_MS,
+  TURN_MS,
   tiredBehaviorConfig,
 } from '../../core/behavior/machine'
 import { PetDetector } from '../../core/behavior/pet'
@@ -12,7 +17,7 @@ import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
 import { breadAt, MEAL_MS, msUntilBreadChange } from '../../core/toys/bread'
-import { msUntilSmokeChange, SMOKE_MS, smokeAt } from '../../core/toys/cigar'
+import { msUntilSmokeChange, REFUSE_MS, SMOKE_MS, smokeAt } from '../../core/toys/cigar'
 import {
   coffeeAt,
   DRINK_MS,
@@ -49,6 +54,16 @@ const PUFF_SPOT = { x: 35, y: 14 }
 /** Coffee steam curls up over the upright mug; sparks sit round the head once it is wide awake. */
 const STEAM_SPOT = { x: 34, y: 11 }
 const BUZZ_SPOT = { x: 17, y: 6 }
+/** Dizzy stars circle over the head while coughing; the no-smoking sign floats by the head. */
+const DIZZY_SPOT = { x: 17, y: 2 }
+const NO_SMOKE_SPOT = { x: 27, y: 0 }
+const DIZZY_STEP_MS = 250
+/** A small z, then a bigger one, over the resting duck (after it has sat down). */
+const ZZZ_SPOT = { x: 27, y: 6 }
+const ZZZ_STEP_MS = 1000
+const SIT_DOWN_MS = 400
+/** Looking back: it turns its head after this long, and looks ahead again this long before the end. */
+const LOOK_TURN_MS = 450
 /** How long each snack keeps the duck busy, and the state it is in meanwhile. */
 const TREAT_MS = { bread: MEAL_MS, cigar: SMOKE_MS, coffee: DRINK_MS } as const
 const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink' } as const
@@ -57,7 +72,14 @@ const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink' } as const
 const SOFA_SPOT = { x: 4, y: 16 }
 const PAPER_SPOT = { x: 24, y: 20 }
 /** The morning after too much coffee, these poses get heavy eyelids. */
-const TIRED_POSES: Readonly<Record<string, string>> = { idle: 'tired', step: 'tired-step' }
+const TIRED_POSES: Readonly<Record<string, string>> = {
+  idle: 'tired',
+  step: 'tired-step',
+  'walk-1': 'tired-step',
+  'walk-2': 'tired',
+  'walk-3': 'tired-step',
+  'walk-4': 'tired',
+}
 
 /**
  * During a break the duck keeps staring: whatever it would drift into by itself turns back into
@@ -70,6 +92,12 @@ const BACK_TO_STARE: ReadonlySet<BehaviorState> = new Set([
   'yawn',
   'read',
   'zoom',
+  'turn',
+  'look',
+  'shake',
+  'stretch',
+  'hop',
+  'forage',
 ])
 
 /** A press that moves less than this (screen px) before release is a click, not a drag. */
@@ -78,9 +106,23 @@ const CLICK_SLOP_PX = 4
 const blinkCycle = [...Array.from({ length: 11 }, () => 'idle'), 'blink']
 const animations: AnimationSet = {
   idle: { frames: blinkCycle, frameMs: 200, loop: true },
-  walk: { frames: ['idle', 'step'], frameMs: 250, loop: true },
+  // A waddle: front foot, dip, back foot, dip, with the tail going up and down (same 4 redraws/s
+  // as the old two-frame walk).
+  walk: { frames: ['walk-1', 'walk-2', 'walk-3', 'walk-4'], frameMs: 250, loop: true },
+  turn: { frames: ['idle', 'blink'], frameMs: TURN_MS / 2, loop: false }, // at the edge: a look, then back
+  getup: { frames: ['crouch'], frameMs: GETUP_MS, loop: false },
+  // Small idle moments (FIDGETS in core/behavior/machine.ts).
+  look: { frames: ['idle', 'blink', 'idle', 'idle', 'idle', 'idle'], frameMs: 400, loop: false },
+  shake: {
+    frames: ['shake-l', 'shake-r', 'shake-l', 'shake-r', 'shake-l', 'shake-r', 'shake-l', 'idle'],
+    frameMs: SHAKE_MS / 8,
+    loop: false,
+  },
+  stretch: { frames: ['idle', 'stretch', 'stretch', 'idle'], frameMs: STRETCH_MS / 4, loop: false },
+  hop: { frames: ['crouch', 'hop', 'crouch', 'hop', 'crouch'], frameMs: HOP_MS / 5, loop: false },
+  forage: { frames: ['peck', 'idle', 'peck', 'peck', 'idle'], frameMs: 400, loop: true }, // looking for crumbs
   run: { frames: ['step', 'idle'], frameMs: 90, loop: true }, // after bread: same legs, much faster
-  sleep: { frames: ['blink'], frameMs: 1000, loop: true },
+  sleep: { frames: ['crouch', 'sit'], frameMs: SIT_DOWN_MS, loop: false }, // sits down on its belly
   quack: { frames: ['quack', 'idle'], frameMs: 200, loop: true },
   ouch: { frames: ['ouch'], frameMs: 1000, loop: true }, // sat on its bottom, seeing stars
   happy: { frames: ['happy'], frameMs: 1000, loop: true }, // petted: eyes closed, a heart above
@@ -119,6 +161,13 @@ const animations: AnimationSet = {
   zoom: { frames: ['wide-step', 'wide'], frameMs: 90, loop: true }, // wide awake, racing around
   yawn: { frames: ['yawn'], frameMs: 1600, loop: true },
   stare: { frames: ['stare'], frameMs: 1000, loop: true }, // break time: a frown, no blinking
+  // Too much smoke: hack, hack, hack-hack, eyes squeezed shut (COUGH_MS = 7 × 400 ms).
+  cough: {
+    frames: ['cough', 'idle', 'cough', 'idle', 'cough', 'cough', 'idle'],
+    frameMs: 400,
+    loop: false,
+  },
+  refuse: { frames: ['stare'], frameMs: REFUSE_MS, loop: false }, // "no thanks", with the sign
 }
 
 /** Poses that override the animation while main or the user is moving the duck. */
@@ -147,6 +196,9 @@ async function main(): Promise<void> {
   const steamFrames = withMirrored((await loadSprite('emotes', 'steam')).frames)
   const buzzFrames = withMirrored((await loadSprite('emotes', 'buzz')).frames)
   const puffFrames = (await loadSprite('emotes', 'smoke')).frames
+  const dizzyFrames = (await loadSprite('emotes', 'dizzy')).frames // a ring: no mirrored copy needed
+  const noSmoke = (await loadSprite('emotes', 'no-smoke')).frames[0]
+  const zzzFrames = (await loadSprite('emotes', 'zzz')).frames // letters: drawn after mirroring
   const sofa = (await loadSprite('toys', 'sofa')).frames // symmetric: no mirrored copy needed
   const sofaBack = sofa.find((f) => f.name === 'sofa-back')
   const sofaFront = sofa.find((f) => f.name === 'sofa-front')
@@ -191,7 +243,7 @@ async function main(): Promise<void> {
   const petting = new PetDetector()
   let popup: { text: string; startedAt: number } | undefined
   /** The snack being eaten or smoked, and when the duck caught it (same time base as `lastTick`). */
-  let treat: { kind: Snack; since: number } | undefined
+  let treat: { kind: Snack; since: number; heavy: boolean } | undefined
   /** The machine's state as of the last tick, and since when (for the newspaper's pages). */
   let shownState: BehaviorState = machine.state
   /** Break time (the break buddy): stare at the user until the break happens. */
@@ -252,16 +304,31 @@ async function main(): Promise<void> {
     const cup = calm && treat?.kind === 'coffee' ? coffeeAt(now - treat.since) : undefined
     const base = dragging ? HELD_POSE : falling ? AIRBORNE_POSE : (cup?.pose ?? clock.frameName)
     const pose = (tired && TIRED_POSES[base]) || base
-    const facing = machine.direction
+    const lookingBack =
+      calm &&
+      machine.state === 'look' &&
+      now - stateSince >= LOOK_TURN_MS &&
+      machine.msUntilDecision > LOOK_TURN_MS
+    const facing = lookingBack ? (machine.direction === 1 ? -1 : 1) : machine.direction
     const page = calm && machine.state === 'read' ? paperAt(performance.now() - stateSince) : ''
     const speaking = calm && machine.state === 'quack' && bubble !== undefined
     const loved = calm && machine.state === 'happy' && heart !== undefined
+    const dizzy =
+      calm && machine.state === 'cough'
+        ? dizzyFrames[Math.floor((now - stateSince) / DIZZY_STEP_MS) % dizzyFrames.length]
+        : undefined
+    const sleepingFor = calm && machine.state === 'sleep' ? now - stateSince - SIT_DOWN_MS : -1
+    const zzz =
+      sleepingFor >= 0
+        ? zzzFrames[Math.floor(sleepingFor / ZZZ_STEP_MS) % zzzFrames.length]
+        : undefined
+    const declining = calm && machine.state === 'refuse' && noSmoke !== undefined
     const rise = popupStep(now)
     const snack =
       calm && treat && treat.kind !== 'coffee'
         ? snackView(treat.kind, now - treat.since)
         : undefined
-    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}`
+    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(dressed, pose)
     if (!image) return
@@ -294,6 +361,18 @@ async function main(): Promise<void> {
         frame: heart,
         offset: { x: facing === 1 ? 23 : STAGE_SIZE - 23 - heart.width, y: 3 },
       })
+    }
+    if (dizzy) {
+      const x = facing === 1 ? DIZZY_SPOT.x : STAGE_SIZE - DIZZY_SPOT.x - dizzy.width
+      layers.push({ frame: dizzy, offset: { x, y: DIZZY_SPOT.y } })
+    }
+    if (zzz) {
+      const x = facing === 1 ? ZZZ_SPOT.x : STAGE_SIZE - ZZZ_SPOT.x - zzz.width
+      layers.push({ frame: zzz, offset: { x, y: ZZZ_SPOT.y } })
+    }
+    if (declining && noSmoke) {
+      const x = facing === 1 ? NO_SMOKE_SPOT.x : STAGE_SIZE - NO_SMOKE_SPOT.x - noSmoke.width
+      layers.push({ frame: noSmoke, offset: { x, y: NO_SMOKE_SPOT.y } })
     }
     if (treat && snack) {
       const frames = snackFrames[treat.kind]
@@ -368,6 +447,17 @@ async function main(): Promise<void> {
     }
     if (machine.state === 'read')
       wait = Math.min(wait, msUntilPageTurn(performance.now() - stateSince))
+    if (machine.state === 'sleep') {
+      const asleep = performance.now() - stateSince - SIT_DOWN_MS
+      wait = Math.min(wait, asleep < 0 ? -asleep : ZZZ_STEP_MS - (asleep % ZZZ_STEP_MS))
+    }
+    if (machine.state === 'look') {
+      const since = performance.now() - stateSince
+      const back = machine.msUntilDecision - LOOK_TURN_MS
+      wait = Math.min(wait, since < LOOK_TURN_MS ? LOOK_TURN_MS - since : back > 0 ? back : wait)
+    }
+    if (machine.state === 'cough')
+      wait = Math.min(wait, DIZZY_STEP_MS - ((performance.now() - stateSince) % DIZZY_STEP_MS))
     timer = setTimeout(tick, Math.min(Math.max(wait, MIN_WAIT_MS), MAX_WAIT_MS))
   }
 
@@ -407,8 +497,14 @@ async function main(): Promise<void> {
     }
     if (treat) {
       if (now - treat.since >= TREAT_MS[treat.kind] - 1) {
+        const { kind, heavy } = treat
         treat = undefined
         window.buddy.duck.ate() // main pays only for a snack the duck actually caught
+        if (kind === 'cigar' && heavy) {
+          machine.cough() // a high smoke bar: a hard cough, seeing stars
+          clock.play(machine.state)
+          sound.play('cough')
+        }
       } else if (machine.state !== TREAT_STATE[treat.kind]) {
         treat = undefined // interrupted (clicked, petted): the snack is dropped
       }
@@ -432,7 +528,15 @@ async function main(): Promise<void> {
     wake()
   })
 
-  window.buddy.duck.onFed((kind) => {
+  window.buddy.duck.onRefused(() => {
+    if (busy() || treat) return
+    wake() // catch up first
+    machine.refuse()
+    sound.play('quack')
+    wake()
+  })
+
+  window.buddy.duck.onFed((kind, heavy) => {
     if (busy()) return // held or flying: it can't eat now
     wake() // catch up first so the treat starts now
     if (kind === 'bread') {
@@ -443,7 +547,7 @@ async function main(): Promise<void> {
       sound.play('chirp')
     } else machine.smoke()
     clock.play(machine.state, true) // a second snack starts the animation over
-    treat = { kind, since: lastTick }
+    treat = { kind, since: lastTick, heavy }
     wake()
   })
 

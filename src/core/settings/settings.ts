@@ -14,6 +14,8 @@ export const DuckPrefsSchema = z.object({
   naps: z.boolean().default(true),
   /** Quacks now and then without being clicked. */
   chatter: z.boolean().default(true),
+  /** Small moments while idling: looks back, shakes off, stretches a wing, hops, forages. */
+  fidget: z.boolean().default(true),
 })
 export type DuckPrefs = z.infer<typeof DuckPrefsSchema>
 
@@ -92,6 +94,7 @@ export const SettingsPatchSchema = z.strictObject({
       wander: z.boolean().optional(),
       naps: z.boolean().optional(),
       chatter: z.boolean().optional(),
+      fidget: z.boolean().optional(),
     })
     .optional(),
   breaks: z

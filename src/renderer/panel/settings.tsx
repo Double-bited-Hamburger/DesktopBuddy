@@ -8,7 +8,7 @@ import { Updates } from './updates'
 
 const SCALES = [2, 3, 4, 5, 6] as const
 const LANGUAGES = ['en', 'it'] as const
-const DUCK_SWITCHES = ['wander', 'naps', 'chatter'] as const
+const DUCK_SWITCHES = ['wander', 'naps', 'chatter', 'fidget'] as const
 
 interface SettingsProps {
   t: Translator

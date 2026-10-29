@@ -222,6 +222,17 @@ body {
 }
 
 /* --- bag / collection ---------------------------------------------------------------------- */
+.smoke-meter {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.smoke-meter .muted {
+  font-size: 11px;
+}
+
 .found {
   margin: 0;
   color: var(--muted);
@@ -353,6 +364,10 @@ body {
 .bar > div {
   height: 100%;
   background: var(--accent);
+}
+
+.bar.smoke > div {
+  background: var(--muted);
 }
 
 /* --- today / stats ------------------------------------------------------------------------- */

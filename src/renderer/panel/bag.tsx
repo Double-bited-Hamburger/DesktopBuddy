@@ -1,8 +1,8 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import type { CatalogItem, Slot } from '../../core/catalog/catalog'
 import { itemsForSlot } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
-import type { Loadout } from '../../shared/ipc'
+import type { Loadout, SmokeBarView } from '../../shared/ipc'
 import { catalog } from '../shared/outfit'
 import { DuckPreview, RarityLabel, wearing } from './widgets'
 
@@ -39,6 +39,39 @@ function Tile({ t, preview, name, item, equipped, locked, onEquip }: TileProps) 
   )
 }
 
+/** "1 h 20 min" / "35 min", rounded up. */
+function waitText(t: Translator, ms: number): string {
+  const minutes = Math.max(1, Math.ceil(ms / 60_000))
+  if (minutes < 60) return t('time.minutes', { m: minutes })
+  return t('time.hours', { h: Math.floor(minutes / 60), m: minutes % 60 })
+}
+
+/** The smoke bar (core/toys/smoke-bar.ts), shown only after a cigar, until it clears. */
+function SmokeMeter({ t }: { t: Translator }) {
+  const [bar, setBar] = useState<SmokeBarView | undefined>()
+  useEffect(() => {
+    window.buddy.panel.smokeBar().then(setBar, () => setBar(undefined))
+  }, [])
+  if (!bar || bar.level <= 0) return null
+  return (
+    <div class="smoke-meter">
+      <span>{t('bag.smoke')}</span>
+      <div
+        class="bar smoke"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={bar.level}
+      >
+        <div style={{ width: `${bar.level}%` }} />
+      </div>
+      <span class="muted">
+        {bar.refuses ? t('bag.smokeFull', { time: waitText(t, bar.okInMs) }) : t('bag.smokeHint')}
+      </span>
+    </div>
+  )
+}
+
 /**
  * The Bag doubles as the collection book: everything in the catalog is listed, owned items can
  * be worn, the rest show as silhouettes with their rarity so progress is visible.
@@ -59,6 +92,7 @@ export function Bag({
   const found = items.filter((item) => owned.has(item.id)).length
   return (
     <section class="bag">
+      <SmokeMeter t={t} />
       <div class="tabs" role="tablist">
         {TABS.map((tab) => (
           <button

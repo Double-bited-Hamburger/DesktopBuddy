@@ -187,6 +187,32 @@ What it says:
 - **Phase 7 exit ("budget met with all features on") is therefore not met yet**, because of
   walking. The next steps below (quiet baseline, then the walk) are now the open work.
 
+### Walking with and without the GPU (2026-10-29, nobody at the PC)
+
+Built app (0.3.0), `npm run perf -- --states=walk,idle --seconds=30 --warmup=8 --runs=3`, once
+normally and once with the dev-only `BUDDY_NO_GPU=1` (`app.disableHardwareAcceleration()`).
+Each run on its own empty save folder. Raw output: scratchpad `perf-gpu.txt` / `perf-nogpu.txt`.
+
+| State | GPU on: CPU (3 runs)                 | GPU off: CPU (3 runs)              | RAM on → off |
+| ----- | ------------------------------------ | ---------------------------------- | ------------ |
+| walk  | **2.54%** (4.01 / 1.72 / 1.87) ❌    | **2.29%** (2.63 / 2.07 / 2.18) ❌  | 87 → **68 MB** |
+| idle  | **0.54%** (0.25 / 0.61 / 0.76) ✅    | **0.42%** (0.20 / 0.41 / 0.66) ✅  | 82 → **67 MB** |
+
+Per process (means): walking, the GPU process drops from 0.74% to 0.40% without hardware
+acceleration, but the renderer rises (0.63 → 0.79%: it now rasterises itself) and main stays at
+1.10%, so the total barely moves.
+
+- **CPU: no clear gain.** 2.29% vs 2.54% is inside the run-to-run noise (GPU-on runs alone span
+  1.7–4.0%). Walking is still over the 1% budget either way: the cost is main moving the window
+  (`setBounds` 12×/s) and Windows recompositing it, not how the page is drawn.
+- **RAM: a clear gain**, about 19 MB less (no GPU process memory).
+- **Transparency not verified:** the PC was locked during the test (LogonUI running), and
+  nothing draws over the lock screen, so the desktop screenshots showed only the lock screen in
+  both modes. Must be checked with the PC unlocked before no-GPU could ever be the default.
+- **Decision: keep the GPU on (default unchanged).** No-GPU stays a dev-only switch. Reasons:
+  the CPU difference is noise, and transparency is unchecked. The RAM saving alone doesn't justify
+  the risk; revisit if the battery test (laptop panel, unplugged) shows the RTX waking up.
+
 ### Battery (estimate, 2026-10-28)
 
 Machine: ASUS TUF A16 (FA608), Ryzen 7 260 + Radeon 780M, RTX 5060 Laptop, 90 Wh battery
@@ -209,8 +235,9 @@ the CPU).
 
 Next steps (measure each): **first get a quiet baseline** (mouse untouched, longer 120 s windows,
 ≥ 5 runs) to confirm or kill the mouse-forwarding theory, since without it ±1–2% swings hide
-real changes; then, for walking, `app.disableHardwareAcceleration()` (test transparency side
-effects first) and a shorter walk share in the behavior mix. Last resort: Tauri.
+real changes; then, for walking, a shorter walk share in the behavior mix or fewer window moves (the
+`app.disableHardwareAcceleration()` test of 2026-10-29 saved RAM, not CPU: see above). Last
+resort: Tauri.
 
 ## Decisions that differ from the original plan
 

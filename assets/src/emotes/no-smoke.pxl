@@ -1,0 +1,22 @@
+# Turning a cigar down: the bar is full, it needs fresh air.
+name: no-smoke
+size: 11x11
+palette:
+  K #2a1f2d
+  R #d83a3a
+  W #f4efe6
+  C #8a5a32
+  E #f2872b
+
+@frame no-smoke
+...KKKKK...
+..KKRRRKK..
+.KRRWWWRRK.
+KKRRRWWWRKK
+KRWWRRWWWRK
+KRCCCRRCERK
+KRWWWWRRWRK
+KKRWWWWRRKK
+.KRRWWWRRK.
+..KKRRRKK..
+...KKKKK...

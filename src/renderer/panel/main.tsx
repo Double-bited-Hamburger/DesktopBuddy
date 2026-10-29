@@ -40,6 +40,15 @@ function useTheme(theme: Theme): void {
 /** "Feed" opens a tiny menu: what goes in the user's hand for the duck. */
 function FeedMenu({ t }: { t: Translator }) {
   const [open, setOpen] = useState(false)
+  const [noCigar, setNoCigar] = useState(false)
+  const toggle = () => {
+    if (!open)
+      window.buddy.panel.smokeBar().then(
+        (bar) => setNoCigar(bar.refuses),
+        () => {},
+      )
+    setOpen(!open)
+  }
   const give = (snack: Snack) => {
     setOpen(false)
     window.buddy.panel.feed(snack)
@@ -50,14 +59,14 @@ function FeedMenu({ t }: { t: Translator }) {
   }
   return (
     <div class="feed">
-      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button type="button" aria-expanded={open} onClick={toggle}>
         {t('panel.feed')}
       </button>
       {open && (
         <div class="feed-menu" role="menu">
           {SNACKS.map((snack) => (
             <button key={snack} type="button" role="menuitem" onClick={() => give(snack)}>
-              {t(`snack.${snack}`)}
+              {t(snack === 'cigar' && noCigar ? 'snack.cigarNo' : `snack.${snack}`)}
             </button>
           ))}
           <button type="button" role="menuitem" onClick={handful}>

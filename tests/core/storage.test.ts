@@ -50,7 +50,7 @@ describe('settings', () => {
       volume: 0.5,
       showPointsPill: false,
       theme: 'system',
-      duck: { wander: true, naps: true, chatter: true },
+      duck: { wander: true, naps: true, chatter: true, fidget: true },
       breaks: { enabled: false, workMinutes: 50, breakMinutes: 5 }, // the break buddy is opt-in
       updates: { autoCheck: false }, // no network unless the user turns it on
       loadout: { skin: 'classic', hat: null, face: null },
@@ -108,7 +108,7 @@ describe('applySettingsPatch', () => {
   it('changes only what the patch names', () => {
     const next = applySettingsPatch(DEFAULT_SETTINGS, { volume: 0, duck: { naps: false } })
     expect(next?.volume).toBe(0)
-    expect(next?.duck).toEqual({ wander: true, naps: false, chatter: true })
+    expect(next?.duck).toEqual({ wander: true, naps: false, chatter: true, fidget: true })
     expect(next?.scale).toBe(DEFAULT_SETTINGS.scale)
     expect(next?.loadout).toEqual(DEFAULT_SETTINGS.loadout)
   })

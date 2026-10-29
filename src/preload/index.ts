@@ -77,11 +77,16 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.chase, handler)
     },
     onFed: (listener) => {
-      const handler = (_event: unknown, snack: unknown) => {
-        if (isSnack(snack)) listener(snack)
+      const handler = (_event: unknown, snack: unknown, heavy: unknown) => {
+        if (isSnack(snack)) listener(snack, heavy === true)
       }
       ipcRenderer.on(IPC.fed, handler)
       return () => ipcRenderer.off(IPC.fed, handler)
+    },
+    onRefused: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on(IPC.refused, handler)
+      return () => ipcRenderer.off(IPC.refused, handler)
     },
     ate: () => ipcRenderer.send(IPC.ate),
     openPanel: () => ipcRenderer.send(IPC.openPanel),
@@ -92,6 +97,7 @@ const api: BuddyApi = {
     equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
     feedHandful: () => ipcRenderer.send(IPC.feedHandful),
+    smokeBar: () => ipcRenderer.invoke(IPC.smokeBar),
     store: (): Promise<StoreView> => ipcRenderer.invoke(IPC.store),
     onStore: (listener) => {
       // Main only ever sends a view it built itself; hand over the data, not the event.
