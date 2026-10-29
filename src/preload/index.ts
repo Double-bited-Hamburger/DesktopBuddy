@@ -12,6 +12,7 @@ import type {
   StatsView,
   StoreView,
   TodayView,
+  UpdateView,
 } from '../shared/ipc'
 import { CARE_EVENTS, FALL_EVENTS, IPC } from '../shared/ipc'
 
@@ -122,6 +123,18 @@ const api: BuddyApi = {
         ipcRenderer.invoke(IPC.settingsSetAutostart, enabled),
       exportAll: (): Promise<boolean> => ipcRenderer.invoke(IPC.settingsExport),
       eraseAll: (): Promise<void> => ipcRenderer.invoke(IPC.settingsErase),
+    },
+    updates: {
+      get: (): Promise<UpdateView> => ipcRenderer.invoke(IPC.updateGet),
+      check: (): Promise<UpdateView> => ipcRenderer.invoke(IPC.updateCheck),
+      download: (): Promise<UpdateView> => ipcRenderer.invoke(IPC.updateDownload),
+      install: (): Promise<void> => ipcRenderer.invoke(IPC.updateInstall),
+      onChange: (listener) => {
+        // Main only ever sends a view it built itself; hand over the data, not the event.
+        const handler = (_event: unknown, view: UpdateView) => listener(view)
+        ipcRenderer.on(IPC.updateChanged, handler)
+        return () => ipcRenderer.off(IPC.updateChanged, handler)
+      },
     },
   },
   sign: {

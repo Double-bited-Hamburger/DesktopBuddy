@@ -4,6 +4,7 @@ import type { SettingsPatch } from '../../core/settings/settings'
 import { THEMES } from '../../core/settings/settings'
 import type { SettingsView } from '../../shared/ipc'
 import { ChipPlayer } from '../shared/chip-player'
+import { Updates } from './updates'
 
 const SCALES = [2, 3, 4, 5, 6] as const
 const LANGUAGES = ['en', 'it'] as const
@@ -24,7 +25,7 @@ function withCurrent(choices: readonly number[], current: number): number[] {
   return choices.includes(current) ? [...choices] : [...choices, current].sort((a, b) => a - b)
 }
 
-/** Settings: general, sounds, the duck's own behaviors, startup, and the danger zone. */
+/** Settings: general, sounds, the duck's own behaviors, breaks, startup, updates, danger zone. */
 export function Settings({ t, onChange }: SettingsProps) {
   const [view, setView] = useState<SettingsView | undefined>()
   const [confirmErase, setConfirmErase] = useState(false)
@@ -204,6 +205,12 @@ export function Settings({ t, onChange }: SettingsProps) {
         />
       </label>
       {!view.autostart.available && <p class="muted note">{t('settings.autostartDev')}</p>}
+
+      <Updates
+        t={t}
+        autoCheck={view.updates.autoCheck}
+        setAutoCheck={(autoCheck) => set({ updates: { autoCheck } })}
+      />
 
       <h2>{t('settings.danger')}</h2>
       <p class="muted note">{t('settings.dangerHint')}</p>

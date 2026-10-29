@@ -52,6 +52,7 @@ describe('settings', () => {
       theme: 'system',
       duck: { wander: true, naps: true, chatter: true },
       breaks: { enabled: false, workMinutes: 50, breakMinutes: 5 }, // the break buddy is opt-in
+      updates: { autoCheck: false }, // no network unless the user turns it on
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })
@@ -143,6 +144,7 @@ describe('applySettingsPatch', () => {
     ['an unknown duck switch', { duck: { fly: true } }],
     ['a break reminder every 5 minutes', { breaks: { workMinutes: 5 } }],
     ['an unknown break field', { breaks: { snooze: 1 } }],
+    ['a non-boolean update switch', { updates: { autoCheck: 'daily' } }],
     ['not an object', 'scale=4'],
   ])('rejects %s', (_label, patch) => {
     expect(applySettingsPatch(DEFAULT_SETTINGS, patch)).toBeUndefined()

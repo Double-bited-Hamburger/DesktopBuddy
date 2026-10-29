@@ -30,10 +30,12 @@ import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
 import { ProgressService } from './progress'
+import { backUpSavesIfNewVersion, eraseBackups } from './save-backup'
 import { SettingsControls } from './settings-controls'
 import { SnackPile } from './snack-pile'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
+import { UpdateService } from './updates'
 
 // Keep a reference so the tray icon is not garbage collected.
 let tray: Tray | undefined
@@ -65,6 +67,8 @@ async function start(): Promise<void> {
   lockDownWebContents()
 
   const storage = new FileStorage(join(app.getPath('userData'), 'data'))
+  // A new version's first run: copy the saves aside before anything reads or migrates them.
+  await backUpSavesIfNewVersion(app.getPath('userData'), storage, app.getVersion())
   let settings = await loadSettings(storage)
   let t = createTranslator(settings.language, { en, it })
   const catalog = parseCatalog(catalogJson)
@@ -225,6 +229,28 @@ async function start(): Promise<void> {
   const flushAll = async () => {
     await Promise.all([points.flush(), progress.flush(), tracker.pause()])
   }
+  // Check for updates (Settings → Updates). The daily check is opt-in; downloading and
+  // installing always wait for a click.
+  const updates = new UpdateService({
+    autoCheck: () => settings.updates.autoCheck,
+    flush: flushAll,
+    onChange: (view) => {
+      panel.webContents?.send(IPC.updateChanged, view)
+      if (view.state === 'available' || view.state === 'ready') buildTray()
+    },
+  })
+  updates.sync()
+  const trayUpdate = () => {
+    const view = updates.current
+    if (view.state === 'available' && view.version)
+      return {
+        label: t('tray.update', { version: view.version }),
+        run: () => void updates.download(),
+      }
+    if (view.state === 'ready' && view.supported && app.isPackaged)
+      return { label: t('tray.restartUpdate'), run: () => void updates.install() }
+    return undefined
+  }
   const buildTray = () => {
     tray?.destroy()
     tray = createTray(t, {
@@ -233,6 +259,7 @@ async function start(): Promise<void> {
       feedHandful,
       pillShown: settings.showPointsPill,
       setPill,
+      update: trayUpdate(),
       quit: () => app.quit(),
     })
   }
@@ -252,6 +279,7 @@ async function start(): Promise<void> {
       snacks.setScale(next.scale)
     }
     if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
+    if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
     if (
       next.scale !== before.scale ||
       next.volume !== before.volume ||
@@ -267,6 +295,7 @@ async function start(): Promise<void> {
     apply: applySettings,
     flush: flushAll,
     stop: () => tracker.stop(),
+    eraseBackups: () => eraseBackups(app.getPath('userData')),
   })
   registerIpc({
     config,
@@ -283,6 +312,7 @@ async function start(): Promise<void> {
     activity,
     settings: settingsControls,
     breaks,
+    updates,
   })
 
   buildTray()
@@ -295,6 +325,7 @@ async function start(): Promise<void> {
     event.preventDefault()
     tracker.stop()
     breaks.stop()
+    updates.stop()
     flushAll().finally(() => {
       flushed = true
       app.quit()

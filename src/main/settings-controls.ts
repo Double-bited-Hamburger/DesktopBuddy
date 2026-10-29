@@ -14,6 +14,8 @@ interface SettingsDeps {
   readonly flush: () => Promise<void>
   /** Stops every timer that could write a file later (tracking, focus session). */
   readonly stop: () => void
+  /** Deletes the save backups made before updates. */
+  readonly eraseBackups: () => Promise<void>
 }
 
 /**
@@ -37,6 +39,7 @@ export class SettingsControls {
       theme: s.theme,
       duck: s.duck,
       breaks: s.breaks,
+      updates: s.updates,
       autostart: {
         // A dev build would register the bare Electron binary, so only installed builds offer it.
         available: app.isPackaged,
@@ -84,6 +87,7 @@ export class SettingsControls {
     this.deps.stop()
     await this.deps.flush()
     for (const key of await this.deps.storage.list()) await this.deps.storage.remove(key)
+    await this.deps.eraseBackups()
     if (app.isPackaged) app.relaunch()
     app.exit(0)
   }

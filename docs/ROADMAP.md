@@ -405,24 +405,33 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
       uninstall removed the app, shortcuts, the entry and the Run value, and kept the saves
 - [ ] **Not verified:** the installer's own windows (only the silent mode was run); SmartScreen's
       prompt (it only appears for downloaded files); a real Windows login with autostart on
-- [ ] 📌 **Auto-update from GitHub Releases, never losing data** (asked for 2026-10-28). Today an
-      update means running a newer installer by hand: it replaces the app and keeps the saves,
-      because they live outside it. Plan:
-  - `electron-updater` with the GitHub provider: CI builds the installer + `latest.yml` and
-    attaches them to a GitHub Release; the app checks at start and then every 6 h (one request,
-    no telemetry), downloads in the background and installs **on quit**, or at once from a tray
-    item "Restart to update"
-  - Settings switch "Check for updates" (on by default, can be turned off), shown in About with the
-    version. The only network the app makes outside Friends, and documented in PRIVACY
-  - **Data safety:** saves stay in `%APPDATA%\desktop-buddy`, which the installer never touches;
-    flush every save before the update restarts the app; each save file keeps its `version` and
-    migrates forward on read (zod), and an unknown newer version is backed up and left alone
-    instead of overwritten; a `backup-<old version>` copy of the save folder is made before the
-    first start of a new version
-  - Updates are checked against the release's SHA-512 (electron-updater). Unsigned builds still
-    work but SmartScreen may ask; signing stays a separate decision
-  - **Test before shipping:** install 0.1.0 with throwaway saves, publish 0.1.1 to a test release,
-    check the update applies on quit and every point, item and setting is still there
+- [x] **v0.2.0 published** (2026-10-29): [GitHub release](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/tag/v0.2.0)
+      with `DesktopBuddy-Setup.exe` (for the README's stable Download link), the versioned
+      installer, its blockmap and `latest.yml`. The Download link answers 200 with the full file.
+      0.2.0 has no updater inside, so 0.2.0 users update to the next version by hand once
+- [x] **Check for updates** (built 2026-10-29, ships in the next release): Settings → Updates,
+      like a small desktop tool. "Check for updates" → "Version X is out" → **Download** (with %)
+      → **Restart and update**; the tray offers the same once one is found. `electron-updater`
+      reads `latest.yml` from the newest GitHub release (`publish` block in electron-builder.yml →
+      `app-update.yml` in the installed app; `dev-app-update.yml` for dev) and checks the SHA-512
+      before installing. Code: `src/main/updates.ts`, `src/renderer/panel/updates.tsx`
+  - **No network unless asked:** the daily check ("Check once a day") is **off by default**
+    (owner rule: no network unless the user turns it on); downloading and installing always wait
+    for a click. Documented in PRIVACY
+  - **Data safety:** "Restart and update" writes every save first (`flushAll`), then runs the
+    one-click installer silently, which starts the duck again. Saves live outside the app and are
+    never touched by the installer. The first time a new (or older) version opens the saves, the
+    whole `data` folder is copied to `backups/<when>-from-<old version>` (newest 3 kept;
+    `src/core/update/versions.ts` + `src/main/save-backup.ts`). Erase everything deletes the
+    backups too. Every save file is still validated on read and falls back instead of crashing
+  - Verified 2026-10-29 in dev (`BUDDY_UPDATE_DEV=1`, throwaway data): the backup was made once
+    (saves recorded as 0.1.0 → copied, record now 0.2.0; a second start made none); "Check" against
+    the real release said up to date; pretending to be 0.1.0 (main inspector) → "0.2.0 is out" →
+    Download fetched the 116 MB installer in 28 s and verified it → "Restart and update"; install
+    refused in dev as designed
+  - **Not verified:** a real install-and-restart (needs two published versions with the updater:
+    test when 0.3.0 ships, with the real saves backed up and hashed first); the daily timer;
+    offline errors; the tray items; Italian text in the Updates section
 - [ ] CONTRIBUTING + art guide, licenses, CREDITS
 - [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
       AppImage + .deb from CI)

@@ -32,3 +32,10 @@ nsis:
   # Uninstalling keeps your points and items unless you erase them in Settings first.
   deleteAppDataOnUninstall: false
 artifactName: DesktopBuddy-Setup-${version}.${ext}
+# Where "Check for updates" looks (electron-updater reads latest.yml from the newest GitHub
+# release). Only used when the user checks or turns on the daily check: no network otherwise.
+# `npm run dist` never uploads anything (no --publish): releases are made by hand with gh.
+publish:
+  provider: github
+  owner: Double-bited-Hamburger
+  repo: DesktopBuddy

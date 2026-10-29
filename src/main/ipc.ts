@@ -12,6 +12,7 @@ import type {
   StatsView,
   StoreView,
   TodayView,
+  UpdateView,
 } from '../shared/ipc'
 import { EARN_SOURCES, IPC } from '../shared/ipc'
 import type { ActivityControls } from './activity-controls'
@@ -22,6 +23,7 @@ import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
 import type { SettingsControls } from './settings-controls'
 import type { SnackPile } from './snack-pile'
+import type { UpdateService } from './updates'
 
 interface IpcDeps {
   /** The current config (the loadout changes when items are equipped). */
@@ -47,6 +49,8 @@ interface IpcDeps {
   readonly settings: SettingsControls
   /** The break buddy and its sign window. */
   readonly breaks: BreakBuddy
+  /** Check for updates, download, install. */
+  readonly updates: UpdateService
 }
 
 /**
@@ -68,6 +72,7 @@ export function registerIpc({
   activity,
   settings,
   breaks,
+  updates,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -238,5 +243,23 @@ export function registerIpc({
   ipcMain.handle(
     IPC.settingsErase,
     panelOnly(() => settings.eraseAll()),
+  )
+
+  // Updates are panel-only and take no payload: the feed is fixed in main/updates.ts.
+  ipcMain.handle(
+    IPC.updateGet,
+    panelOnly((): UpdateView => updates.current),
+  )
+  ipcMain.handle(
+    IPC.updateCheck,
+    panelOnly(() => updates.check()),
+  )
+  ipcMain.handle(
+    IPC.updateDownload,
+    panelOnly(() => updates.download()),
+  )
+  ipcMain.handle(
+    IPC.updateInstall,
+    panelOnly(() => updates.install()),
   )
 }

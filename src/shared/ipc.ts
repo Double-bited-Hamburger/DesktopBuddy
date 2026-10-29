@@ -51,6 +51,11 @@ export const IPC = {
   settingsErase: 'panel:settings-erase',
   care: 'duck:care',
   signAnswer: 'sign:answer',
+  updateGet: 'panel:update-get',
+  updateCheck: 'panel:update-check',
+  updateDownload: 'panel:update-download',
+  updateInstall: 'panel:update-install',
+  updateChanged: 'panel:update-changed',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -171,6 +176,8 @@ export interface SettingsView {
   readonly duck: DuckPrefs
   /** The break buddy (opt-in). */
   readonly breaks: Breaks
+  /** The daily update check (opt-in). */
+  readonly updates: Settings['updates']
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string
@@ -185,6 +192,23 @@ export const CARE_EVENTS: readonly CareEvent[] = ['stare', 'nag', 'welcome', 'ca
 
 /** The break sign's buttons: "I'm finishing right now" or "☕ Just 10 more minutes". */
 export type SignChoice = 'finish' | 'later'
+
+/**
+ * "Check for updates" (main/updates.ts): idle (not checked yet), checking, latest (up to date),
+ * available (`version` can be downloaded), downloading (`percent`), ready (restart to install) or
+ * error (offline, GitHub unreachable; try again).
+ */
+export interface UpdateView {
+  /** Only an installed build can update itself. */
+  readonly supported: boolean
+  /** The version running now. */
+  readonly current: string
+  readonly state: 'idle' | 'checking' | 'latest' | 'available' | 'downloading' | 'ready' | 'error'
+  readonly version?: string
+  readonly percent?: number
+  /** When GitHub last answered (epoch ms). */
+  readonly checkedAt?: number
+}
 
 /** Running after a snack (1 / -1, the way it faces), or 0 when the chase is called off. */
 export type ChaseDirection = 1 | -1 | 0
@@ -288,6 +312,16 @@ export interface BuddyApi {
       exportAll(): Promise<boolean>
       /** Deletes every save file (points, items, quests, activity, settings) and restarts. */
       eraseAll(): Promise<void>
+    }
+    /** Check for updates, download, and restart into the new version. */
+    updates: {
+      get(): Promise<UpdateView>
+      check(): Promise<UpdateView>
+      download(): Promise<UpdateView>
+      /** Saves everything, closes the app and runs the downloaded installer. */
+      install(): Promise<void>
+      /** Progress and results. Returns an unsubscribe function. */
+      onChange(listener: (view: UpdateView) => void): () => void
     }
   }
   sign: {

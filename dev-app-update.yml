@@ -1,0 +1,6 @@
+# Dev-only twin of the app-update.yml that electron-builder puts in an installed build (from the
+# `publish` block in electron-builder.yml). Read only when BUDDY_UPDATE_DEV=1 (see src/main/updates.ts).
+provider: github
+owner: Double-bited-Hamburger
+repo: DesktopBuddy
+updaterCacheDirName: desktop-buddy-updater

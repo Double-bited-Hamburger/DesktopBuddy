@@ -11,6 +11,8 @@ interface TrayActions {
   /** Whether the points pill is on now, and how to switch it. */
   pillShown: boolean
   setPill(shown: boolean): void
+  /** A found or downloaded update ("Update to 0.3.0"), shown only when there is one. */
+  update?: { label: string; run(): void }
   quit(): void
 }
 
@@ -35,6 +37,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
         click: (item) => actions.setPill(item.checked),
       },
       { type: 'separator' },
+      ...(actions.update ? [{ label: actions.update.label, click: actions.update.run }] : []),
       { label: t('tray.quit'), click: actions.quit },
     ]),
   )

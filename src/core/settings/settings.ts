@@ -43,6 +43,8 @@ export const SettingsSchema = z.object({
   theme: z.enum(THEMES).default('system'),
   duck: DuckPrefsSchema.prefault({}),
   breaks: BreaksSchema.prefault({}),
+  /** Look for a new version on GitHub once a day. Off: no network unless the user asks. */
+  updates: z.object({ autoCheck: z.boolean().default(false) }).prefault({}),
   loadout: LoadoutSchema.prefault({}),
   /** Activity tracking for Today/Stats: off until the user turns it on (see docs/PRIVACY.md). */
   tracking: z
@@ -99,6 +101,7 @@ export const SettingsPatchSchema = z.strictObject({
       breakMinutes: BreaksSchema.shape.breakMinutes.unwrap().optional(),
     })
     .optional(),
+  updates: z.strictObject({ autoCheck: z.boolean().optional() }).optional(),
 })
 
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
@@ -107,12 +110,13 @@ export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
 export function applySettingsPatch(settings: Settings, patch: unknown): Settings | undefined {
   const parsed = SettingsPatchSchema.safeParse(patch)
   if (!parsed.success) return undefined
-  const { duck, breaks, ...rest } = parsed.data
+  const { duck, breaks, updates, ...rest } = parsed.data
   return SettingsSchema.parse({
     ...settings,
     ...definedOnly(rest),
     duck: { ...settings.duck, ...definedOnly(duck ?? {}) },
     breaks: { ...settings.breaks, ...definedOnly(breaks ?? {}) },
+    updates: { ...settings.updates, ...definedOnly(updates ?? {}) },
   })
 }
 

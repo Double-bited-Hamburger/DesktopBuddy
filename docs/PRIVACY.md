@@ -5,7 +5,12 @@ as each feature lands.
 
 ## Today (Phase 6)
 
-- **No network access at all.** No telemetry, analytics, crash reporting or update checks.
+- **No telemetry**, analytics or crash reporting. The only network access is **checking for
+  updates**: when you press "Check for updates" (Settings → Updates), or once a day if you turn
+  on "Check once a day" (off by default), the app asks GitHub for the newest release's
+  `latest.yml` (a version number and a file hash). Downloading the update only happens when you
+  click Download. GitHub sees an ordinary web request (your IP address and the app's user agent);
+  nothing about you or your duck is sent.
 - **Activity tracking is off by default.** The Today screen explains exactly what is recorded and
   records nothing until the user presses "Yes, track my day". It can be turned off any time.
 - **What tracking reads while on:** every 5 s, the seconds since the last keyboard/mouse input
