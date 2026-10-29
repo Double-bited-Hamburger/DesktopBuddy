@@ -1,0 +1,20 @@
+# Steam curling up from a hot coffee: two wiggles, swapped while the mug is upright.
+name: steam
+size: 5x5
+palette:
+  T #e4e1dc
+  t #b9b4ad
+
+@frame steam-1
+..T..
+.T...
+..T..
+...t.
+..t..
+
+@frame steam-2
+.T...
+..T..
+.T...
+.t...
+..t..

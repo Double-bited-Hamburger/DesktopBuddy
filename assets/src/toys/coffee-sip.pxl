@@ -1,0 +1,36 @@
+# The duck's mug tipped up into the beak (facing right): the rim at the top left, the handle at
+# the bottom right. Coffee runs to the rim, a little less at each sip.
+name: coffee-sip
+size: 8x7
+palette:
+  K #2a1f2d
+  H #fffaf0
+  S #d9c49a
+  C #6b4220
+
+@frame sip-full
+..KK....
+.KCCK...
+KCCCCK..
+.KCCHHK.
+..KHHHSK
+...KHSKK
+....KK.K
+
+@frame sip-half
+..KK....
+.KCCK...
+KCCHHK..
+.KHHHHK.
+..KHHHSK
+...KHSKK
+....KK.K
+
+@frame sip-low
+..KK....
+.KCCK...
+KHHHHK..
+.KHHHHK.
+..KHHHSK
+...KHSKK
+....KK.K

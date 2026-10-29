@@ -296,6 +296,13 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
       5–8 s at 3× the walk (bigger steps on the same 12 Hz timer, so no extra wakeups). Paid as
       one play, like bread; counts for quests as `coffee`. New art: `toys/coffee`, `toys/sofa`,
       `toys/newspaper`, duck frames `wide`, `wide-step`, `tired`, `tired-step`, `yawn`
+  - Better sipping (2026-10-29): it lifts the steaming mug, then for each sip tips it into its
+    beak with its eyes shut (`toys/coffee-sip`) and savors it with happy eyes and pink cheeks
+    (duck frame `savor`); after the last sip its eyes pop wide and sparks twinkle round its head
+    (`emotes/buzz`). Steam (`emotes/steam`) curls up until the mug is nearly empty. The whole
+    timeline (4.75 s) is `coffeeAt` in core, so the page only wakes when the picture changes.
+    Verified live over CDP facing left, on a throwaway data folder (+3 points, coffee counted).
+    **Not verified:** facing right live (preview only), with a hat or glasses on
 - [x] **Too much coffee:** 3+ coffees in a day (saved as `coffee`, only today and yesterday) → the
       next day it starts tired for 10 min after the app opens: heavy eyelids, half as much
       walking, and yawns (`tiredBehaviorConfig`, which keeps the user's switches). The numbers are

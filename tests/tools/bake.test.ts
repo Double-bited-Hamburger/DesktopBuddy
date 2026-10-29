@@ -14,7 +14,7 @@ describe('bakePxl', () => {
     expect(SpriteManifestSchema.safeParse(baked.manifest).success).toBe(true)
 
     const png = PNG.sync.read(baked.png)
-    expect([png.width, png.height]).toEqual([416, 32]) // 13 frames of 32x32
+    expect([png.width, png.height]).toEqual([448, 32]) // 14 frames of 32x32
     // Transparent corner stays transparent; the outline pixel at frame 0 row 4 col 18 is opaque.
     expect(png.data[3]).toBe(0)
     expect(png.data[(4 * png.width + 18) * 4 + 3]).toBe(255)

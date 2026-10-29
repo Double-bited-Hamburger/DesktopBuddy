@@ -1,5 +1,5 @@
 # A mug of coffee for the duck, held at the beak. Drawn for a duck facing right: the handle is on
-# the right, away from the beak. Sipped from full (steaming) to empty.
+# the right, away from the beak. Sipped from full (steaming) to empty; coffee-sip.pxl is the same mug tipped up.
 name: coffee
 size: 7x6
 palette:
@@ -23,6 +23,14 @@ KKKKK..
 KHHHKK.
 KCCCK.K
 KHHSKK.
+.KKKK..
+
+@frame coffee-low
+.......
+KKKKK..
+KHHHKK.
+KHHHK.K
+KCCSKK.
 .KKKK..
 
 @frame coffee-empty

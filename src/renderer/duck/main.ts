@@ -43,9 +43,12 @@ const DIGIT_ADVANCE = 4
 const SNACK_SPOTS = {
   bread: { ground: { x: 32, y: 33 }, beak: { x: 33, y: 16 } },
   cigar: { ground: { x: 32, y: 35 }, beak: { x: 33, y: 18 } },
-  coffee: { ground: { x: 32, y: 33 }, beak: { x: 33, y: 17 } },
+  coffee: { ground: { x: 32, y: 33 }, beak: { x: 33, y: 17 }, tipped: { x: 32, y: 13 } },
 } as const
 const PUFF_SPOT = { x: 35, y: 14 }
+/** Coffee steam curls up over the upright mug; sparks sit round the head once it is wide awake. */
+const STEAM_SPOT = { x: 34, y: 11 }
+const BUZZ_SPOT = { x: 17, y: 6 }
 /** How long each snack keeps the duck busy, and the state it is in meanwhile. */
 const TREAT_MS = { bread: MEAL_MS, cigar: SMOKE_MS, coffee: DRINK_MS } as const
 const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink' } as const
@@ -109,12 +112,8 @@ const animations: AnimationSet = {
     frameMs: 450,
     loop: false,
   },
-  // Coffee: pecked up, three sips (DRINK_MS = 8 × 225 ms), then the eyes pop open.
-  drink: {
-    frames: ['peck', 'peck', 'quack', 'idle', 'quack', 'idle', 'quack', 'wide'],
-    frameMs: 225,
-    loop: false,
-  },
+  // Coffee: the poses come from coffeeAt (core/toys/coffee.ts), with the mug, steam and sparks.
+  drink: { frames: ['idle'], frameMs: DRINK_MS, loop: false },
   // On the sofa with the newspaper: reading, with the odd slow blink.
   read: { frames: ['idle', 'idle', 'idle', 'idle', 'idle', 'blink'], frameMs: 600, loop: true },
   zoom: { frames: ['wide-step', 'wide'], frameMs: 90, loop: true }, // wide awake, racing around
@@ -140,8 +139,13 @@ async function main(): Promise<void> {
   const snackFrames = {
     bread: withMirrored((await loadSprite('toys', 'bread')).frames),
     cigar: withMirrored((await loadSprite('toys', 'cigar')).frames),
-    coffee: withMirrored((await loadSprite('toys', 'coffee')).frames),
+    coffee: withMirrored([
+      ...(await loadSprite('toys', 'coffee')).frames,
+      ...(await loadSprite('toys', 'coffee-sip')).frames,
+    ]),
   }
+  const steamFrames = withMirrored((await loadSprite('emotes', 'steam')).frames)
+  const buzzFrames = withMirrored((await loadSprite('emotes', 'buzz')).frames)
   const puffFrames = (await loadSprite('emotes', 'smoke')).frames
   const sofa = (await loadSprite('toys', 'sofa')).frames // symmetric: no mirrored copy needed
   const sofaBack = sofa.find((f) => f.name === 'sofa-back')
@@ -232,14 +236,10 @@ async function main(): Promise<void> {
     })
   }
 
-  /** The snack's frame, where it is, and any smoke, `elapsed` ms into the treat. */
-  function snackView(kind: Snack, elapsed: number) {
+  /** The snack's frame, where it is, and any smoke, `elapsed` ms into the treat (not coffee). */
+  function snackView(kind: 'bread' | 'cigar', elapsed: number) {
     if (kind === 'bread') {
       const view = breadAt(elapsed)
-      return view && { frame: view.frame, onGround: view.onGround, puff: undefined, rise: 0 }
-    }
-    if (kind === 'coffee') {
-      const view = coffeeAt(elapsed)
       return view && { frame: view.frame, onGround: view.onGround, puff: undefined, rise: 0 }
     }
     const view = smokeAt(elapsed)
@@ -247,17 +247,21 @@ async function main(): Promise<void> {
   }
 
   function render(): void {
-    const base = dragging ? HELD_POSE : falling ? AIRBORNE_POSE : clock.frameName
+    const calm = !dragging && !falling
+    const now = performance.now()
+    const cup = calm && treat?.kind === 'coffee' ? coffeeAt(now - treat.since) : undefined
+    const base = dragging ? HELD_POSE : falling ? AIRBORNE_POSE : (cup?.pose ?? clock.frameName)
     const pose = (tired && TIRED_POSES[base]) || base
     const facing = machine.direction
-    const calm = !dragging && !falling
     const page = calm && machine.state === 'read' ? paperAt(performance.now() - stateSince) : ''
     const speaking = calm && machine.state === 'quack' && bubble !== undefined
     const loved = calm && machine.state === 'happy' && heart !== undefined
-    const now = performance.now()
     const rise = popupStep(now)
-    const snack = calm && treat ? snackView(treat.kind, now - treat.since) : undefined
-    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}`
+    const snack =
+      calm && treat && treat.kind !== 'coffee'
+        ? snackView(treat.kind, now - treat.since)
+        : undefined
+    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(dressed, pose)
     if (!image) return
@@ -305,6 +309,23 @@ async function main(): Promise<void> {
         const x = facing === 1 ? PUFF_SPOT.x : STAGE_SIZE - PUFF_SPOT.x - puff.width
         layers.push({ frame: puff, offset: { x, y: PUFF_SPOT.y - snack.rise } })
       }
+    }
+    if (cup) {
+      /** A frame from a right/left pair, placed at a right-facing spot and mirrored with the duck. */
+      const place = (
+        pair: { right: readonly Frame[]; left: readonly Frame[] },
+        name: string | undefined,
+        spot: { x: number; y: number },
+      ) => {
+        const index = pair.right.findIndex((f) => f.name === name)
+        const frame = (facing === 1 ? pair.right : pair.left)[index]
+        if (!frame) return
+        const x = facing === 1 ? spot.x : STAGE_SIZE - spot.x - frame.width
+        layers.push({ frame, offset: { x, y: spot.y } })
+      }
+      place(snackFrames.coffee, cup.mug, SNACK_SPOTS.coffee[cup.at])
+      place(steamFrames, cup.steam, STEAM_SPOT)
+      place(buzzFrames, cup.buzz, BUZZ_SPOT)
     }
     if (popup && rise !== undefined) {
       const width = popup.text.length * DIGIT_ADVANCE + 1
