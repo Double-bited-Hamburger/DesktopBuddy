@@ -82,6 +82,7 @@ const api: BuddyApi = {
     setPinned: (pinned) => ipcRenderer.send(IPC.panelSetPinned, pinned),
     equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
+    feedHandful: () => ipcRenderer.send(IPC.feedHandful),
     store: (): Promise<StoreView> => ipcRenderer.invoke(IPC.store),
     onStore: (listener) => {
       // Main only ever sends a view it built itself; hand over the data, not the event.

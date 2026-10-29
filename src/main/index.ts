@@ -27,7 +27,7 @@ import { PillWindow } from './pill-window'
 import { PointsService } from './points'
 import { ProgressService } from './progress'
 import { SettingsControls } from './settings-controls'
-import { SnackWindow } from './snack-window'
+import { SnackPile } from './snack-pile'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
 
@@ -123,29 +123,34 @@ async function start(): Promise<void> {
     earn('play')
   }
 
-  // Feeding: the user carries a snack (bread or a cigar) and drops or throws it; the duck runs or
-  // jumps to it. It is paid for once finished, and only for a snack it actually caught, so the
-  // duck page can't claim treats it was never given.
-  const snack = new SnackWindow(settings.scale)
+  // Feeding: the user carries a snack (bread or a cigar) and drops or throws it, or tosses a
+  // handful; the duck runs or jumps to the nearest piece, eats it, then goes for the next. Each
+  // piece is paid for once finished (capped like any play), and only for a piece it actually
+  // caught, so the duck page can't claim treats it was never given.
+  const snacks = new SnackPile(settings.scale, () => duck.middleX)
   let snackCaught: Snack | undefined
-  snack.onLanded = (spot) => duck.chase(spot)
-  snack.onLifted = () => duck.stopChase()
+  snacks.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
   duck.onCaught = () => {
-    const kind = snack.kind
-    snack.taken()
+    const kind = snacks.caught()
+    if (!kind) return
     snackCaught = kind
     duck.window.webContents.send(IPC.fed, kind)
   }
   const feed = (kind: Snack) => {
     panel.closeUnlessPinned() // out of the way, so the snack can go anywhere
-    duck.stopChase()
-    snack.serve(kind)
+    snacks.serve(kind)
+  }
+  const feedHandful = () => {
+    panel.closeUnlessPinned()
+    snacks.handful('bread')
   }
   const ate = () => {
-    if (!snackCaught) return
-    progress.record(snackCaught)
-    snackCaught = undefined
-    earn('play')
+    if (snackCaught) {
+      progress.record(snackCaught)
+      snackCaught = undefined
+      earn('play')
+    }
+    snacks.ate()
   }
   const setPill = (shown: boolean) => {
     settings = { ...settings, showPointsPill: shown }
@@ -191,6 +196,7 @@ async function start(): Promise<void> {
     tray = createTray(t, {
       togglePanel: () => panel.toggle(),
       feed,
+      feedHandful,
       pillShown: settings.showPointsPill,
       setPill,
       quit: () => app.quit(),
@@ -209,7 +215,7 @@ async function start(): Promise<void> {
     pill.setVisible(next.showPointsPill)
     if (next.scale !== before.scale) {
       duck.setScale(next.scale)
-      snack.setScale(next.scale)
+      snacks.setScale(next.scale)
     }
     if (
       next.scale !== before.scale ||
@@ -232,11 +238,12 @@ async function start(): Promise<void> {
     equip,
     earn,
     feed,
+    feedHandful,
     ate,
     duck,
     panel,
     pill,
-    snack,
+    snacks,
     progress,
     activity,
     settings: settingsControls,
@@ -266,6 +273,9 @@ app.setPath('userData', join(app.getPath('appData'), 'desktop-buddy'))
 // It also gets its own single-instance lock, so a test app can run next to the real one.
 if (!app.isPackaged && process.env.BUDDY_DATA_DIR)
   app.setPath('userData', process.env.BUDDY_DATA_DIR)
+
+// Dev-only experiment: `BUDDY_NO_GPU=1` draws without the GPU, to measure what the walk costs.
+if (!app.isPackaged && process.env.BUDDY_NO_GPU === '1') app.disableHardwareAcceleration()
 
 app.setAppUserModelId('dev.desktopbuddy.app')
 

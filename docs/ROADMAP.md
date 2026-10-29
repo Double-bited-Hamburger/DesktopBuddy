@@ -276,10 +276,19 @@ green, no measurable CPU change (nothing new runs on a timer).
 Make the duck feel alive. Everything stays cosmetic and kind: no penalties, no points lost, the
 duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤ 16 colours).
 
-- [ ] **Feed several pieces at once:** drop up to 5 snacks (a tray item "Feed a handful" or drop
-      again while one is out). The duck eats the nearest, then walks/flies to the next, until
-      none are left. Each piece is its own small snack window, created on drop and destroyed
-      when eaten (budget: no window while nothing is out). Points per piece as today (capped)
+- [x] **Feed several pieces at once** (2026-10-29): "Toss a handful of bread" (tray, and the
+      panel's Feed menu) scatters 4 pieces from the cursor; feeding again while a piece is in the
+      hand drops it where it is. Up to 5 pieces can be out (the one that waited longest makes
+      room). The duck goes for the nearest resting piece, eats it, then the next (main
+      `SnackPile`; core `toys/pile.ts`: nearest piece + toss spread, tested). Each piece is still
+      paid as one play, so the 5 s play cooldown and the daily cap hold
+  - Verified over CDP on a throwaway `BUDDY_DATA_DIR` (dev app): 4 pieces out, all eaten one after
+    another in 14 s, 0 → 6 points (two pieces fell inside the cooldown)
+  - **Cost:** each piece is its own window and renderer process, ≈ 55 MB each in dev, so a
+    handful takes the app from ≈ 205 MB to ≈ 430 MB for those seconds, back to normal once eaten.
+    Fine for a few seconds, but a candidate: draw resting pieces in one shared window
+  - **Not verified:** what it looks like (no screenshot of the duck was taken — try it!), the tray
+    item itself, picking up a piece from the pile with the real mouse
 - [ ] **Coffee ☕ (new snack, tray + Bag):** the duck drinks it, its eyes go wide, and either
       runs around faster for a minute **or** (the favourite) a pixel sofa appears and it sits
       and reads a newspaper for a while. Coffee counts per day are saved

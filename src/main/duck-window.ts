@@ -203,7 +203,11 @@ export class DuckWindow {
     this.place()
   }
 
-  /** Flies the duck from `start` until it rests on the floor (see core `flightStep`). */
+  /** Middle of the duck, screen x (to pick the nearest snack). */
+  get middleX(): number {
+    return duckCenterX(this.x, this.scale)
+  }
+
   /** A snack landed: go get it (now, or as soon as the duck is back on its feet). */
   chase(spot: SnackSpot): void {
     this.target = spot

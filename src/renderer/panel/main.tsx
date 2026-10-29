@@ -44,6 +44,10 @@ function FeedMenu({ t }: { t: Translator }) {
     setOpen(false)
     window.buddy.panel.feed(snack)
   }
+  const handful = () => {
+    setOpen(false)
+    window.buddy.panel.feedHandful()
+  }
   return (
     <div class="feed">
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -56,6 +60,9 @@ function FeedMenu({ t }: { t: Translator }) {
               {t(`snack.${snack}`)}
             </button>
           ))}
+          <button type="button" role="menuitem" onClick={handful}>
+            {t('snack.handful')}
+          </button>
         </div>
       )}
     </div>

@@ -6,6 +6,8 @@ import type { Snack } from '../core/toys/snacks'
 interface TrayActions {
   togglePanel(): void
   feed(snack: Snack): void
+  /** Tosses several pieces of bread at once. */
+  feedHandful(): void
   /** Whether the points pill is on now, and how to switch it. */
   pillShown: boolean
   setPill(shown: boolean): void
@@ -23,6 +25,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
     Menu.buildFromTemplate([
       { label: t('tray.openPanel'), click: actions.togglePanel },
       { label: t('tray.feed'), click: () => actions.feed('bread') },
+      { label: t('tray.handful'), click: actions.feedHandful },
       { label: t('tray.cigar'), click: () => actions.feed('cigar') },
       {
         label: t('tray.pill'),

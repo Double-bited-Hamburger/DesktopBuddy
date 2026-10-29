@@ -21,73 +21,90 @@ export interface SnackSpot {
 }
 
 /**
- * A snack (bread, a cigar) the user carries with the mouse (it follows the cursor), then drops or
- * throws with a click. It falls to the floor and waits there for the duck. Clicking a resting snack
- * picks it up again. The window exists only from "Feed" until the duck takes it.
+ * One piece of a snack (bread, a cigar). The user carries it with the mouse (it follows the
+ * cursor), then drops or throws it with a click, or it is tossed from a handful. It falls to the
+ * floor and waits there for the duck. Clicking a resting piece picks it up again. The window
+ * exists only from "Feed" until the duck takes it (see `SnackPile`).
  */
 export class SnackWindow {
-  private size: number
-  private win: BrowserWindow | null = null
+  readonly kind: Snack
+  private readonly size: number
+  private win: BrowserWindow | null
   private followTimer: ReturnType<typeof setInterval> | undefined
   private flightTimer: ReturnType<typeof setInterval> | undefined
   private carryTimeout: ReturnType<typeof setTimeout> | undefined
   private samples: Sample[] = []
   private resting: SnackSpot | undefined
-  private current: Snack = 'bread'
-  /** The snack came to rest on a floor: time for the duck to go get it. */
-  onLanded: (spot: SnackSpot) => void = () => undefined
-  /** Picked up again (or taken): the duck should stop chasing. */
+  /** It came to rest on a floor: the duck may go and get it. */
+  onLanded: () => void = () => undefined
+  /** Picked up again: the duck should not chase it any more. */
   onLifted: () => void = () => undefined
+  /** The window is gone (taken, or closed by Windows). */
+  onGone: () => void = () => undefined
 
-  constructor(scale: number) {
+  constructor(kind: Snack, scale: number, at: { x: number; y: number }) {
+    this.kind = kind
     this.size = SNACK_STAGE * scale
-  }
-
-  /** A new size from Settings. A snack that is out is taken away; the next one has the new size. */
-  setScale(scale: number): void {
-    if (SNACK_STAGE * scale === this.size) return
-    this.size = SNACK_STAGE * scale
-    if (this.win && !this.win.isDestroyed()) {
-      this.taken()
-      this.onLifted()
-    }
+    this.win = this.create(at)
   }
 
   get webContents(): WebContents | undefined {
     return this.win && !this.win.isDestroyed() ? this.win.webContents : undefined
   }
 
-  /** Which snack is out (or was last). */
-  get kind(): Snack {
-    return this.current
+  /** Where it lies, while it lies on a floor. */
+  get spot(): SnackSpot | undefined {
+    return this.resting
   }
 
-  /** "Feed": a fresh snack appears in the hand (or the current one jumps back into it). */
-  serve(kind: Snack): void {
-    if (this.win && !this.win.isDestroyed() && kind !== this.current) this.taken()
-    this.current = kind
-    if (!this.win || this.win.isDestroyed()) this.win = this.create()
-    this.carry()
+  get carried(): boolean {
+    return this.followTimer !== undefined
   }
 
-  /** The snack page was clicked: drop/throw it if carried, pick it up if it is lying around. */
+  /** The page was clicked: drop/throw it if carried, pick it up if it is lying around. */
   click(): void {
     if (this.followTimer) this.release()
     else this.carry()
   }
 
-  /** The duck caught it (or another snack replaced it). */
+  /** In the hand, following the cursor. */
+  carry(): void {
+    this.stopAll()
+    if (this.resting) {
+      this.resting = undefined
+      this.onLifted()
+    }
+    this.samples = []
+    this.followTimer = setInterval(() => this.follow(), FOLLOW_MS)
+    this.carryTimeout = setTimeout(() => this.release(), CARRY_TIMEOUT_MS)
+    this.follow()
+  }
+
+  /** Let go where it is, if it is in the hand. */
+  drop(): void {
+    if (this.followTimer) this.release()
+  }
+
+  /** Thrown from where it is with a given velocity (DIP/ms), as from a handful. */
+  toss(vx: number, vy: number): void {
+    this.stopAll()
+    const bounds = this.win?.getBounds()
+    if (bounds) this.fly({ x: bounds.x, y: bounds.y, vx, vy })
+  }
+
+  /** The duck caught it, or it was taken away. */
   taken(): void {
     this.stopAll()
     this.resting = undefined
-    this.win?.close()
+    const win = this.win
     this.win = null
+    win?.close()
+    this.onGone()
   }
 
-  private create(): BrowserWindow {
-    const cursor = screen.getCursorScreenPoint()
+  private create(at: { x: number; y: number }): BrowserWindow {
     const win = new BrowserWindow({
-      ...this.boundsAt(cursor.x, cursor.y),
+      ...this.boundsAt(at.x, at.y),
       show: false,
       frame: false,
       transparent: true,
@@ -105,26 +122,14 @@ export class SnackWindow {
     })
     win.once('ready-to-show', () => win.showInactive())
     win.on('closed', () => {
-      if (this.win === win) {
-        this.win = null
-        this.stopAll()
-        this.resting = undefined
-      }
-    })
-    void loadPage(win, 'snack', this.current)
-    return win
-  }
-
-  private carry(): void {
-    this.stopAll()
-    if (this.resting) {
+      if (this.win !== win) return
+      this.win = null
+      this.stopAll()
       this.resting = undefined
-      this.onLifted()
-    }
-    this.samples = []
-    this.followTimer = setInterval(() => this.follow(), FOLLOW_MS)
-    this.carryTimeout = setTimeout(() => this.release(), CARRY_TIMEOUT_MS)
-    this.follow()
+      this.onGone()
+    })
+    void loadPage(win, 'snack', this.kind)
+    return win
   }
 
   private follow(): void {
@@ -173,7 +178,7 @@ export class SnackWindow {
       clearInterval(this.flightTimer)
       this.flightTimer = undefined
       this.resting = { x: Math.round(next.x + this.size / 2), floorY: floorY + this.size }
-      this.onLanded(this.resting)
+      this.onLanded()
     }, FLIGHT_FRAME_MS)
   }
 

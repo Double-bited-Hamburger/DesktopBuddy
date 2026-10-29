@@ -20,7 +20,7 @@ import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
 import type { SettingsControls } from './settings-controls'
-import type { SnackWindow } from './snack-window'
+import type { SnackPile } from './snack-pile'
 
 interface IpcDeps {
   /** The current config (the loadout changes when items are equipped). */
@@ -31,11 +31,13 @@ interface IpcDeps {
   readonly earn: (source: EarnSource) => void
   /** Hands the user a snack (from the panel), paid for once the duck has finished it. */
   readonly feed: (snack: Snack) => void
+  readonly feedHandful: () => void
   readonly ate: () => void
   readonly duck: DuckWindow
   readonly panel: PanelWindow
   readonly pill: PillWindow
-  readonly snack: SnackWindow
+  /** Every snack piece that is out. */
+  readonly snacks: SnackPile
   /** Inventory, gifts, featured item and quests. */
   readonly progress: ProgressService
   /** Tracking settings, Today/Stats views, erase/export and focus sessions. */
@@ -53,11 +55,12 @@ export function registerIpc({
   equip,
   earn,
   feed,
+  feedHandful,
   ate,
   duck,
   panel,
   pill,
-  snack,
+  snacks,
   progress,
   activity,
   settings,
@@ -65,7 +68,7 @@ export function registerIpc({
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
   const fromPill = (sender: WebContents) => sender === pill.webContents
-  const fromSnack = (sender: WebContents) => sender === snack.webContents
+  const fromSnack = (sender: WebContents) => snacks.owns(sender)
 
   ipcMain.handle(IPC.getConfig, (event): AppConfig => {
     if (!fromDuck(event.sender) && !fromPanel(event.sender) && !fromPill(event.sender))
@@ -108,8 +111,12 @@ export function registerIpc({
     if (fromPanel(event.sender) && isSnack(kind)) feed(kind)
   })
 
+  ipcMain.on(IPC.feedHandful, (event) => {
+    if (fromPanel(event.sender)) feedHandful()
+  })
+
   ipcMain.on(IPC.snackClick, (event) => {
-    if (fromSnack(event.sender)) snack.click()
+    if (fromSnack(event.sender)) snacks.click(event.sender)
   })
 
   ipcMain.on(IPC.openPanel, (event) => {

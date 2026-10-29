@@ -24,6 +24,7 @@ export const IPC = {
   earn: 'duck:earn',
   points: 'buddy:points',
   feed: 'panel:feed',
+  feedHandful: 'panel:feed-handful',
   fed: 'duck:fed',
   ate: 'duck:ate',
   chase: 'duck:chase',
@@ -230,6 +231,8 @@ export interface BuddyApi {
     equip(slot: Slot, id: string | null): Promise<Loadout>
     /** Puts a snack in the user's hand, to drop or throw for the duck. */
     feed(snack: Snack): void
+    /** Tosses a handful of bread pieces from the cursor; the duck eats them one by one. */
+    feedHandful(): void
     /** Store, quests and what the player owns. */
     store(): Promise<StoreView>
     /** Something in the store view changed (quest progress, a purchase). Returns unsubscribe. */
