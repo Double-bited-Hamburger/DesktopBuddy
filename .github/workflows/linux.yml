@@ -35,6 +35,14 @@ jobs:
       - name: Build the AppImage, .deb and .rpm
         run: npm run dist:linux
 
+      # Copies with fixed names, for the README's "latest/download" links (uploaded with a release).
+      - name: Fixed-name copies
+        run: |
+          cp release/DesktopBuddy-*.AppImage release/DesktopBuddy.AppImage
+          cp release/desktopbuddy_*_amd64.deb release/desktopbuddy_amd64.deb
+          cp release/desktopbuddy-*.x86_64.rpm release/desktopbuddy.x86_64.rpm
+          ls -la release
+
       - name: Smoke test (start the duck on a virtual screen)
         run: |
           set -u

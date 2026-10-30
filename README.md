@@ -19,9 +19,9 @@ throw it, dress it up. Free and open source, with no paywalls.
 ![Tested with Vitest](https://img.shields.io/badge/tested%20with-Vitest-8ccaa6?style=flat-square&logo=vitest&logoColor=white)
 [![Last commit](https://img.shields.io/github/last-commit/Double-bited-Hamburger/DesktopBuddy?style=flat-square&color=b8732e)](https://github.com/Double-bited-Hamburger/DesktopBuddy/commits/main)
 
-### [⬇️ Download for Windows](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/DesktopBuddy-Setup.exe)
+### [⬇️ Download for Windows](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/DesktopBuddy-Setup.exe) · [🐧 Linux](#-linux)
 
-<sub>Windows 10 / 11, 64-bit · one click, no admin needed · [all releases](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases)</sub>
+<sub>Windows 10 / 11, 64-bit · one click, no admin needed · Linux: Ubuntu, Fedora & more (.deb, .rpm, AppImage) · [all releases](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases)</sub>
 
 [Install](#-install) · [What it does](#-what-it-does) · [How it works](#-how-it-works) ·
 [Add a hat](#-add-a-hat-in-5-minutes) · [Roadmap](#-roadmap)
@@ -61,29 +61,82 @@ pie showData title Most points a day from each source
 
 ## 🚀 Install
 
-**Just want the duck?** Download
+### 🪟 Windows
+
+Download
 [DesktopBuddy-Setup.exe](https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/DesktopBuddy-Setup.exe)
 and double-click it. That's it: it installs for your user only (no admin password), puts the duck
 on your taskbar, and adds a Start menu + desktop icon. Nothing to type, no Node, no npm.
 
 - Windows may say "Windows protected your PC" because the app isn't signed yet: click
   **More info → Run anyway**. Some school or work PCs block unsigned apps completely.
-- Updating = download the new version and run it. Your points and items are kept.
-- Uninstall from Settings → Apps. Your points stay unless you erase them in the duck's Settings.
+- **Updating:** Settings → Updates → **Check**, then **Download** and **Restart and update**
+  (from 0.3.0 on). Your points and items are kept, and backed up first.
+- **Uninstall** from Windows Settings → Apps. Your points stay unless you erase them in the
+  duck's Settings first.
 - Windows 7 / 8 aren't supported: Electron, which the app is built on, needs Windows 10 or newer.
 
-**On Linux** (from the next release; new and still being tested, see [docs/LINUX.md](docs/LINUX.md)):
+### 🐧 Linux
 
-- **Ubuntu / Debian:** `desktopbuddy_<version>_amd64.deb`, then
-  `sudo apt install ./desktopbuddy_*.deb`.
-- **Fedora:** `desktopbuddy-<version>.x86_64.rpm`, then `sudo dnf install ./desktopbuddy-*.rpm`.
-- **Anything else:** `DesktopBuddy-<version>.AppImage`: `chmod +x` it and run it (needs FUSE 2:
-  `libfuse2t64` on Ubuntu, `fuse-libs` on Fedora). On Ubuntu 24.04+ prefer the .deb: Ubuntu's
-  AppArmor blocks the sandbox that AppImages of Electron apps use.
-- It runs through X11 (XWayland on Wayland desktops, which GNOME and KDE include). Your saves
-  live in `~/.config/desktop-buddy` and stay when you uninstall.
+> **New, from the next release (0.5.0).** Built and checked on GitHub's Ubuntu machines, not yet
+> tried on many real desktops: if something looks wrong, please
+> [open an issue](https://github.com/Double-bited-Hamburger/DesktopBuddy/issues). Until 0.5.0 is
+> out, the same files are in the newest
+> [Linux run](https://github.com/Double-bited-Hamburger/DesktopBuddy/actions/workflows/linux.yml)
+> (open it → **Artifacts** at the bottom → download the zip, then unzip it).
 
-**Want to change the code?** Build it from source:
+Pick the file for your distro. All of them are 64-bit (x86_64 / amd64).
+
+#### Ubuntu, Debian, Linux Mint, Pop!_OS (`.deb`)
+
+```bash
+wget https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/desktopbuddy_amd64.deb
+sudo apt install ./desktopbuddy_amd64.deb
+```
+
+Then open **DesktopBuddy** from your app menu (or run `desktopbuddy` in a terminal).
+Uninstall: `sudo apt remove desktopbuddy`.
+
+#### Fedora, RHEL, openSUSE (`.rpm`)
+
+```bash
+wget https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/desktopbuddy.x86_64.rpm
+sudo dnf install ./desktopbuddy.x86_64.rpm
+```
+
+(openSUSE: `sudo zypper install ./desktopbuddy.x86_64.rpm`.) Then open **DesktopBuddy** from
+your app menu (or run `desktopbuddy`). Uninstall: `sudo dnf remove desktopbuddy`.
+
+#### Any other distro (`AppImage`, nothing to install)
+
+```bash
+wget https://github.com/Double-bited-Hamburger/DesktopBuddy/releases/latest/download/DesktopBuddy.AppImage
+chmod +x DesktopBuddy.AppImage
+./DesktopBuddy.AppImage
+```
+
+AppImages need FUSE 2: `sudo apt install libfuse2t64` (Ubuntu 24.04+), `sudo dnf install
+fuse-libs` (Fedora), `sudo pacman -S fuse2` (Arch). On **Ubuntu 24.04 and newer use the .deb**
+instead: Ubuntu's AppArmor stops AppImages of Electron apps from starting their sandbox.
+
+#### Good to know on Linux
+
+- **The tray icon** (Feed, Talk to the duck, Quit…): Ubuntu, KDE, Cinnamon and XFCE show it.
+  **Fedora's GNOME hides tray icons**: install the *AppIndicator and KStatusNotifierItem
+  Support* extension (`sudo dnf install gnome-shell-extension-appindicator`, then log out and
+  back in), or just **right-click the duck** for the panel: everything is in there too.
+- **Wayland** (the default on Fedora and Ubuntu) is fine: the duck runs through XWayland, which
+  GNOME and KDE include. It needs a compositing desktop (GNOME, KDE, Cinnamon, XFCE with
+  compositing on) to be see-through.
+- **Start at login:** Settings → Startup → *Start when I log in* (writes
+  `~/.config/autostart/desktopbuddy.desktop`).
+- **Your saves** live in `~/.config/desktop-buddy/data`. Uninstalling never deletes them.
+- **Updating:** install the newer file the same way (`apt install` / `dnf install` over the old
+  one). Your points and items are kept.
+- **Not on Linux yet:** app names in the opt-in activity tracking (Today/Stats count active and
+  idle time only).
+
+### 🛠️ Build it from source (to change the code)
 
 ```bash
 git clone https://github.com/Double-bited-Hamburger/DesktopBuddy.git
@@ -91,13 +144,28 @@ cd DesktopBuddy && npm install
 npm run dev
 ```
 
-Needs **Node 24+** and npm. Windows 11 first, Linux (Fedora, Ubuntu) too; macOS later.
+Needs **Node 24+** and npm (no pnpm/yarn). Works on Windows 10/11 and Linux; macOS later.
 
-On Linux, if `npm run dev` says **"Electron uninstall"**, Electron's own download (part of
-`npm install`) didn't run: `node node_modules/electron/install.js` fetches it. If it then
-complains about the **chrome-sandbox** (Ubuntu 24.04+), give the dev copy of Electron its sandbox
-helper once: `sudo chown root node_modules/electron/dist/chrome-sandbox && sudo chmod 4755
-node_modules/electron/dist/chrome-sandbox`.
+On Linux:
+
+- **"Error: Electron uninstall"** when starting `npm run dev`: Electron's own download, which
+  `npm install` normally does, didn't happen (a blocked download, `--ignore-scripts`, or a
+  `node_modules` copied from another PC). Fetch it with `node node_modules/electron/install.js`,
+  or start clean with `rm -rf node_modules && npm install`.
+- **"The SUID sandbox helper binary was found, but is not configured correctly"** (Ubuntu
+  24.04+): give the dev copy of Electron its sandbox helper once:
+
+  ```bash
+  sudo chown root node_modules/electron/dist/chrome-sandbox
+  sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+  ```
+- `npm run dist:linux` builds the AppImage, .deb and .rpm into `release/` (the .rpm needs the
+  `rpm` package: `sudo apt install rpm` on Ubuntu). GitHub does the same on every push
+  (`.github/workflows/linux.yml`). More in [docs/LINUX.md](docs/LINUX.md).
+- `npm install` prints a few **"npm warn deprecated"** lines (rimraf, glob, inflight, boolean,
+  lodash.isequal). They're harmless: they come from inside the packaging tools and the updater,
+  not from DesktopBuddy itself, and go away when those tools update.
+
 Right-click the duck for the panel · tray icon for **Feed bread**, **Give a cigar**, **Points pill** and **Quit**.
 
 ## 🧠 How it works
@@ -212,6 +280,7 @@ Details and what's still unverified: [docs/ROADMAP.md](docs/ROADMAP.md).
 | `npm run bake`      | `.pxl` → PNG sheets, validates the art rules        |
 | `npm run readme-art`| regenerates the pictures in this README from `.pxl` |
 | `npm run dist`      | Windows installer → `release/DesktopBuddy-Setup-*.exe` (Start menu + desktop icon) |
+| `npm run dist:linux`| on Linux: AppImage, .deb and .rpm → `release/` |
 
 The installer isn't signed yet, so Windows SmartScreen asks once: **More info → Run anyway**.
 `npm run dist:linux` (on Linux) builds the AppImage, .deb and .rpm; CI does it on every push

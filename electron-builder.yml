@@ -60,6 +60,8 @@ linux:
 appImage:
   artifactName: DesktopBuddy-${version}.${ext}
 deb:
+  packageName: desktopbuddy # so it is `sudo apt remove desktopbuddy`
   artifactName: desktopbuddy_${version}_amd64.${ext}
 rpm:
+  packageName: desktopbuddy # so it is `sudo dnf remove desktopbuddy`
   artifactName: desktopbuddy-${version}.x86_64.${ext}
