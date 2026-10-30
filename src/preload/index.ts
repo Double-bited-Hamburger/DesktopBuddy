@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { isFriendState } from '../core/care/friend'
 import { isSnack } from '../core/toys/snacks'
 import type { AppHistory } from '../core/tracker/screen-time'
 import type {
@@ -163,6 +164,16 @@ const api: BuddyApi = {
     typed: () => ipcRenderer.send(IPC.talkTyped),
     line: () => ipcRenderer.send(IPC.talkLine),
     done: () => ipcRenderer.send(IPC.talkDone),
+  },
+  friend: {
+    onState: (listener) => {
+      const handler = (_event: unknown, state: unknown, direction: unknown) => {
+        if (isFriendState(state) && (direction === 1 || direction === -1))
+          listener(state, direction)
+      }
+      ipcRenderer.on(IPC.friendState, handler)
+      return () => ipcRenderer.off(IPC.friendState, handler)
+    },
   },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),

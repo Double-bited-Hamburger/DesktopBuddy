@@ -56,6 +56,7 @@ describe('settings', () => {
       names: { duck: '', you: '' }, // no names until the user gives some
       welcomeBack: true,
       hungerTalk: true,
+      friendDuck: false,
       weatherCity: '', // no weather (and no network) until the user types a city
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in

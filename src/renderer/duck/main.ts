@@ -757,6 +757,14 @@ async function main(): Promise<void> {
         machine.dance()
         sound.play('chirp')
       }
+    } else if (event === 'friend-dance') {
+      // The friend duck came over: dance with it, unless busy with something that matters.
+      if (!treat && !busy() && !staring && !listening && !focusing) {
+        if (machine.state !== 'sleep') {
+          machine.dance()
+          if (prefs.chatter) sound.play('chirp')
+        }
+      }
     } else if (event === 'hungry') {
       // It says so in a bubble (main) and has a look round for crumbs.
       if (!treat && !busy() && !staring && !listening) machine.enter('forage')

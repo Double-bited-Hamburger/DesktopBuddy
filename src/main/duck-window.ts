@@ -226,6 +226,11 @@ export class DuckWindow {
     this.place()
   }
 
+  /** The floor under the duck; the friend duck walks on the same one. */
+  get floorNow(): FloorBounds {
+    return this.floor
+  }
+
   /** Middle of the duck, screen x (to pick the nearest snack). */
   get middleX(): number {
     return duckCenterX(this.x, this.scale)

@@ -48,6 +48,7 @@ import { windowsBusy } from './busy-windows'
 import { DuckWindow, SHAPED } from './duck-window'
 import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
+import { FriendWindow } from './friend-window'
 import { registerIpc } from './ipc'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
@@ -315,6 +316,15 @@ async function start(): Promise<void> {
   })
   tracker.sync()
   powerMonitor.on('lock-screen', () => void tracker.pause())
+  // The friend duck: only exists while it's switched on, and naps through anything serious.
+  const friend = new FriendWindow({
+    scale: () => settings.scale,
+    floor: () => duck.floorNow,
+    duckMiddle: () => duck.middleX,
+    quiet: () => tracker.focusing || breaks.busy || talk.isOpen || busyNow(),
+    onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance'),
+  })
+  friend.setEnabled(settings.friendDuck || (!app.isPackaged && process.env.BUDDY_FRIEND === '1'))
   powerMonitor.on('suspend', () => void tracker.pause())
   // Welcome back (core/care/welcome.ts): away = locked or asleep; the duck cheers on the way back.
   const bubble = new BubbleWindow()
@@ -432,7 +442,9 @@ async function start(): Promise<void> {
     if (next.scale !== before.scale) {
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
+      friend.setScale()
     }
+    if (next.friendDuck !== before.friendDuck) friend.setEnabled(next.friendDuck)
     if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
     if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
     if (next.weatherCity !== before.weatherCity) await weather.sync() // so the view has the result
@@ -493,6 +505,7 @@ async function start(): Promise<void> {
     tray?.destroy()
     bubble.close()
     talk.close()
+    friend.setEnabled(false)
     weather.stop()
   })
   // Write any batched points before the app goes away.

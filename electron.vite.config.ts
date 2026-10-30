@@ -39,6 +39,7 @@ export default defineConfig({
           sign: resolve('src/renderer/sign/index.html'),
           bubble: resolve('src/renderer/bubble/index.html'),
           talk: resolve('src/renderer/talk/index.html'),
+          friend: resolve('src/renderer/friend/index.html'),
         },
       },
     },

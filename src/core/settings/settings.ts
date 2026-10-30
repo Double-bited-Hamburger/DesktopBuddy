@@ -62,6 +62,8 @@ export const SettingsSchema = z.object({
   welcomeBack: z.boolean().default(true),
   /** The duck says when it's hungry (see core/care/hunger). */
   hungerTalk: z.boolean().default(true),
+  /** A second duck on the same PC (see core/care/friend). Off: no window, no cost. */
+  friendDuck: z.boolean().default(false),
   /** Opt-in weather: a city name. Empty = off, no network (see core/care/weather). */
   weatherCity: z
     .string()
@@ -130,6 +132,7 @@ export const SettingsPatchSchema = z.strictObject({
   names: z.strictObject({ duck: NameSchema.optional(), you: NameSchema.optional() }).optional(),
   welcomeBack: SettingsSchema.shape.welcomeBack.unwrap().optional(),
   hungerTalk: SettingsSchema.shape.hungerTalk.unwrap().optional(),
+  friendDuck: SettingsSchema.shape.friendDuck.unwrap().optional(),
   weatherCity: SettingsSchema.shape.weatherCity.unwrap().optional(),
 })
 

@@ -420,9 +420,9 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
     screen edges; with a hat or glasses on; the morning cup coming up by itself in a real morning
     (a test covers the odds); real December dates in the app; the Italian text's fit in the tray
 
-- [ ] **Fisherman bucket hat** (owner's idea, 2026-10-30): a floppy bucket hat like the one the
-      owner wears, as a new hat in the catalog, with our own original logo or stripes in place of
-      any brand. Golden rule 1: no real brand's logo, name or three stripes
+- [x] **Fisherman bucket hat** (built 2026-10-31; the owner's idea): black, worn low so the brim
+      covers the top of the eyes, with two white stripes round the crown. Uncommon, in the catalog
+      as `bucket-hat`. Golden rule 1: our own stripes, not a real brand's logo or three slanted ones
 
 ## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)
 
@@ -600,6 +600,24 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
     reserve space
 
 ## Phase 8b — A local friend duck (before Friends)
+
+**First version built 2026-10-31**, off by default (Settings → "has a friend on the taskbar"). A
+mint duck in its own window (`src/main/friend-window.ts`, `src/renderer/friend`, choices in core
+`care/friend.ts`) that never takes clicks. It wanders and naps, sometimes runs over to your duck,
+they dance, and it runs off. It naps through focus sessions, breaks, the talk box and fullscreen
+apps. Off means no window and no cost; `BUDDY_FRIEND=1` turns it on in dev builds.
+
+- Verified in dev on a throwaway folder: meet, dance, flee, idle and walk all played; the switch
+  closes and reopens the window live.
+- **CPU with the friend out is not known yet.** A busy friend measured 3.88% idle and 4.88% mixed
+  on a noisy PC, so it was calmed down (more rest, shorter trips). The re-run read 0.27% / 0.38%,
+  below a single duck, which isn't believable (cause unknown; the lock screen was not up right after).
+  Needs another run. RAM with both ducks: 102–116 MB (budget 120).
+- **Not built yet from the plan below:** earning it as a rare item, its own outfit, a shared
+  snack, napping side by side.
+- **Not verified:** seen moving on a real screen, the size setting with a friend out, a second
+  monitor, Linux, your duck's dance in view of the friend.
+
 
 A second duck on the **same** PC, no network: earned in play (a rare item) or switched on in
 Settings. The two ducks meet on the taskbar, play tag, run through each other, dance together,

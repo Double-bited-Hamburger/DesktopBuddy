@@ -1,0 +1,21 @@
+# A black bucket hat worn low, the brim just over the eyes, with two white stripes round the crown.
+# Our own stripes: never a real brand's logo or three slanted stripes.
+name: bucket-hat
+size: 18x9
+anchor: head 9 4
+palette:
+  K #2a1f2d
+  E #17171d
+  G #4a4a55
+  W #f4f1ea
+
+@frame bucket-hat
+.....KKKKKKKK.....
+....KEEEEEEEEK....
+...KEGEEEEEEEEK...
+...KEWWWWWWWWEK...
+...KEEEEEEEEEEK...
+..KEEWWWWWWWWEEK..
+..KEEEEEEEEEEEEK..
+.KEGGEEEEEEEEGGEK.
+KEGGGGGGGGGGGGGGEK

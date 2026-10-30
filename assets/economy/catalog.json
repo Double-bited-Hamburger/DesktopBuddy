@@ -69,6 +69,12 @@
       }
     },
     {
+      "id": "bucket-hat",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/bucket-hat"
+    },
+    {
       "id": "beanie",
       "slot": "hat",
       "rarity": "common",

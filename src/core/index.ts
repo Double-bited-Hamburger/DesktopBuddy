@@ -1,6 +1,7 @@
 export * from './anim/clock'
 export * from './behavior/machine'
 export * from './behavior/pet'
+export * from './care/friend'
 export * from './care/hunger'
 export * from './catalog/catalog'
 export * from './chase'

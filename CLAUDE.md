@@ -28,11 +28,11 @@ patterns (pressure timers, hidden odds).
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day, QUACK can, December snow | ✅ |
 | 7d | Care: break buddy with the wooden sign, rubber-duck mode, focus companion, welcome back, names, hunger | ✅ |
 | 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (in 0.3.0), v0.5.0 (first Linux packages) and v0.6.1 published ✅; CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
-| 8b | A local friend duck on the same PC (play, dance, tag) | planned |
+| 8b | A local friend duck on the same PC (play, dance, tag) | first version built (Settings switch, off by default) |
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
-What's next: hear back from the Linux testers (Fedora, Ubuntu), the bucket hat →
+What's next: hear back from the Linux testers (Fedora, Ubuntu), finish the friend duck →
 CI + Releases →
 CONTRIBUTING/licenses → Linux ([docs/LINUX.md](docs/LINUX.md)) → local friend duck → Friends.
 New fun features are cosmetic and kind: no penalties, the duck never gets sick or dies, care

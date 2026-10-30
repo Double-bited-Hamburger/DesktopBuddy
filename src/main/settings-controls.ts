@@ -46,6 +46,7 @@ export class SettingsControls {
       names: s.names,
       welcomeBack: s.welcomeBack,
       hungerTalk: s.hungerTalk,
+      friendDuck: s.friendDuck,
       weather: this.deps.weather(),
       autostart: {
         available: autostart.available,

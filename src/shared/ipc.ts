@@ -1,4 +1,5 @@
 import type { BehaviorState } from '../core/behavior/machine'
+import type { FriendState } from '../core/care/friend'
 import type { WeatherKind } from '../core/care/weather'
 import type { Rarity, Slot } from '../core/catalog/catalog'
 import type { RarityChance } from '../core/economy/gifts'
@@ -65,6 +66,7 @@ export const IPC = {
   settingsErase: 'panel:settings-erase',
   care: 'duck:care',
   weather: 'duck:weather',
+  friendState: 'friend:state',
   smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
   talkTyped: 'talk:typed',
@@ -222,6 +224,7 @@ export interface SettingsView {
   readonly names: Names
   readonly welcomeBack: boolean
   readonly hungerTalk: boolean
+  readonly friendDuck: boolean
   readonly weather: WeatherView
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
@@ -247,6 +250,7 @@ export type CareEvent =
   | 'focus-off'
   | 'focus-done'
   | 'hungry'
+  | 'friend-dance'
 export const CARE_EVENTS: readonly CareEvent[] = [
   'stare',
   'nag',
@@ -260,6 +264,7 @@ export const CARE_EVENTS: readonly CareEvent[] = [
   'focus-off',
   'focus-done',
   'hungry',
+  'friend-dance',
 ]
 
 /** The weather line in Settings. */
@@ -452,6 +457,10 @@ export interface BuddyApi {
     line(): void
     /** "Thanks, duck": close the box. */
     done(): void
+  }
+  /** The friend duck's page only draws: it hears what to show and asks for nothing. */
+  friend: {
+    onState(listener: (state: FriendState, direction: 1 | -1) => void): () => void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */
