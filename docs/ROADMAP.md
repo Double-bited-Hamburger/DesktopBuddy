@@ -520,9 +520,14 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
     the real release said up to date; pretending to be 0.1.0 (main inspector) → "0.2.0 is out" →
     Download fetched the 116 MB installer in 28 s and verified it → "Restart and update"; install
     refused in dev as designed
-  - **Not verified:** a real install-and-restart (needs two published versions with the updater:
-    test when 0.3.0 ships, with the real saves backed up and hashed first); the daily timer;
-    offline errors; the tray items; Italian text in the Updates section
+  - Verified 2026-10-30 on the owner's PC, real saves (backed up and SHA-256-hashed first):
+    installed 0.3.0 → Check → Download → Restart and update → 0.4.0 running. The automatic backup
+    `backups/20261030-085150-from-0.3.0` was made; every ledger entry from before is in it;
+    points and items carried over (later changes were the owner playing and buying). The first
+    Check, a few minutes after publishing, said "up to date" (likely GitHub's release feed still
+    catching up; not confirmed); a later Check found 0.4.0
+  - **Not verified:** the daily timer; offline errors; the tray items; Italian text in the
+    Updates section
 - [ ] CONTRIBUTING + art guide, licenses, CREDITS
 - [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
       AppImage + .deb from CI)
