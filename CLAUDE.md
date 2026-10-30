@@ -6,7 +6,7 @@ points when you pet and play with it or finish quests, and spends them in a stor
 focus tracking (Today/Stats), Settings with chip sounds, and a Windows installer. Friends comes
 last. It must stay **cheap on CPU and RAM**.
 
-Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.1.0**.
+Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.4.0**.
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user asks (Check for updates, the opt-in daily check, or later Friends), no dark
@@ -27,12 +27,12 @@ patterns (pressure timers, hidden odds).
 | 7b | Android-style screen time + points for active time (no keystroke counting — rejected) | planned |
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day | planned |
 | 7d | Care: break buddy with the wooden sign ✅; rubber-duck mode, focus companion, welcome back, names, hunger | in progress |
-| 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (ships next release); CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
+| 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (in 0.3.0), v0.4.0 published ✅; CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
 | 8b | A local friend duck on the same PC (play, dance, tag) | planned |
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
-What's next: ship 0.3.0 with the updater and test a real update with backed-up saves, make
+What's next: test a real 0.3.0 → 0.4.0 update with backed-up saves, make
 walking cheaper (closes Phase 7), the planned 7b–7d features → CI + Releases →
 CONTRIBUTING/licenses → Linux ([docs/LINUX.md](docs/LINUX.md)) → local friend duck → Friends.
 New fun features are cosmetic and kind: no penalties, the duck never gets sick or dies, care
