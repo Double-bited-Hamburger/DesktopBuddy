@@ -62,9 +62,9 @@ jobs:
           echo "--- windows"
           xwininfo -root -tree | grep -i desktopbuddy || true
           # The duck window must be shaped to the duck (click-through on Linux).
-          DUCK=$(xwininfo -root -tree | grep -i '"DesktopBuddy"' | awk '{print $1}' | head -1)
+          DUCK=$(xwininfo -root -tree | grep '"DesktopBuddy".* 120x120' | awk '{print $1}' | head -1)
           xwininfo -shape -id "$DUCK" | tee "$RUNNER_TEMP/shape.txt"
-          grep -q "Window is shaped" "$RUNNER_TEMP/shape.txt" || grep -qi "bounding shape extents" "$RUNNER_TEMP/shape.txt"
+          grep -qi "bounding shape extents" "$RUNNER_TEMP/shape.txt"
           kill "$APP"
           echo "--- app log"; cat "$RUNNER_TEMP/app.log"
 
