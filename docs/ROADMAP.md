@@ -384,7 +384,8 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
 
 - [ ] **White energy drink** (owner's idea, 2026-10-30): feed the duck a can of white energy
       drink, like the coffee but fizzier: it chugs it, buzzes and zooms around faster. Our own
-      original can design and name (golden rule 1: no real brand's logo or name on it)
+      original can, chosen 2026-10-30: the white and silver **QUACK** can with red letters
+      (`toys/quack-can`: drawn, not in the game yet). Golden rule 1: no real brand's logo or name
 
 ## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)
 
@@ -541,9 +542,14 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
       (`main/autostart.ts`), AppImage + .deb + .rpm (`npm run dist:linux`) and a CI job that
       checks, builds, starts the duck on a virtual X screen and checks the window is shaped
       (`.github/workflows/linux.yml`). Windows unchanged (checked in dev: no shape, duck drawn)
+  - Verified 2026-10-30 on GitHub's Ubuntu 24.04 machine (CI, virtual X screen, no compositor):
+    checks pass, all three packages build, the unpacked app starts and stays up, and the duck's
+    120×120 window is shaped (`Window shape extents: 96x99+12+18`)
   - **Not verified yet:** anything on a real Linux desktop (the friends on Fedora and Ubuntu
-    are the test); the CI run itself; tracking app names on Linux (records active/idle only);
-    the updater on Linux; perf on Linux; a dock that doesn't reserve space
+    are the test): installing the .deb/.rpm, the AppImage, see-through rendering, clicks passing
+    around the duck, petting and dragging, the tray, sounds, start at login; tracking app names
+    (records active/idle only); the updater on Linux; perf on Linux; a dock that doesn't
+    reserve space
 
 ## Phase 8b — A local friend duck (before Friends)
 

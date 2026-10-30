@@ -78,12 +78,9 @@ on your taskbar, and adds a Start menu + desktop icon. Nothing to type, no Node,
 
 ### 🐧 Linux
 
-> **New, from the next release (0.5.0).** Built and checked on GitHub's Ubuntu machines, not yet
-> tried on many real desktops: if something looks wrong, please
-> [open an issue](https://github.com/Double-bited-Hamburger/DesktopBuddy/issues). Until 0.5.0 is
-> out, the same files are in the newest
-> [Linux run](https://github.com/Double-bited-Hamburger/DesktopBuddy/actions/workflows/linux.yml)
-> (open it → **Artifacts** at the bottom → download the zip, then unzip it).
+> **New in 0.5.0.** Built and checked on GitHub's Ubuntu machines, not yet tried on many real
+> desktops: if something looks wrong, please
+> [open an issue](https://github.com/Double-bited-Hamburger/DesktopBuddy/issues).
 
 Pick the file for your distro. All of them are 64-bit (x86_64 / amd64).
 
