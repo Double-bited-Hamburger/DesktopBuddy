@@ -13,11 +13,13 @@ import type {
 } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
+import type { Rect } from '../core/types'
 
 /** Channel names shared by main, preload and renderers. */
 export const IPC = {
   getConfig: 'buddy:get-config',
   setIgnoreMouse: 'duck:set-ignore-mouse',
+  duckShape: 'duck:shape',
   dragStart: 'duck:drag-start',
   dragMove: 'duck:drag-move',
   dragEnd: 'duck:drag-end',
@@ -86,6 +88,11 @@ export interface AppConfig {
   readonly theme: Theme
   /** Too many coffees yesterday: the duck starts the day tired (core/toys/coffee.ts). */
   readonly tired: boolean
+  /**
+   * Linux: click-through works by shaping the duck window to its pixels (`duck.setShape`), since
+   * mouse forwarding is Windows/macOS only. False on Windows, which uses `setIgnoreMouse`.
+   */
+  readonly shapeClickThrough: boolean
   /** Opt-in weather right now (rain or snow: the umbrella); undefined when off or unknown. */
   readonly weather?: WeatherKind
   /** Dev-only (`BUDDY_PIN_STATE`, unpackaged builds): keep the duck in one state, for perf runs. */
@@ -295,6 +302,8 @@ export interface BuddyApi {
   duck: {
     /** Click-through: true lets mouse events pass to the window underneath. */
     setIgnoreMouse(ignore: boolean): void
+    /** Linux click-through: the window only exists over these rectangles (window px). */
+    setShape(rects: readonly Rect[]): void
     dragStart(): void
     dragMove(): void
     dragEnd(): void

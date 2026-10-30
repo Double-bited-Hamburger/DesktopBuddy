@@ -4,6 +4,7 @@
   "private": true,
   "description": "An open-source 16-bit pixel-art desktop duck: skins, accessories, quests and a points store.",
   "license": "MIT",
+  "homepage": "https://github.com/Double-bited-Hamburger/DesktopBuddy",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -14,6 +15,7 @@
     "icon": "tsx tools/make-icon.ts",
     "dist": "npm run build && electron-builder --win",
     "dist:dir": "npm run build && electron-builder --win --dir",
+    "dist:linux": "npm run build && electron-builder --linux",
     "bake": "tsx tools/bake-sprites.ts",
     "typecheck": "tsc -p tsconfig.core.json --noEmit && tsc -p tsconfig.json --noEmit",
     "lint": "biome check .",

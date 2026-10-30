@@ -216,7 +216,7 @@
   "settings.breaks.minutes": "{n} min",
   "settings.breaks.hint": "Quando è ora di riposare gli occhi e sgranchirti, la papera spunta con un cartello. Usa solo il tempo di inattività (niente tasti, niente app). Non appare mai sopra giochi, video o presentazioni a schermo intero, e un caffè o un sigaro la calmano per 30 minuti.",
   "settings.startup": "Avvio",
-  "settings.autostart": "Avvia con Windows",
+  "settings.autostart": "Avvia all'accesso",
   "settings.autostartDev": "Disponibile nell'app installata.",
   "updates.title": "Aggiornamenti",
   "updates.current": "Versione {version}",

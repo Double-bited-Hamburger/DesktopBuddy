@@ -216,7 +216,7 @@
   "settings.breaks.minutes": "{n} min",
   "settings.breaks.hint": "The duck pops up with a sign when it's time to rest your eyes and stretch. Only your idle time is used (no keys, no apps). It never shows over fullscreen games, videos or presentations, and a coffee or a cigar calms it for 30 minutes.",
   "settings.startup": "Startup",
-  "settings.autostart": "Start with Windows",
+  "settings.autostart": "Start when I log in",
   "settings.autostartDev": "Available in the installed app.",
   "updates.title": "Updates",
   "updates.current": "Version {version}",

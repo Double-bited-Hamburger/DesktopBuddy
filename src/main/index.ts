@@ -34,7 +34,7 @@ import { ActivityControls } from './activity-controls'
 import { BreakBuddy } from './break-buddy'
 import { BubbleWindow } from './bubble-window'
 import { windowsBusy } from './busy-windows'
-import { DuckWindow } from './duck-window'
+import { DuckWindow, SHAPED } from './duck-window'
 import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
 import { registerIpc } from './ipc'
@@ -120,6 +120,7 @@ async function start(): Promise<void> {
     theme: settings.theme,
     tired,
     weather: weather.kind,
+    shapeClickThrough: SHAPED,
     pinState,
   })
 
@@ -457,6 +458,11 @@ if (!app.isPackaged && process.env.BUDDY_DATA_DIR)
 if (!app.isPackaged && process.env.BUDDY_NO_GPU === '1') app.disableHardwareAcceleration()
 
 app.setAppUserModelId('dev.desktopbuddy.app')
+
+// Linux: run on X11 (XWayland on Wayland desktops such as Fedora's and Ubuntu's). Under native
+// Wayland an app can't place its own windows or keep them on top, which the duck needs.
+if (process.platform === 'linux' && !process.env.BUDDY_WAYLAND)
+  app.commandLine.appendSwitch('ozone-platform', 'x11')
 
 if (app.requestSingleInstanceLock()) {
   start().catch((error) => {

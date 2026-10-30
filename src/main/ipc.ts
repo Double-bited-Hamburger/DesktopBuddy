@@ -105,6 +105,10 @@ export function registerIpc({
     if (fromDuck(event.sender) && typeof ignore === 'boolean') duck.setIgnoreMouse(ignore)
   })
 
+  ipcMain.on(IPC.duckShape, (event, rects: unknown) => {
+    if (fromDuck(event.sender)) duck.setShape(rects)
+  })
+
   ipcMain.on(IPC.dragStart, (event) => {
     if (fromDuck(event.sender)) duck.dragStart()
   })

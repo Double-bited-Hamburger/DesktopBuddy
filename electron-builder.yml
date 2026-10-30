@@ -1,4 +1,5 @@
-# Packaging (electron-builder). `npm run dist` builds the app, then a Windows installer in release/.
+# Packaging (electron-builder). `npm run dist` builds the app, then a Windows installer in release/;
+# `npm run dist:linux` the Linux packages (see the linux block at the end).
 # Must match app.setAppUserModelId in src/main/index.ts (taskbar, notifications, Start menu).
 appId: dev.desktopbuddy.app
 productName: DesktopBuddy
@@ -39,3 +40,26 @@ publish:
   provider: github
   owner: Double-bited-Hamburger
   repo: DesktopBuddy
+# Linux (Fedora, Ubuntu and the rest): `npm run dist:linux`, on Linux (CI: .github/workflows/
+# linux.yml). The AppImage is one file that runs anywhere; .deb for Ubuntu/Debian, .rpm for
+# Fedora. Both packages add a menu entry with the duck icon. Saves live in ~/.config/desktop-buddy
+# and are never removed on uninstall.
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+    - target: rpm
+      arch: [x64]
+  icon: build/icon.png
+  category: Utility
+  executableName: desktopbuddy
+  synopsis: A pixel duck that lives on your desktop
+  maintainer: DesktopBuddy contributors <249748203+Double-bited-Hamburger@users.noreply.github.com>
+appImage:
+  artifactName: DesktopBuddy-${version}.${ext}
+deb:
+  artifactName: desktopbuddy_${version}_amd64.${ext}
+rpm:
+  artifactName: desktopbuddy-${version}.x86_64.${ext}

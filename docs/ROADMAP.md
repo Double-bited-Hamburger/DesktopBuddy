@@ -382,6 +382,10 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
     December)
 - [ ] **Yawning** as its own animation, used when tired, late, or waking up
 
+- [ ] **White energy drink** (owner's idea, 2026-10-30): feed the duck a can of white energy
+      drink, like the coffee but fizzier: it chugs it, buzzes and zooms around faster. Our own
+      original can design and name (golden rule 1: no real brand's logo or name on it)
+
 ## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)
 
 The duck helps you look after yourself. Every part can be turned off in Settings; nothing locks
@@ -529,8 +533,17 @@ license decisions (code MIT, art CC BY 4.0), `assets/CREDITS.md`. Unpack `koffi`
   - **Not verified:** the daily timer; offline errors; the tray items; Italian text in the
     Updates section
 - [ ] CONTRIBUTING + art guide, licenses, CREDITS
-- [ ] **Linux:** plan in [LINUX.md](LINUX.md) (X11/XWayland, `setShape` click-through,
-      AppImage + .deb from CI)
+- [ ] **Linux** (Fedora and Ubuntu first; asked for in
+      [#1](https://github.com/Double-bited-Hamburger/DesktopBuddy/issues/1)), plan in
+      [LINUX.md](LINUX.md). Built 2026-10-30: the X11 switch (XWayland on Wayland desktops),
+      click-through by shaping the duck window to its pixels (`core/sprite/shape.ts`, tested;
+      `duck:shape` IPC, validated in main), start at login through an XDG autostart file
+      (`main/autostart.ts`), AppImage + .deb + .rpm (`npm run dist:linux`) and a CI job that
+      checks, builds, starts the duck on a virtual X screen and checks the window is shaped
+      (`.github/workflows/linux.yml`). Windows unchanged (checked in dev: no shape, duck drawn)
+  - **Not verified yet:** anything on a real Linux desktop (the friends on Fedora and Ubuntu
+    are the test); the CI run itself; tracking app names on Linux (records active/idle only);
+    the updater on Linux; perf on Linux; a dock that doesn't reserve space
 
 ## Phase 8b — A local friend duck (before Friends)
 

@@ -1,0 +1,76 @@
+# Linux: checks, the AppImage / .deb / .rpm packages, and a start-up smoke test on a virtual X
+# screen. Linux packages can only be built on Linux, so this is where they come from. Nothing is
+# published: the packages and a screenshot are kept as the run's artifacts (for 14 days).
+name: Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Tools for the .rpm and the smoke test
+        run: sudo apt-get update && sudo apt-get install -y rpm xvfb x11-utils imagemagick
+
+      - run: npm ci
+
+      - name: Checks (typecheck, lint, tests)
+        run: npm run check
+
+      - name: Build the AppImage, .deb and .rpm
+        run: npm run dist:linux
+
+      - name: Smoke test (start the duck on a virtual screen)
+        run: |
+          set -u
+          export HOME="$RUNNER_TEMP/home" && mkdir -p "$HOME"
+          Xvfb :99 -screen 0 1280x800x24 &
+          export DISPLAY=:99
+          sleep 2
+          # CI only: GitHub's Ubuntu blocks Chromium's sandbox for unpacked apps (AppArmor). The
+          # .deb and .rpm install the sandbox helper properly, so real installs keep it.
+          ./release/linux-unpacked/desktopbuddy --no-sandbox > "$RUNNER_TEMP/app.log" 2>&1 &
+          APP=$!
+          sleep 20
+          if ! kill -0 "$APP" 2>/dev/null; then
+            echo "The app exited early:"; cat "$RUNNER_TEMP/app.log"; exit 1
+          fi
+          import -window root "$RUNNER_TEMP/screen.png"
+          echo "--- windows"
+          xwininfo -root -tree | grep -i desktopbuddy || true
+          # The duck window must be shaped to the duck (click-through on Linux).
+          DUCK=$(xwininfo -root -tree | grep -i '"DesktopBuddy"' | awk '{print $1}' | head -1)
+          xwininfo -shape -id "$DUCK" | tee "$RUNNER_TEMP/shape.txt"
+          grep -q "Window is shaped" "$RUNNER_TEMP/shape.txt" || grep -qi "bounding shape extents" "$RUNNER_TEMP/shape.txt"
+          kill "$APP"
+          echo "--- app log"; cat "$RUNNER_TEMP/app.log"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-${{ github.sha }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+            release/latest-linux.yml
+            ${{ runner.temp }}/screen.png
+            ${{ runner.temp }}/shape.txt
+            ${{ runner.temp }}/app.log

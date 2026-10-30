@@ -4,6 +4,7 @@ import { catchSpot, JUMP_DISTANCE, jumpVelocity, RUN_SPEED, runStep } from '../c
 import type { Flight, Sample } from '../core/flight'
 import { flightStep, HURT_SPEED, releaseVelocity } from '../core/flight'
 import { duckCenterX, floorAt } from '../core/floor'
+import { isValidShape } from '../core/sprite/shape'
 import type { FloorBounds } from '../core/stage'
 import {
   clamp,
@@ -20,6 +21,12 @@ import type { ChaseDirection, FallEvent, WalkDirection } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
 import type { SnackSpot } from './snack-window'
+
+/**
+ * Linux has no mouse forwarding for click-through windows, so there the window is shaped to the
+ * duck's pixels instead (the page sends the shape; see core/sprite/shape.ts).
+ */
+export const SHAPED = process.platform === 'linux'
 
 /** A flight is short (a second or two), so it may run faster than the 12 fps walk. */
 const FLIGHT_FRAME_MS = 1000 / 30
@@ -101,7 +108,9 @@ export class DuckWindow {
     })
 
     // Fully click-through until the renderer reports the cursor is over an opaque duck pixel.
-    this.window.setIgnoreMouseEvents(true, { forward: true })
+    // On Linux: no shape yet = nothing to click, until the page sends the duck's outline.
+    if (SHAPED) this.window.setShape([{ x: 0, y: 0, width: 0, height: 0 }])
+    else this.window.setIgnoreMouseEvents(true, { forward: true })
     this.window.once('ready-to-show', () => this.window.showInactive())
     this.window.on('closed', () => {
       this.walk(0)
@@ -120,7 +129,13 @@ export class DuckWindow {
   }
 
   setIgnoreMouse(ignore: boolean): void {
+    if (SHAPED) return // the shape does it
     this.window.setIgnoreMouseEvents(ignore, ignore ? { forward: true } : undefined)
+  }
+
+  /** Linux click-through: only the duck's own pixels take clicks (checked: inside the window). */
+  setShape(rects: unknown): void {
+    if (SHAPED && isValidShape(rects, this.size)) this.window.setShape(rects)
   }
 
   dragStart(): void {

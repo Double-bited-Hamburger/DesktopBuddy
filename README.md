@@ -72,6 +72,17 @@ on your taskbar, and adds a Start menu + desktop icon. Nothing to type, no Node,
 - Uninstall from Settings → Apps. Your points stay unless you erase them in the duck's Settings.
 - Windows 7 / 8 aren't supported: Electron, which the app is built on, needs Windows 10 or newer.
 
+**On Linux** (from the next release; new and still being tested, see [docs/LINUX.md](docs/LINUX.md)):
+
+- **Ubuntu / Debian:** `desktopbuddy_<version>_amd64.deb`, then
+  `sudo apt install ./desktopbuddy_*.deb`.
+- **Fedora:** `desktopbuddy-<version>.x86_64.rpm`, then `sudo dnf install ./desktopbuddy-*.rpm`.
+- **Anything else:** `DesktopBuddy-<version>.AppImage`: `chmod +x` it and run it (needs FUSE 2:
+  `libfuse2t64` on Ubuntu, `fuse-libs` on Fedora). On Ubuntu 24.04+ prefer the .deb: Ubuntu's
+  AppArmor blocks the sandbox that AppImages of Electron apps use.
+- It runs through X11 (XWayland on Wayland desktops, which GNOME and KDE include). Your saves
+  live in `~/.config/desktop-buddy` and stay when you uninstall.
+
 **Want to change the code?** Build it from source:
 
 ```bash
@@ -80,7 +91,13 @@ cd DesktopBuddy && npm install
 npm run dev
 ```
 
-Needs **Node 24+** and npm. Windows 11 first; macOS/Linux later.
+Needs **Node 24+** and npm. Windows 11 first, Linux (Fedora, Ubuntu) too; macOS later.
+
+On Linux, if `npm run dev` says **"Electron uninstall"**, Electron's own download (part of
+`npm install`) didn't run: `node node_modules/electron/install.js` fetches it. If it then
+complains about the **chrome-sandbox** (Ubuntu 24.04+), give the dev copy of Electron its sandbox
+helper once: `sudo chown root node_modules/electron/dist/chrome-sandbox && sudo chmod 4755
+node_modules/electron/dist/chrome-sandbox`.
 Right-click the duck for the panel · tray icon for **Feed bread**, **Give a cigar**, **Points pill** and **Quit**.
 
 ## 🧠 How it works
@@ -197,7 +214,8 @@ Details and what's still unverified: [docs/ROADMAP.md](docs/ROADMAP.md).
 | `npm run dist`      | Windows installer → `release/DesktopBuddy-Setup-*.exe` (Start menu + desktop icon) |
 
 The installer isn't signed yet, so Windows SmartScreen asks once: **More info → Run anyway**.
-Linux is planned: see [docs/LINUX.md](docs/LINUX.md).
+`npm run dist:linux` (on Linux) builds the AppImage, .deb and .rpm; CI does it on every push
+(`.github/workflows/linux.yml`). See [docs/LINUX.md](docs/LINUX.md).
 
 ## 🤝 Principles
 

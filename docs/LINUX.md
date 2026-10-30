@@ -4,7 +4,9 @@ Goal: the same duck on Linux. It should walk on the panel or dock, be click-thro
 its own pixels, and have the tray, panel, sounds, store and opt-in tracking. It must stay within
 the same CPU/RAM budget. Windows stays the primary platform; nothing here may make Windows worse.
 
-Status: **plan only** (2026-10-28). Nothing below is built yet.
+Status (2026-10-30): **steps 1, 2, 3 (autostart) and 5 (packaging + CI) are built, not yet
+tried on a real Linux desktop.** Fedora and Ubuntu are the first targets. Still to do: the Linux
+foreground source for app names, the perf script on Linux, and the compositor check.
 
 ## What already works unchanged
 
@@ -30,7 +32,7 @@ Status: **plan only** (2026-10-28). Nothing below is built yet.
 | **Start with Windows** | `setLoginItemSettings` | Not supported on Linux | Write/remove `~/.config/autostart/desktopbuddy.desktop` (the XDG autostart standard). Same Settings switch: "Start at login" |
 | **Sounds** | WebAudio | Same, via PulseAudio/PipeWire | Nothing to do; check that the AudioContext really closes (no idle audio stream) |
 | **Perf script** | CIM through PowerShell | Windows-only | Add a Linux path reading `/proc/<pid>/stat` (CPU ticks) and `smaps_rollup` (private RAM). Same report format, so budgets compare |
-| **Packaging** | NSIS installer | — | electron-builder **AppImage** (one file, runs anywhere) + **.deb** (Ubuntu/Debian, menu entry + icon from `build/icon.png`). Flatpak later: its sandbox complicates foreground tracking. Linux packages must be built on Linux, so use a GitHub Actions `ubuntu-latest` job (also runs `npm run check`). |
+| **Packaging** | NSIS installer | — | electron-builder **AppImage** (one file, runs anywhere) + **.deb** (Ubuntu/Debian) + **.rpm** (Fedora), menu entry + icon from `build/icon.png`. Flatpak later: its sandbox complicates foreground tracking. Linux packages must be built on Linux, so use a GitHub Actions `ubuntu-latest` job (also runs `npm run check`). |
 
 ## Steps (each one testable on its own)
 

@@ -19,6 +19,7 @@ import { listenAt, msUntilListenChange } from '../../core/care/listen'
 import type { WeatherKind } from '../../core/care/weather'
 import { needsUmbrella } from '../../core/care/weather'
 import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
+import { opaqueRects } from '../../core/sprite/shape'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
 import { breadAt, MEAL_MS, msUntilBreadChange } from '../../core/toys/bread'
@@ -297,6 +298,7 @@ async function main(): Promise<void> {
   // Settings: volume and the "what it does on its own" switches apply right away.
   window.buddy.duck.onPrefs((next) => {
     scale = next.scale // main already resized the window; the canvas stretches with it
+    sendShape() // Linux: the outline at the new size
     sound.volume = next.volume
     prefs = next.duck
     if (!config.pinState) machine.configure(behaviorFor())
@@ -479,11 +481,23 @@ async function main(): Promise<void> {
     }
     if (layers.length > 1) image = composeLayers(STAGE_SIZE, STAGE_SIZE, layers)
     rendered = image
+    sendShape()
     ctx?.putImageData(
       new ImageData(image.data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height),
       0,
       0,
     )
+  }
+
+  /** Linux click-through: shape the window to what is drawn, sent only when that changes. */
+  let sentShape = ''
+  function sendShape(): void {
+    if (!config.shapeClickThrough || !rendered) return
+    const rects = opaqueRects(rendered, scale)
+    const key = JSON.stringify(rects)
+    if (key === sentShape) return
+    sentShape = key
+    window.buddy.duck.setShape(rects)
   }
 
   // The loop is event-driven: it wakes only when the drawn frame changes or the machine makes its

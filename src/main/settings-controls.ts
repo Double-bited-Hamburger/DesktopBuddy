@@ -4,6 +4,7 @@ import type { Settings } from '../core/settings/settings'
 import { applySettingsPatch } from '../core/settings/settings'
 import type { StorageAdapter } from '../core/storage/storage'
 import type { SettingsView, WeatherView } from '../shared/ipc'
+import { autostart } from './autostart'
 
 interface SettingsDeps {
   readonly storage: StorageAdapter
@@ -46,9 +47,8 @@ export class SettingsControls {
       welcomeBack: s.welcomeBack,
       weather: this.deps.weather(),
       autostart: {
-        // A dev build would register the bare Electron binary, so only installed builds offer it.
-        available: app.isPackaged,
-        enabled: app.isPackaged && app.getLoginItemSettings().openAtLogin,
+        available: autostart.available,
+        enabled: autostart.enabled(),
       },
       appVersion: app.getVersion(),
     }
@@ -63,8 +63,8 @@ export class SettingsControls {
 
   setAutostart(enabled: unknown): SettingsView {
     if (typeof enabled !== 'boolean') throw new Error('Invalid value')
-    if (!app.isPackaged) throw new Error('Autostart is only available in an installed build')
-    app.setLoginItemSettings({ openAtLogin: enabled })
+    if (!autostart.available) throw new Error('Autostart is only available in an installed build')
+    autostart.set(enabled)
     return this.view()
   }
 

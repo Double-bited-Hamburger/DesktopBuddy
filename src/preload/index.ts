@@ -28,6 +28,7 @@ const api: BuddyApi = {
   },
   duck: {
     setIgnoreMouse: (ignore) => ipcRenderer.send(IPC.setIgnoreMouse, ignore),
+    setShape: (rects) => ipcRenderer.send(IPC.duckShape, rects),
     dragStart: () => ipcRenderer.send(IPC.dragStart),
     dragMove: () => ipcRenderer.send(IPC.dragMove),
     dragEnd: () => ipcRenderer.send(IPC.dragEnd),
