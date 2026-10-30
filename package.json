@@ -1,6 +1,6 @@
 {
   "name": "desktop-buddy",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "description": "An open-source 16-bit pixel-art desktop duck: skins, accessories, quests and a points store.",
   "license": "MIT",

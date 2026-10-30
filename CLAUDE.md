@@ -6,7 +6,7 @@ points when you pet and play with it or finish quests, and spends them in a stor
 focus tracking (Today/Stats), Settings with chip sounds, and a Windows installer. Friends comes
 last. It must stay **cheap on CPU and RAM**.
 
-Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.6.1**.
+Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.6.2**.
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user asks (Check for updates, the opt-in daily check, or later Friends), no dark
@@ -27,7 +27,7 @@ patterns (pressure timers, hidden odds).
 | 7b | Android-style screen time + points for active time (no keystroke counting — rejected) | ✅ |
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day, QUACK can, December snow | ✅ |
 | 7d | Care: break buddy with the wooden sign, rubber-duck mode, focus companion, welcome back, names, hunger | ✅ |
-| 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (in 0.3.0), v0.5.0 (first Linux packages) and v0.6.1 published ✅; CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
+| 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (in 0.3.0), v0.5.0 (first Linux packages) and v0.6.2 published ✅; CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
 | 8b | A local friend duck on the same PC (play, dance, tag) | first version built (Settings switch, off by default) |
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
 
