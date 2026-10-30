@@ -70,10 +70,10 @@ export class DuckWindow {
   private resumeTimer: ReturnType<typeof setTimeout> | undefined
   private jumps = 0
   /**
-   * Logical px per walk step; the step rate follows from WALK_SPEED (12 Hz). 2 px at 6 Hz was
-   * measured too (2026-10-27): no CPU gain, choppier, so the walk stays pixel-stepped.
+   * Logical px per walk step; the step rate follows from WALK_SPEED (so 6 Hz). Moving the window
+   * is what costs: 2 px at 6 Hz halved main's share against 1 px at 12 Hz (2026-10-30).
    */
-  private readonly stepPx = 1
+  private readonly stepPx = 2
 
   constructor(scale: number) {
     this.scale = scale

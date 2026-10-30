@@ -210,7 +210,7 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
 - [x] **No-GPU test** (2026-10-29, walk + idle × 3 runs each way): walk 2.54% with the GPU, 2.29%
       without (inside the noise); idle 0.54% / 0.42%; RAM 87 → 68 MB without. Transparency not
       checked (PC was locked). Kept the GPU on; `BUDDY_NO_GPU` stays dev-only
-- [ ] **Phase exit not met:** walking is still over 1% (see ARCHITECTURE "Next steps")
+- [x] **Phase exit accepted by the owner (2026-10-30):** walking at 2.39% and the normal mix at 1.17% (quiet baseline in ARCHITECTURE); idle 0.55% stays under 1%. Walking budget raised to ≤ 3%
 - [x] **Fix (user report, 2026-10-28):** "Restart now" after a size change broke `npm run dev`:
       the relaunched copy outlived the Vite server and held the single-instance lock, so the next
       `npm run dev` quit at once. The size now applies live (duck and snack windows resize, the
@@ -283,6 +283,11 @@ green, no measurable CPU change (nothing new runs on a timer).
 4. Verify on a throwaway `BUDDY_DATA_DIR` with seeded day files (several apps, two weeks):
    screenshots light/dark/it, points granted once per 10 active minutes, cap at 30, restart
    doesn't double-pay; quick perf check.
+
+Checked 2026-10-30 on throwaway data (Italian, light theme, a beanie on): Screen time and Today
+fit after small layout fixes; the headphones sit over a hat; the chug is right facing left. The
+real update to 0.6.1 worked on the owner's PC. **Still not verified:** the hunger bubble on screen
+(with nobody at the PC it stayed silent, as it should), dark theme in Italian.
 
 ## Phase 7c — A livelier duck (owner's ideas, 2026-10-29)
 
@@ -414,6 +419,10 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
   - **Not verified:** the sounds heard (`fizz` included); facing left during the chug; turbo at the
     screen edges; with a hat or glasses on; the morning cup coming up by itself in a real morning
     (a test covers the odds); real December dates in the app; the Italian text's fit in the tray
+
+- [ ] **Fisherman bucket hat** (owner's idea, 2026-10-30): a floppy bucket hat like the one the
+      owner wears, as a new hat in the catalog, with our own original logo or stripes in place of
+      any brand. Golden rule 1: no real brand's logo, name or three stripes
 
 ## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)
 

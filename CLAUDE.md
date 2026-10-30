@@ -23,7 +23,7 @@ patterns (pressure timers, hidden odds).
 | 4 | Petting, points & caps, bread + cigar snacks, points pill | ✅ |
 | 5 | Store, gift boxes (visible odds + pity), daily/weekly quests | ✅ |
 | 6 | Opt-in local tracking: Today, Stats, focus sessions (koffi → user32) | ✅ |
-| 7 | Settings screen + chip sounds | built; **exit not met: walking costs ~2.6–3.4% CPU** (budget 1%) |
+| 7 | Settings screen + chip sounds | ✅ (owner accepted walking at ~2.4% CPU, 2026-10-30) |
 | 7b | Android-style screen time + points for active time (no keystroke counting — rejected) | ✅ |
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day, QUACK can, December snow | ✅ |
 | 7d | Care: break buddy with the wooden sign, rubber-duck mode, focus companion, welcome back, names, hunger | ✅ |
@@ -32,14 +32,14 @@ patterns (pressure timers, hidden odds).
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
-What's next: hear back from the Linux testers (Fedora, Ubuntu), make
-walking cheaper (closes Phase 7) → CI + Releases →
+What's next: hear back from the Linux testers (Fedora, Ubuntu), the bucket hat →
+CI + Releases →
 CONTRIBUTING/licenses → Linux ([docs/LINUX.md](docs/LINUX.md)) → local friend duck → Friends.
 New fun features are cosmetic and kind: no penalties, the duck never gets sick or dies, care
 features can be switched off and never lock the PC or interrupt fullscreen apps and calls.
 
 **Measured** (details and history in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)): RAM 77–86 MB;
-sleep 0.1–0.3% CPU; idle 0.42–1.00%; free mix 1.01–1.30%; walk 2.3–3.4% (no-GPU: same CPU,
+quiet baseline 2026-10-30: idle 0.55%, sleep 0.54%, free mix 1.17%, walk 2.39% (no-GPU: same CPU,
 −19 MB RAM, kept off); tracking costs nothing measurable. Battery estimate on the owner's laptop (90 Wh, ~9 h): normal use costs ~10–20 min
 per charge. The one thing that would hurt badly is waking the dGPU (RTX 5060) on battery —
 unverified unplugged; fixes would be forcing the low-power GPU or `disableHardwareAcceleration`.
@@ -54,7 +54,7 @@ unverified unplugged; fixes would be forcing the low-power GPU or `disableHardwa
    nearest-neighbor), light from the top-left. Rules are enforced by `npm run bake` — see
    [docs/ART_BIBLE.md](docs/ART_BIBLE.md).
 3. **Performance budget** (measure, don't assume — numbers live in
-   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)): idle CPU < 1%, RAM < 120 MB; resting app =
+   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)): idle CPU < 1%, walking ≤ 3% (raised from 1% by the owner, 2026-10-30), RAM < 120 MB; resting app =
    **one small window**; ≤ 12 fps tick (≤ 2 fps asleep); no free-running `requestAnimationFrame`;
    no timers while hidden; skip redraws when nothing changed; the panel window is **created on
    demand and destroyed on close**; the AudioContext closes when quiet.

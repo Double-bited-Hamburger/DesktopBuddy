@@ -278,7 +278,8 @@ async function main(): Promise<void> {
   const canvas = document.getElementById('stage') as HTMLCanvasElement
   canvas.width = STAGE_SIZE
   canvas.height = STAGE_SIZE
-  const ctx = canvas.getContext('2d')
+  // A software canvas: tiny, redrawn rarely, and about 7 MB lighter than a GPU one (2026-10-30).
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
   if (!ctx) throw new Error('2D canvas is unavailable')
 
   // Too many coffees yesterday: heavy eyelids and yawns for the first TIRED_MS after starting.

@@ -50,6 +50,7 @@ body {
   font-size: 12px;
   font-weight: bold;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .panel button {
@@ -747,4 +748,17 @@ body {
 .app-text {
   flex: 1;
   min-width: 0;
+}
+
+/* Italian is longer: the title goes over the length buttons, not squeezed next to them. */
+.focus-card {
+  flex-wrap: wrap;
+}
+
+.focus-card .grow {
+  flex-basis: 100%;
+}
+
+.tile-stat .muted {
+  overflow-wrap: anywhere;
 }

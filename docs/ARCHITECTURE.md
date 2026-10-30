@@ -239,6 +239,56 @@ real changes; then, for walking, a shorter walk share in the behavior mix or few
 `app.disableHardwareAcceleration()` test of 2026-10-29 saved RAM, not CPU: see above). Last
 resort: Tauri.
 
+### Walking experiments (2026-10-30, PC in light use, so noisy)
+
+`npm run perf -- --states=walk --seconds=30 --warmup=8 --runs=4`, built app, one session. Single
+runs swing from 1.3% to 7%, nearly all of it in the GPU process and renderer, so only large
+differences mean anything.
+
+| Setup | Walk CPU (mean of 4) | Main | Note |
+| ----- | -------------------- | ---- | ---- |
+| 12 Hz × 1 px, `setBounds` (old) | 5.49% | 1.55 | |
+| 12 Hz × 1 px, native `SetWindowPos` | 5.44% | 1.82 | no gain, dropped |
+| 4 Hz × 3 px | 3.59%, 3.38% | 0.98, 0.70 | |
+| 4 Hz × 3 px + native | 3.97% | 0.73 | no gain |
+| 4 Hz × 3 px, occlusion check off | 3.18% | 1.31 | within noise, dropped |
+| 4 Hz × 3 px, software canvas | 3.99% | 1.04 | **−7 MB RAM** |
+| 4 Hz × 3 px, software canvas, occlusion off | 4.32% | 2.08 | within noise |
+| 6 Hz × 2 px, software canvas | 3.38% | 0.75 | |
+| **Final build: 6 Hz × 2 px, software canvas** | **4.02%** (2.83–5.26) | 1.31 | RAM 85 MB (was 92) |
+
+The same final build idled at 1.09% (0.66–1.82), RAM 83 MB.
+
+- **Kept:** 6 Hz × 2 px (fewer window moves; the same speed) and the software canvas (`willReadFrequently`).
+- **Walking is still over the 1% budget.** The final build's CPU can't be told apart from the
+  other low-rate setups, and it isn't clearly below the 2.3–3.4% of earlier, quieter days. The
+  drop against the old setup was measured on one busy day and needs a quiet re-run to confirm.
+- What remains is the GPU process and renderer redrawing and recompositing a moving transparent
+  window. Nothing tried in-app removes that. The only known large step left is a different shell
+  (Tauri), or walking less.
+- **Not verified:** how 6 Hz looks on screen (motion wasn't watched), a quiet nobody-at-the-PC
+  baseline, Linux, or the idle change (1.09% is inside the usual noise).
+
+### Quiet baseline (2026-10-30, nobody at the PC)
+
+**Decision: the owner accepted these numbers and the walking budget is now ≤ 3%; Phase 7 is closed.** Idle stays < 1%. Going lower would need a different shell (Tauri).
+
+`npm run perf` with 40 s windows, 4 runs each, the two builds back to back. **This replaces the
+day's busy numbers above.**
+
+| State | New: 6 Hz × 2 px, software canvas | Old: 12 Hz × 1 px, GPU canvas | Budget |
+| ----- | --------------------------------- | ----------------------------- | ------ |
+| walk | **2.39%** (2.18–2.58), main 0.82 | 2.74% (1.49–4.13), main 1.16 | 1% ❌ |
+| idle | **0.55%** (0.34–0.69), 84 MB | 0.82% (0.69–0.96), 87 MB | < 1% ✅ |
+| sleep | 0.54% (0.31–0.96), 85 MB | not run | ✅ |
+| free mix | 1.17% (0.92–1.38), 86 MB | not run | see below |
+
+- The real gain is small: about 0.35% walking (main's share down 30%), and much steadier runs.
+  The 5.5% → 4.0% in the table above was mostly a busy machine.
+- The software canvas saved 3 MB idle and nothing measurable walking here, not the 7 MB seen
+  that day.
+- The free mix, what a real duck does all day, is 1.17%: about the budget, not under it.
+
 ## Decisions that differ from the original plan
 
 - **Baked sheets are RGBA PNG, not indexed PNG** — `pngjs` can't write palette PNGs. Sheets use the
