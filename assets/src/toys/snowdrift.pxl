@@ -1,0 +1,14 @@
+# December: a little drift of snow the duck stands in. Drawn in front of its feet.
+name: snowdrift
+size: 32x5
+palette:
+  K #5d7f99
+  H #ffffff
+  B #cfeaf7
+
+@frame snowdrift
+.........KKKKK..........KKKK....
+...KKKKKKHHHHKKKKKKKKKKHHHHKK...
+.KKHHHHHHHHHHHHHHHHHHHHHHHHHHKK.
+KHHHHHHHHBHHHHHHHHHBBHHHHHHHHHHK
+KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK

@@ -88,6 +88,8 @@ export interface AppConfig {
   readonly theme: Theme
   /** Too many coffees yesterday: the duck starts the day tired (core/toys/coffee.ts). */
   readonly tired: boolean
+  /** Dev only: snow even when it isn't December (`BUDDY_SNOW=1`). */
+  readonly snow: boolean
   /**
    * Linux: click-through works by shaping the duck window to its pixels (`duck.setShape`), since
    * mouse forwarding is Windows/macOS only. False on Windows, which uses `setIgnoreMouse`.
@@ -310,9 +312,9 @@ export interface BuddyApi {
     /**
      * Starts (1 / -1) or stops (0) walking. Main owns the step timer, so a walking duck costs no
      * per-step IPC or renderer wakeups. Dragging stops the walk; send it again afterwards.
-     * `fast` zooms (after a coffee) at the same step rate, with bigger steps.
+     * `stride` races (after a drink) at the same step rate, with bigger steps.
      */
-    walk(direction: WalkDirection, fast?: boolean): void
+    walk(direction: WalkDirection, stride?: number): void
     /** Main turned the duck around at an edge of the floor. Returns an unsubscribe function. */
     onTurned(listener: (direction: 1 | -1) => void): () => void
     /**

@@ -1,5 +1,7 @@
 import type { WebContents } from 'electron'
 import { ipcMain } from 'electron'
+import { ZOOM_SPEED } from '../core/toys/coffee'
+import { TURBO_SPEED } from '../core/toys/quack'
 import type { Snack } from '../core/toys/snacks'
 import { isSnack } from '../core/toys/snacks'
 import type {
@@ -121,9 +123,10 @@ export function registerIpc({
     if (fromDuck(event.sender)) duck.dragEnd()
   })
 
-  ipcMain.on(IPC.walk, (event, direction: unknown, fast: unknown) => {
+  ipcMain.on(IPC.walk, (event, direction: unknown, stride: unknown) => {
     if (!fromDuck(event.sender)) return
-    if (direction === 1 || direction === -1 || direction === 0) duck.walk(direction, fast === true)
+    const steps = stride === ZOOM_SPEED || stride === TURBO_SPEED ? stride : 1
+    if (direction === 1 || direction === -1 || direction === 0) duck.walk(direction, steps)
   })
 
   ipcMain.on(IPC.earn, (event, source: unknown) => {

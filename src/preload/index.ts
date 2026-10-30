@@ -32,7 +32,7 @@ const api: BuddyApi = {
     dragStart: () => ipcRenderer.send(IPC.dragStart),
     dragMove: () => ipcRenderer.send(IPC.dragMove),
     dragEnd: () => ipcRenderer.send(IPC.dragEnd),
-    walk: (direction, fast) => ipcRenderer.send(IPC.walk, direction, fast === true),
+    walk: (direction, stride) => ipcRenderer.send(IPC.walk, direction, stride),
     onTurned: (listener) => {
       // Hand the renderer only the validated value, never the raw IPC event.
       const handler = (_event: unknown, direction: unknown) => {

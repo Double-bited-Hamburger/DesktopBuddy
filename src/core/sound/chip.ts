@@ -16,7 +16,7 @@ export type Tone =
     }
   | { readonly rest: number }
 
-export const SOUND_NAMES = ['quack', 'ouch', 'chomp', 'chirp', 'cough'] as const
+export const SOUND_NAMES = ['quack', 'ouch', 'chomp', 'chirp', 'cough', 'fizz'] as const
 export type SoundName = (typeof SOUND_NAMES)[number]
 
 const bite: Tone = { wave: 'square', from: 190, to: 120, ms: 60, gain: 0.35 }
@@ -25,6 +25,8 @@ const hack: readonly Tone[] = [
   { rest: 30 },
   { wave: 'sawtooth', from: 220, to: 120, ms: 80, gain: 0.25 },
 ]
+
+const gulp: Tone = { wave: 'triangle', from: 240, to: 340, ms: 90, gain: 0.35 }
 
 export const SOUNDS: Readonly<Record<SoundName, readonly Tone[]>> = {
   // A nasal "qua-ack": two downward slides.
@@ -44,6 +46,19 @@ export const SOUNDS: Readonly<Record<SoundName, readonly Tone[]>> = {
   ],
   // Too much smoke: three rough "hack-hack"s, in time with the cough frames (0, 800, 1600 ms).
   cough: [...hack, { rest: 630 }, ...hack, { rest: 630 }, ...hack],
+  // The QUACK can: a hiss as it opens, then four gulps in time with the chug (750 ms in, 300 apart).
+  fizz: [
+    { rest: 500 },
+    { wave: 'sawtooth', from: 3800, to: 2400, ms: 200, gain: 0.12 },
+    { rest: 50 },
+    gulp,
+    { rest: 210 },
+    gulp,
+    { rest: 210 },
+    gulp,
+    { rest: 210 },
+    gulp,
+  ],
 }
 
 export function isSoundName(value: unknown): value is SoundName {

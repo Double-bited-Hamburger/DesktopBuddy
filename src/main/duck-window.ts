@@ -15,7 +15,6 @@ import {
   WALK_SPEED,
   walkStep,
 } from '../core/stage'
-import { ZOOM_SPEED } from '../core/toys/coffee'
 import type { Point, Rect } from '../core/types'
 import type { ChaseDirection, FallEvent, WalkDirection } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
@@ -59,7 +58,7 @@ export class DuckWindow {
   /** Cursor positions during a drag, to measure how fast the duck was thrown. */
   private samples: Sample[] = []
   private walkDirection: 1 | -1 = 1
-  /** Steps per walk step: 1, or ZOOM_SPEED while zooming after a coffee (same 12 Hz timer). */
+  /** Steps per walk step: 1, or more while racing after a drink (same 12 Hz timer). */
   private walkStride = 1
   /** Called when the user throws the duck (released while moving fast): that counts as play. */
   onThrown: () => void = () => undefined
@@ -195,12 +194,12 @@ export class DuckWindow {
    * Starts (1 / -1) or stops (0) walking along the floor. Main owns the step timer so a walking
    * duck costs no per-step IPC or renderer wakeups; the renderer only hears about edge turns.
    */
-  walk(direction: WalkDirection, fast = false): void {
+  walk(direction: WalkDirection, stride = 1): void {
     clearInterval(this.walkTimer)
     this.walkTimer = undefined
     if (direction === 0 || this.drag || this.flightTimer || this.target) return
     this.walkDirection = direction
-    this.walkStride = fast ? ZOOM_SPEED : 1
+    this.walkStride = stride
     this.walkTimer = setInterval(() => this.step(), 1000 / (WALK_SPEED / this.stepPx))
   }
 

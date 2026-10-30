@@ -29,6 +29,9 @@ export const PAGE_MS = 4000
 /** Walking speed while zooming around after a coffee, as a multiple of the normal walk. */
 export const ZOOM_SPEED = 3
 
+/** The tiny morning coffee: a few small sips, part of the duck's morning (core/care/day.ts). */
+export const ESPRESSO_MS = 2400
+
 /** This many coffees in one day, and the duck wakes up tired the next day. */
 export const TIRED_AFTER_COFFEES = 3
 /** How long it stays tired after the app starts on that next day. */

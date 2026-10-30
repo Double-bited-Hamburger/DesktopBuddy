@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { behaviorConfigFor, DEFAULT_BEHAVIOR_CONFIG } from '../../src/core/behavior/machine'
-import { dayBehaviorConfig, msUntilNextPart, partOfDay } from '../../src/core/care/day'
+import { dayBehaviorConfig, isDecember, msUntilNextPart, partOfDay } from '../../src/core/care/day'
 
 describe('partOfDay', () => {
   it('splits the local day', () => {
@@ -50,5 +50,22 @@ describe('dayBehaviorConfig', () => {
     expect(night.sleep).toBeUndefined()
     expect(night.walk).toBeUndefined()
     expect(night.stretch).toBeUndefined()
+  })
+})
+
+describe('seasons and the morning cup', () => {
+  it('snows only in December', () => {
+    expect(isDecember(new Date(2026, 11, 1))).toBe(true)
+    expect(isDecember(new Date(2026, 11, 31, 23))).toBe(true)
+    expect(isDecember(new Date(2027, 0, 1))).toBe(false)
+    expect(isDecember(new Date(2026, 10, 30))).toBe(false)
+  })
+
+  it('has a tiny coffee in the morning only, and only with fidgets on', () => {
+    const on = behaviorConfigFor({ wander: true, naps: true, chatter: true, fidget: true })
+    const off = behaviorConfigFor({ wander: true, naps: true, chatter: true, fidget: false })
+    expect(dayBehaviorConfig(on, 'morning').next.idle.espresso).toBeGreaterThan(0)
+    expect(dayBehaviorConfig(on, 'day').next.idle.espresso).toBeUndefined()
+    expect(dayBehaviorConfig(off, 'morning').next.idle.espresso).toBeUndefined()
   })
 })

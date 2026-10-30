@@ -1,0 +1,24 @@
+# The tiny morning coffee: a small cup, upright and tipped into the beak (facing right).
+name: espresso
+size: 8x6
+palette:
+  K #2a1f2d
+  H #fffaf0
+  S #d9c49a
+  C #6b4220
+
+@frame espresso
+.KKKKK..
+KCCCCCK.
+KHHHHSKK
+KHHHSSKK
+.KHSSK..
+..KKK...
+
+@frame espresso-sip
+..KK....
+.KCCK...
+KCCCHK..
+.KCHHSK.
+..KHSSK.
+...KKK..

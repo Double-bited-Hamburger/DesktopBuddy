@@ -1,0 +1,51 @@
+# The QUACK can small enough to carry and chug (the big picture is quack-can.pxl).
+# Upright, tipped into the beak, poured straight up, and crushed on the floor.
+name: quack
+size: 8x8
+palette:
+  K #2a1f2d
+  H #ffffff
+  W #f4f1ea
+  S #c9cdd6
+  M #aab0bd
+  R #d9402f
+
+@frame quack-full
+..KKKK..
+.KSSMMK.
+.KRRRRK.
+.KHRWMK.
+.KHWRMK.
+.KHRWMK.
+.KRRRRK.
+..KKKK..
+
+@frame quack-tip
+..KK....
+.KSSK...
+KMSRRK..
+.KRHWRK.
+..KRWHRK
+...KRHMK
+....KRK.
+.....K..
+
+@frame quack-up
+..KKKK..
+.KRRRRK.
+.KHWRMK.
+.KHRWMK.
+.KHWRMK.
+.KRRRRK.
+.KSSMMK.
+..KKKK..
+
+@frame quack-crushed
+........
+........
+........
+........
+.KKK.KK.
+KSRRKRMK
+KHWRRWMK
+.KKKKKK.

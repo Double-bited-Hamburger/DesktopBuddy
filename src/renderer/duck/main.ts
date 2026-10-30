@@ -11,9 +11,10 @@ import {
   STRETCH_MS,
   TURN_MS,
   tiredBehaviorConfig,
+  YAWN_MS,
 } from '../../core/behavior/machine'
 import { PetDetector } from '../../core/behavior/pet'
-import { dayBehaviorConfig, msUntilNextPart, partOfDay } from '../../core/care/day'
+import { dayBehaviorConfig, isDecember, msUntilNextPart, partOfDay } from '../../core/care/day'
 import type { Listening } from '../../core/care/listen'
 import { listenAt, msUntilListenChange } from '../../core/care/listen'
 import type { WeatherKind } from '../../core/care/weather'
@@ -27,11 +28,14 @@ import { msUntilSmokeChange, REFUSE_MS, SMOKE_MS, smokeAt } from '../../core/toy
 import {
   coffeeAt,
   DRINK_MS,
+  ESPRESSO_MS,
   msUntilCoffeeChange,
   msUntilPageTurn,
   paperAt,
   TIRED_MS,
+  ZOOM_SPEED,
 } from '../../core/toys/coffee'
+import { CHUG_MS, fizzAt, msUntilQuackChange, quackAt, TURBO_SPEED } from '../../core/toys/quack'
 import type { Snack } from '../../core/toys/snacks'
 import type { Loadout, WalkDirection } from '../../shared/ipc'
 import { ChipPlayer } from '../shared/chip-player'
@@ -55,7 +59,10 @@ const SNACK_SPOTS = {
   bread: { ground: { x: 32, y: 33 }, beak: { x: 33, y: 16 } },
   cigar: { ground: { x: 32, y: 35 }, beak: { x: 33, y: 18 } },
   coffee: { ground: { x: 32, y: 33 }, beak: { x: 33, y: 17 }, tipped: { x: 32, y: 13 } },
+  quack: { ground: { x: 32, y: 32 }, beak: { x: 33, y: 16 }, tipped: { x: 32, y: 11 } },
 } as const
+/** The tiny morning cup, at the beak and tipped into it. */
+const ESPRESSO_SPOT = { beak: { x: 33, y: 18 }, tipped: { x: 33, y: 12 } }
 const PUFF_SPOT = { x: 35, y: 14 }
 /** Coffee steam curls up over the upright mug; sparks sit round the head once it is wide awake. */
 const STEAM_SPOT = { x: 34, y: 11 }
@@ -69,12 +76,16 @@ const ZZZ_SPOT = { x: 27, y: 6 }
 /** Rain or snow: the umbrella's top-left (behind the duck, its handle hidden by the head). */
 const UMBRELLA_SPOT = { x: 12, y: 0 }
 const ZZZ_STEP_MS = 1000
+/** December: flakes behind the duck, a drift in front of its feet. */
+const SNOW_SPOT = { x: 4, y: 0 }
+const DRIFT_SPOT = { x: 4, y: 35 }
+const SNOW_STEP_MS = 600
 const SIT_DOWN_MS = 400
 /** Looking back: it turns its head after this long, and looks ahead again this long before the end. */
 const LOOK_TURN_MS = 450
 /** How long each snack keeps the duck busy, and the state it is in meanwhile. */
-const TREAT_MS = { bread: MEAL_MS, cigar: SMOKE_MS, coffee: DRINK_MS } as const
-const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink' } as const
+const TREAT_MS = { bread: MEAL_MS, cigar: SMOKE_MS, coffee: DRINK_MS, quack: CHUG_MS } as const
+const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink', quack: 'chug' } as const
 
 /** Reading after a coffee: the sofa sits under the duck, the newspaper in front of its chest. */
 const SOFA_SPOT = { x: 4, y: 16 }
@@ -110,6 +121,8 @@ const BACK_TO_STARE: ReadonlySet<BehaviorState> = new Set([
   'yawn',
   'read',
   'zoom',
+  'turbo',
+  'espresso',
   'turn',
   'look',
   'shake',
@@ -178,7 +191,21 @@ const animations: AnimationSet = {
   // On the sofa with the newspaper: reading, with the odd slow blink.
   read: { frames: ['idle', 'idle', 'idle', 'idle', 'idle', 'blink'], frameMs: 600, loop: true },
   zoom: { frames: ['wide-step', 'wide'], frameMs: 90, loop: true }, // wide awake, racing around
-  yawn: { frames: ['yawn'], frameMs: 1600, loop: true },
+  // A real yawn: heavy eyes, the beak opening wide, closing, a slow blink (YAWN_MS).
+  yawn: {
+    frames: ['tired', 'yawn-small', 'yawn', 'yawn', 'yawn-small', 'blink'],
+    frameMs: YAWN_MS / 6,
+    loop: false,
+  },
+  // The QUACK can: the poses come from quackAt (core/toys/quack.ts), then it races off.
+  chug: { frames: ['idle'], frameMs: CHUG_MS, loop: false },
+  turbo: { frames: ['wide-step', 'wide'], frameMs: 70, loop: true },
+  // The tiny morning coffee: the cup is tipped up while the eyes are shut (see `sipping`).
+  espresso: {
+    frames: ['idle', 'blink', 'blink', 'savor', 'savor', 'idle'],
+    frameMs: ESPRESSO_MS / 6,
+    loop: false,
+  },
   stare: { frames: ['stare'], frameMs: 1000, loop: true }, // break time: a frown, no blinking
   // Too much smoke: hack, hack, hack-hack, eyes squeezed shut (COUGH_MS = 7 × 400 ms).
   cough: {
@@ -214,7 +241,11 @@ async function main(): Promise<void> {
       ...(await loadSprite('toys', 'coffee')).frames,
       ...(await loadSprite('toys', 'coffee-sip')).frames,
     ]),
+    quack: withMirrored((await loadSprite('toys', 'quack')).frames),
   }
+  const espressoFrames = withMirrored((await loadSprite('toys', 'espresso')).frames)
+  const snowFrames = (await loadSprite('emotes', 'snow')).frames // no direction: never mirrored
+  const drift = (await loadSprite('toys', 'snowdrift')).frames[0]
   const steamFrames = withMirrored((await loadSprite('emotes', 'steam')).frames)
   const buzzFrames = withMirrored((await loadSprite('emotes', 'buzz')).frames)
   const puffFrames = (await loadSprite('emotes', 'smoke')).frames
@@ -253,10 +284,12 @@ async function main(): Promise<void> {
     Math.random,
     config.pinState ? pinnedBehaviorConfig() : behaviorFor(),
   )
+  let december = config.snow || isDecember(new Date())
   // One timer per part of the day (hours apart), to re-weigh the idle choices.
   const followTheDay = () =>
     setTimeout(() => {
       if (!config.pinState) machine.configure(behaviorFor())
+      december = config.snow || isDecember(new Date())
       followTheDay()
     }, msUntilNextPart(new Date()) + 1000)
   followTheDay()
@@ -346,7 +379,15 @@ async function main(): Promise<void> {
   function render(): void {
     const calm = !dragging && !falling
     const now = performance.now()
-    const cup = calm && treat?.kind === 'coffee' ? coffeeAt(now - treat.since) : undefined
+    const elapsed = treat ? now - treat.since : 0
+    const cup =
+      !calm || !treat
+        ? undefined
+        : treat.kind === 'coffee'
+          ? coffeeAt(elapsed)
+          : treat.kind === 'quack'
+            ? quackAt(elapsed)
+            : undefined
     const talk =
       calm && listening && machine.state === 'listen' ? listenAt(now, listening) : undefined
     const base = dragging
@@ -378,10 +419,14 @@ async function main(): Promise<void> {
     const declining = calm && machine.state === 'refuse' && noSmoke !== undefined
     const rise = popupStep(now)
     const snack =
-      calm && treat && treat.kind !== 'coffee'
-        ? snackView(treat.kind, now - treat.since)
+      calm && treat && treat.kind !== 'coffee' && treat.kind !== 'quack'
+        ? snackView(treat.kind, elapsed)
         : undefined
-    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}`
+    const fizz = calm && machine.state === 'turbo' ? fizzAt(now - stateSince) : undefined
+    const sipping = calm && machine.state === 'espresso'
+    const snowy = december && calm && !page && !talk
+    const flake = snowy ? snowFrames[Math.floor(now / SNOW_STEP_MS) % snowFrames.length] : undefined
+    const key = `${outfitVersion}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(talk ? specs : dressed, pose)
     if (!image) return
@@ -395,6 +440,20 @@ async function main(): Promise<void> {
     if (sheltered && umbrella) {
       const x = facing === 1 ? UMBRELLA_SPOT.x : STAGE_SIZE - UMBRELLA_SPOT.x - umbrella.width
       layers.unshift({ frame: umbrella, offset: { x, y: UMBRELLA_SPOT.y } })
+    }
+    if (flake) layers.unshift({ frame: flake, offset: SNOW_SPOT })
+    if (snowy && drift) layers.push({ frame: drift, offset: DRIFT_SPOT })
+    /** A frame from a right/left pair, placed at a right-facing spot and mirrored with the duck. */
+    const place = (
+      pair: { right: readonly Frame[]; left: readonly Frame[] },
+      name: string | undefined,
+      spot: { x: number; y: number },
+    ) => {
+      const index = pair.right.findIndex((f) => f.name === name)
+      const frame = (facing === 1 ? pair.right : pair.left)[index]
+      if (!frame) return
+      const x = facing === 1 ? spot.x : STAGE_SIZE - spot.x - frame.width
+      layers.push({ frame, offset: { x, y: spot.y } })
     }
     // Reading: the sofa's back goes behind the duck, its seat and the newspaper in front.
     if (page && sofaBack && sofaFront) {
@@ -458,21 +517,19 @@ async function main(): Promise<void> {
       }
     }
     if (cup) {
-      /** A frame from a right/left pair, placed at a right-facing spot and mirrored with the duck. */
-      const place = (
-        pair: { right: readonly Frame[]; left: readonly Frame[] },
-        name: string | undefined,
-        spot: { x: number; y: number },
-      ) => {
-        const index = pair.right.findIndex((f) => f.name === name)
-        const frame = (facing === 1 ? pair.right : pair.left)[index]
-        if (!frame) return
-        const x = facing === 1 ? spot.x : STAGE_SIZE - spot.x - frame.width
-        layers.push({ frame, offset: { x, y: spot.y } })
-      }
-      place(snackFrames.coffee, cup.mug, SNACK_SPOTS.coffee[cup.at])
+      const drink = treat?.kind === 'quack' ? 'quack' : 'coffee'
+      place(snackFrames[drink], cup.mug, SNACK_SPOTS[drink][cup.at])
       place(steamFrames, cup.steam, STEAM_SPOT)
       place(buzzFrames, cup.buzz, BUZZ_SPOT)
+    }
+    place(buzzFrames, fizz, BUZZ_SPOT)
+    if (sipping) {
+      const tipped = clock.frameName === 'blink'
+      place(
+        espressoFrames,
+        tipped ? 'espresso-sip' : 'espresso',
+        ESPRESSO_SPOT[tipped ? 'tipped' : 'beak'],
+      )
     }
     if (popup && rise !== undefined) {
       const width = popup.text.length * DIGIT_ADVANCE + 1
@@ -506,7 +563,7 @@ async function main(): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined
   let lastTick = performance.now()
   let walkingAs: WalkDirection = 0 // what main was last told
-  let walkingFast = false
+  let walkingStride = 1
 
   /** Held or falling: main/the user moves the duck and the behavior clock is paused. */
   const busy = (): boolean => dragging || falling
@@ -522,6 +579,7 @@ async function main(): Promise<void> {
         bread: msUntilBreadChange,
         cigar: msUntilSmokeChange,
         coffee: msUntilCoffeeChange,
+        quack: msUntilQuackChange,
       }[treat.kind]
       wait = Math.min(wait, change(elapsed))
     }
@@ -538,6 +596,7 @@ async function main(): Promise<void> {
     }
     if (listening && machine.state === 'listen')
       wait = Math.min(wait, msUntilListenChange(performance.now(), listening))
+    if (december) wait = Math.min(wait, SNOW_STEP_MS - (performance.now() % SNOW_STEP_MS))
     if (machine.state === 'cough')
       wait = Math.min(wait, DIZZY_STEP_MS - ((performance.now() - stateSince) % DIZZY_STEP_MS))
     timer = setTimeout(tick, Math.min(Math.max(wait, MIN_WAIT_MS), MAX_WAIT_MS))
@@ -545,13 +604,15 @@ async function main(): Promise<void> {
 
   /** Tells main to start, stop or flip the walk, but only when that actually changes. */
   function syncWalk(): void {
-    const moving = !busy() && (machine.state === 'walk' || machine.state === 'zoom')
+    const racing = machine.state === 'zoom' || machine.state === 'turbo'
+    const moving = !busy() && (machine.state === 'walk' || racing)
     const wanted: WalkDirection = moving ? machine.direction : 0
-    const fast = machine.state === 'zoom'
-    if (wanted === walkingAs && (wanted === 0 || fast === walkingFast)) return
+    const stride =
+      machine.state === 'turbo' ? TURBO_SPEED : machine.state === 'zoom' ? ZOOM_SPEED : 1
+    if (wanted === walkingAs && (wanted === 0 || stride === walkingStride)) return
     walkingAs = wanted
-    walkingFast = fast
-    window.buddy.duck.walk(wanted, fast)
+    walkingStride = stride
+    window.buddy.duck.walk(wanted, stride)
   }
 
   /** Something outside the schedule happened (click, drop, landing): catch up and reschedule. */
@@ -599,7 +660,8 @@ async function main(): Promise<void> {
   }
 
   window.buddy.duck.onTurned((direction) => {
-    if (machine.state !== 'walk' && machine.state !== 'zoom') return // a turn that raced a stop: main stops on the next sync
+    const racing = machine.state === 'zoom' || machine.state === 'turbo'
+    if (machine.state !== 'walk' && !racing) return // a turn that raced a stop: main stops on the next sync
     if (machine.direction !== direction) machine.hitEdge()
     walkingAs = direction // main already walks this way: no need to tell it
     render()
@@ -634,6 +696,9 @@ async function main(): Promise<void> {
     } else if (kind === 'coffee') {
       machine.drink()
       sound.play('chirp')
+    } else if (kind === 'quack') {
+      machine.chug()
+      sound.play('fizz')
     } else machine.smoke()
     clock.play(machine.state, true) // a second snack starts the animation over
     treat = { kind, since: lastTick, heavy }

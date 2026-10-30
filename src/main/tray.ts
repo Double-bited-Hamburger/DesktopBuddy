@@ -35,6 +35,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
       { label: t('tray.handful'), click: actions.feedHandful },
       { label: t('tray.cigar'), click: () => actions.feed('cigar') },
       { label: t('tray.coffee'), click: () => actions.feed('coffee') },
+      { label: t('tray.quack'), click: () => actions.feed('quack') },
       {
         label: t('tray.pill'),
         type: 'checkbox',

@@ -119,6 +119,7 @@ async function start(): Promise<void> {
     duck: settings.duck,
     theme: settings.theme,
     tired,
+    snow: !app.isPackaged && process.env.BUDDY_SNOW === '1',
     weather: weather.kind,
     shapeClickThrough: SHAPED,
     pinState,
@@ -222,8 +223,10 @@ async function start(): Promise<void> {
   const ate = () => {
     if (snackCaught) {
       progress.record(snackCaught)
-      if (snackCaught !== 'bread') breaks.calm() // a coffee or a cigar: the staring duck lets it go
-      if (snackCaught === 'coffee') {
+      // A coffee or a cigar: the staring duck lets it go. (Settings says just those two.)
+      if (snackCaught === 'coffee' || snackCaught === 'cigar') breaks.calm()
+      // A QUACK can counts as a coffee towards being tired tomorrow.
+      if (snackCaught === 'coffee' || snackCaught === 'quack') {
         coffeeLog = recordCoffee(coffeeLog, localDayKey(Date.now()))
         saveCoffeeLog(storage, coffeeLog).catch((error) =>
           console.error('Could not save the coffee count', error),

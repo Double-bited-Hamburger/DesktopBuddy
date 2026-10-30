@@ -14,6 +14,11 @@ const STARTS: readonly (readonly [PartOfDay, number])[] = [
   ['night', 23],
 ]
 
+/** December: snowflakes round the duck and a drift at its feet. */
+export function isDecember(now: Date): boolean {
+  return now.getMonth() === 11
+}
+
 export function partOfDay(hour: number): PartOfDay {
   let part: PartOfDay = 'night'
   for (const [name, start] of STARTS) if (hour >= start) part = name
@@ -37,6 +42,8 @@ const SHIFTS: Readonly<Record<PartOfDay, Partial<Record<BehaviorState, number>>>
   day: {},
   evening: {},
 }
+/** A tiny coffee now and then in the morning; a fidget, so it goes when fidgets are off. */
+const MORNING_ESPRESSO = 0.06
 const YAWNS: Readonly<Record<PartOfDay, number>> = { night: 0.2, morning: 0.08, day: 0, evening: 0 }
 
 /** `config` with the idle choices shifted for `part`. Switched-off choices stay off. */
@@ -48,5 +55,6 @@ export function dayBehaviorConfig(config: BehaviorConfig, part: PartOfDay): Beha
   }
   const yawn = YAWNS[part]
   if (yawn > 0) idle.yawn = Math.max(idle.yawn ?? 0, yawn)
+  if (part === 'morning' && idle.stretch) idle.espresso = MORNING_ESPRESSO
   return { ...config, next: { ...config.next, idle } }
 }

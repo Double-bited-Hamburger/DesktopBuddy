@@ -1,7 +1,8 @@
 import { LISTEN_MAX_MS } from '../care/listen'
 import { MEAL_MS } from '../toys/bread'
 import { COUGH_MS, REFUSE_MS, SMOKE_MS } from '../toys/cigar'
-import { DRINK_MS } from '../toys/coffee'
+import { DRINK_MS, ESPRESSO_MS } from '../toys/coffee'
+import { CHUG_MS } from '../toys/quack'
 import type { Rng } from '../types'
 
 /** The longest a stare can last on its own (a break is given up on well before this). */
@@ -40,6 +41,9 @@ export const BEHAVIOR_STATES = [
   'hop',
   'forage',
   'listen',
+  'chug',
+  'turbo',
+  'espresso',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -50,6 +54,9 @@ export interface BehaviorConfig {
   /** Relative weights for what to do after each state. Missing/zero entries never happen. */
   readonly next: Readonly<Record<BehaviorState, Readonly<Partial<Record<BehaviorState, number>>>>>
 }
+
+/** A big yawn from start to finish (six frames). */
+export const YAWN_MS = 2700
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   durationMs: {
@@ -66,7 +73,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     drink: [DRINK_MS, DRINK_MS],
     read: [15_000, 25_000], // on the sofa with the newspaper
     zoom: [5000, 8000], // racing around, wide awake
-    yawn: [1600, 1600],
+    yawn: [YAWN_MS, YAWN_MS],
     // Break time: the shell ends the stare (see core/care/breaks.ts); this is only a safety net.
     stare: [STARE_MAX_MS, STARE_MAX_MS],
     cough: [COUGH_MS, COUGH_MS], // a hard cough after a cigar, seeing stars
@@ -81,6 +88,9 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     forage: [2000, 4000], // pecks at the ground for crumbs
     // Rubber-duck mode: the shell ends it when the talk box closes; this is only a safety net.
     listen: [LISTEN_MAX_MS, LISTEN_MAX_MS],
+    chug: [CHUG_MS, CHUG_MS], // the QUACK can, all in one go
+    turbo: [6000, 9000], // racing around even faster than after a coffee
+    espresso: [ESPRESSO_MS, ESPRESSO_MS], // the tiny morning coffee
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -112,13 +122,16 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     cough: { idle: 1 },
     refuse: { idle: 1 },
     turn: { walk: 1 }, // back the other way (see `hitEdge`)
-    getup: { idle: 1 },
+    getup: { idle: 0.7, yawn: 0.3 }, // often a yawn on waking up
     look: { idle: 1 },
     shake: { idle: 1 },
     stretch: { idle: 1 },
     hop: { idle: 1 },
     forage: { idle: 1 },
     listen: { idle: 1 },
+    chug: { turbo: 1 },
+    turbo: { idle: 0.6, yawn: 0.4 }, // and sometimes the crash
+    espresso: { idle: 1 },
   },
 }
 
@@ -154,6 +167,9 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       hop: forever,
       forage: forever,
       listen: forever,
+      chug: forever,
+      turbo: forever,
+      espresso: forever,
     },
     next: {
       idle: { idle: 1 },
@@ -180,6 +196,9 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       hop: { hop: 1 },
       forage: { forage: 1 },
       listen: { listen: 1 },
+      chug: { chug: 1 },
+      turbo: { turbo: 1 },
+      espresso: { espresso: 1 },
     },
   }
 }
@@ -332,6 +351,11 @@ export class BehaviorMachine {
     this.enter('drink')
   }
 
+  /** Fed a QUACK can: the duck chugs it (see core/toys/quack.ts), then races around. */
+  chug(): void {
+    this.enter('chug')
+  }
+
   /** Break time and the user is still at the PC: the duck stares, waiting, facing `direction`. */
   stare(direction: Direction): void {
     this.enter('stare')
@@ -360,7 +384,7 @@ export class BehaviorMachine {
    */
   hitEdge(): void {
     const back: Direction = this.facing === 1 ? -1 : 1
-    if (this.current === 'zoom') this.facing = back
+    if (this.current === 'zoom' || this.current === 'turbo') this.facing = back
     else if (this.current === 'walk') {
       this.enter('turn')
       this.turnTo = back
@@ -370,6 +394,7 @@ export class BehaviorMachine {
   enter(state: BehaviorState): void {
     this.current = state
     this.remainingMs = between(this.config.durationMs[state], this.rng)
-    if (state === 'walk' || state === 'zoom') this.facing = this.rng() < 0.5 ? -1 : 1
+    if (state === 'walk' || state === 'zoom' || state === 'turbo')
+      this.facing = this.rng() < 0.5 ? -1 : 1
   }
 }

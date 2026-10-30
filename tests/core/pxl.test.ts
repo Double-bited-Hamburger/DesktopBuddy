@@ -117,6 +117,7 @@ describe('placeholder duck source', () => {
       'wide-step',
       'tired',
       'tired-step',
+      'yawn-small',
       'yawn',
       'stare',
       'savor',

@@ -378,14 +378,32 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
     after sleep/resume (covered by reading the code only); the night/morning odds in a real
     night (tests cover them); the good-morning welcome seen live; the Italian text's fit; the
     umbrella with hats on
-  - [ ] Still to do: a tiny coffee cup in the morning, seasonal touches (snow on the taskbar in
-    December)
-- [ ] **Yawning** as its own animation, used when tired, late, or waking up
+  - [x] **Tiny morning coffee** (2026-10-30): in the morning the duck sometimes sips a small cup
+    by itself (`toys/espresso`, state `espresso`, 2.4 s). It's free, pays nothing and goes off
+    with the fidgets switch
+  - [x] **December snow** (2026-10-30): all of December, flakes fall behind the duck and it stands
+    in a small drift (`emotes/snow`, `toys/snowdrift`). They stay near the duck: a whole taskbar
+    of snow would need a screen-wide window, which the one-small-window rule forbids. Not on the
+    sofa or in the armchair. `BUDDY_SNOW=1` forces it in dev builds. No switch to turn it off
+    yet. It adds about 1.7 wakeups a second, only in December: **not measured**
+- [x] **Yawning** (2026-10-30): six frames, 2.7 s: heavy eyes, the beak opening wide (pink inside,
+  new frames `yawn-small` and a bigger `yawn`), closing, a slow blink. Used when tired and late as
+  before, and now 30% of the time on waking up from a nap
 
-- [ ] **White energy drink** (owner's idea, 2026-10-30): feed the duck a can of white energy
-      drink, like the coffee but fizzier: it chugs it, buzzes and zooms around faster. Our own
-      original can, chosen 2026-10-30: the white and silver **QUACK** can with red letters
-      (`toys/quack-can`: drawn, not in the game yet). Golden rule 1: no real brand's logo or name
+- [x] **White energy drink** (owner's idea, built 2026-10-30; tray "Give a QUACK can" + the
+      panel's Feed menu): the duck pecks the can up, it hisses open, four big gulps with its eyes
+      shut (core `toys/quack.ts`), it drops the crushed can with sparks round its head, then races
+      for 6–9 s at 5× the walk (a coffee's zoom is 3×), and may yawn after the crash. Paid as one
+      play, counts for quests as `quack`, and counts as a coffee towards being tired tomorrow. It
+      does not calm a staring duck (Settings says only a coffee or a cigar does). New chip sound
+      `fizz`. Our own original can: the small `toys/quack` is what's in the game (a snack is 8×8);
+      the big 18×32 `toys/quack-can` is still unused art. Golden rule 1: no real brand's logo or name
+  - Verified 2026-10-30 in dev on a throwaway data folder, feeding through the panel: the can
+    served, eaten, +3 points, counted in `coffee.json`; the chug, gasp and turbo, the yawn, the
+    morning cup and the snow seen as frames from the duck's own canvas
+  - **Not verified:** the sounds heard (`fizz` included); facing left during the chug; turbo at the
+    screen edges; with a hat or glasses on; the morning cup coming up by itself in a real morning
+    (a test covers the odds); real December dates in the app; the Italian text's fit in the tray
 
 ## Phase 7d — Care & concentration (owner's ideas, 2026-10-29)
 
