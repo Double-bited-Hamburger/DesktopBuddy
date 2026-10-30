@@ -167,5 +167,15 @@
   "focus": {
     "lengths": [15, 25, 50],
     "pointsPerMinute": 1
+  },
+  "activeTime": {
+    "minutesPerPoint": 10,
+    "dailyCap": 30
+  },
+  "hunger": {
+    "peckishAfterMinutes": 240,
+    "mealHours": [8, 19],
+    "mealWindowMinutes": 90,
+    "askEveryMinutes": 120
   }
 }

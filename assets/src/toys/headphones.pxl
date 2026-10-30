@@ -1,0 +1,20 @@
+# Tiny headphones for a focus session: the band curving over the head, a cup on the side of it.
+name: headphones
+size: 10x10
+palette:
+  K #2a1f2d
+  T #3fa7a0
+  D #2b7a75
+  H #bdeee6
+
+@frame headphones
+.....KKKK.
+....KTTDK.
+...KTTKK..
+..KTDK....
+..KTDK....
+.KKKKKK...
+KTTTTTDK..
+KTHHTTDK..
+KTTTTDDK..
+.KKKKKK...

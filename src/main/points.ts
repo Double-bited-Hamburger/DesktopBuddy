@@ -37,6 +37,10 @@ export class PointsService {
     return granted
   }
 
+  earnedToday(source: string): number {
+    return this.ledger.earnedToday(source)
+  }
+
   /** Pays a reward limited by other means (quests, duplicate refunds). */
   grant(source: string, amount: number): void {
     this.ledger.grant(source, amount)

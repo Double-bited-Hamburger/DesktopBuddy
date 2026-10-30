@@ -12,6 +12,7 @@ import type {
   Theme,
 } from '../core/settings/settings'
 import type { Snack } from '../core/toys/snacks'
+import type { AppHistory, ScreenTimeDay } from '../core/tracker/screen-time'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
 import type { Rect } from '../core/types'
 
@@ -47,6 +48,8 @@ export const IPC = {
   claimQuest: 'panel:claim-quest',
   activityToday: 'panel:activity-today',
   activityStats: 'panel:activity-stats',
+  activityScreenTime: 'panel:activity-screen-time',
+  activityAppHistory: 'panel:activity-app-history',
   activitySetEnabled: 'panel:activity-set-enabled',
   activitySetCategory: 'panel:activity-set-category',
   activitySetIgnored: 'panel:activity-set-ignored',
@@ -165,6 +168,8 @@ export interface TodayView {
   readonly focus?: { readonly startedAt: number; readonly minutes: number; readonly endsAt: number }
   readonly focusLengths: readonly number[]
   readonly pointsPerMinute: number
+  /** Points for active time so far today, out of the daily cap. */
+  readonly activePoints: { readonly earned: number; readonly cap: number }
 }
 
 /** The Stats screen: the last 7 days (oldest first), streaks and the week's top apps. */
@@ -181,6 +186,17 @@ export interface StatsView {
     readonly minutes: number
     readonly category: Category
   }[]
+}
+
+/** The Screen time tab: one day. */
+export interface ScreenTimeView extends ScreenTimeDay {
+  /** Tracking is on (with it off, old days still show but nothing new is added). */
+  readonly enabled: boolean
+  readonly today: number
+  /** The oldest saved day, or undefined with none. */
+  readonly firstDay?: number
+  /** Mean active minutes of the 7 days before this one, counting days with any data. */
+  readonly average?: number
 }
 
 /** What the duck page needs to know when the Settings screen changes something. */
@@ -205,6 +221,7 @@ export interface SettingsView {
   readonly updates: Settings['updates']
   readonly names: Names
   readonly welcomeBack: boolean
+  readonly hungerTalk: boolean
   readonly weather: WeatherView
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
@@ -226,6 +243,10 @@ export type CareEvent =
   | 'scribble'
   | 'nod'
   | 'listened'
+  | 'focus-on'
+  | 'focus-off'
+  | 'focus-done'
+  | 'hungry'
 export const CARE_EVENTS: readonly CareEvent[] = [
   'stare',
   'nag',
@@ -235,6 +256,10 @@ export const CARE_EVENTS: readonly CareEvent[] = [
   'scribble',
   'nod',
   'listened',
+  'focus-on',
+  'focus-off',
+  'focus-done',
+  'hungry',
 ]
 
 /** The weather line in Settings. */
@@ -377,6 +402,10 @@ export interface BuddyApi {
     activity: {
       today(): Promise<TodayView>
       stats(): Promise<StatsView>
+      /** One day's screen time; `day` is a yyyymmdd key, today or earlier. */
+      screenTime(day: number): Promise<ScreenTimeView>
+      /** One app over the last 7 days. */
+      appHistory(app: string): Promise<AppHistory>
       setEnabled(enabled: boolean): Promise<TodayView>
       /** Overrides an app's category (by process name). */
       setCategory(app: string, category: Category): Promise<TodayView>

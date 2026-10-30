@@ -230,6 +230,14 @@ export function registerIpc({
     panelOnly((): Promise<StatsView> => activity.stats()),
   )
   ipcMain.handle(
+    IPC.activityScreenTime,
+    panelOnly((day: unknown) => activity.screenTime(day)),
+  )
+  ipcMain.handle(
+    IPC.activityAppHistory,
+    panelOnly((app: unknown) => activity.appHistory(app)),
+  )
+  ipcMain.handle(
     IPC.activitySetEnabled,
     panelOnly((enabled: unknown) => activity.setEnabled(enabled)),
   )

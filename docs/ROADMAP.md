@@ -220,7 +220,17 @@ zone (export/erase), autostart, full perf pass. **Exit:** budget met with all fe
       the export dialog (needs a human); autostart in an installed build (Phase 8); a size change
       while a snack is out (it is taken away by design, not tried live)
 
-## Phase 7b — Screen time + points for active time (planned 2026-10-28)
+## Phase 7b — Screen time + points for active time ✅ (built 2026-10-30; planned 2026-10-28)
+
+Built as planned below. Verified 2026-10-30 in dev on a throwaway folder with 14 seeded days:
+Stats → Screen time shows the total, the change against the 7-day average, the hours and the apps;
+tapping an app shows its 7 days, average and hours; the day picker goes back. 29 seeded active
+minutes plus one real one paid +3 (`active` in the ledger, shown on Today), and restarting on the
+same data paid nothing more. **Not verified:** the Italian text's fit in the tabs, light theme and
+dark theme compared (only the default was looked at), the cap of 30 in the app (a test covers it),
+a mouse-only day, whether the Today line reads well, Linux where app names aren't recorded yet,
+and the "no measurable CPU change" exit check (no perf run; nothing new runs on a timer).
+
 
 Owner's idea: Android-style screen time (which app, for how long) and points for working at the
 computer, while playing with the duck still pays more. **No new data is recorded**: both features
@@ -428,8 +438,14 @@ the PC, and the duck never screams.
   - **Not verified:** the tray item clicked by hand; dragging the box by its title; the chirp
     heard; the Italian text's fit; hats and glasses from the Bag on the listening duck; the
     box near the top of a screen (it goes beside the duck then)
-- [ ] **Focus companion:** during a focus session the duck wears tiny headphones, stays still and
-      quiet; at the end it does a happy dance
+- [x] **Focus companion** (built 2026-10-30): during a focus session the duck wears tiny headphones
+      (`toys/headphones`), stays still and picks nothing by itself (state `focus`); clicks, snacks,
+      breaks and the talk box still work and it goes back to focusing after. A finished session
+      gets a happy dance with a heart (state `dance`, 2.4 s); stopping early just ends it
+  - Verified 2026-10-30 in dev on a throwaway folder: headphones on via startFocus, off via
+    stopFocus, the dance frame after sending `focus-done`
+  - **Not verified:** a full 15-minute session ending by itself (only the event was sent); the
+    headphones with a hat on; the chirp heard
 - [x] **Break buddy (opt-in, Settings → Breaks):** after 50 min at the PC (counted from the
       system idle time: no keys, no apps, works with tracking off) the duck hops up on screen next
       to a **wooden sign**: "Time for a break! Look out of the window and find some grass 🌱",
@@ -483,11 +499,16 @@ the PC, and the duck never screams.
   - **Not verified:** a real lock/unlock or sleep/resume of the PC; the bubble's position on
     the real screen, at other sizes and next to a screen edge; the chirp heard; Italian lines
     in the bubble; the Settings text field typed in by hand
-- [ ] **Hunger on a duck's clock:** pet ducks are usually fed twice a day (morning and evening)
-      and nibble in between, so the duck gets peckish a few hours after its last meal and really
-      hungry around breakfast and dinner time. Then it says so, with your name. Only while you're
-      at the PC; it's never punished and never sad for long (it just eats when fed). Timings in
-      data so they're easy to tune
+- [x] **Hunger on a duck's clock** (built 2026-10-30): peckish 4 h after its last bread, hungry at
+      8:00 and 19:00 if it hasn't eaten in that meal's 90 minutes (all in `economy.json` `hunger`).
+      It says so in the speech bubble, with your name, and looks for crumbs; at most every 2 h,
+      never at night, and only when you're at the PC, not in a focus session, a break, the talk box
+      or a fullscreen app. Never punished: bread resets it. Settings → "says when it's hungry" turns
+      it off. Saved as `hunger` (last meal, last said). `BUDDY_HUNGER_SECONDS` checks sooner in dev
+  - Verified 2026-10-30 in dev on a throwaway folder: seeded 6 h after a meal, the check ran and
+    saved the time it spoke
+  - **Not verified:** the bubble seen on screen (only the save was checked); a real meal time;
+    bread resetting it in the app (tests cover the rule); the Settings switch clicked
 
 ## Phase 8 — Release & community
 

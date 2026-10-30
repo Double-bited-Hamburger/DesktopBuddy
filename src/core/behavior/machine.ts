@@ -44,6 +44,8 @@ export const BEHAVIOR_STATES = [
   'chug',
   'turbo',
   'espresso',
+  'focus',
+  'dance',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -55,6 +57,10 @@ export interface BehaviorConfig {
   readonly next: Readonly<Record<BehaviorState, Readonly<Partial<Record<BehaviorState, number>>>>>
 }
 
+/** The happy dance after a finished focus session (eight frames). */
+export const DANCE_MS = 2400
+/** The shell ends the focus state when the session ends; this is only a safety net. */
+const FOCUS_MAX_MS = 4 * 60 * 60_000
 /** A big yawn from start to finish (six frames). */
 export const YAWN_MS = 2700
 
@@ -91,6 +97,8 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     chug: [CHUG_MS, CHUG_MS], // the QUACK can, all in one go
     turbo: [6000, 9000], // racing around even faster than after a coffee
     espresso: [ESPRESSO_MS, ESPRESSO_MS], // the tiny morning coffee
+    focus: [FOCUS_MAX_MS, FOCUS_MAX_MS], // headphones on, still and quiet
+    dance: [DANCE_MS, DANCE_MS],
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -132,6 +140,8 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     chug: { turbo: 1 },
     turbo: { idle: 0.6, yawn: 0.4 }, // and sometimes the crash
     espresso: { idle: 1 },
+    focus: { idle: 1 },
+    dance: { idle: 1 },
   },
 }
 
@@ -170,6 +180,8 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       chug: forever,
       turbo: forever,
       espresso: forever,
+      focus: forever,
+      dance: forever,
     },
     next: {
       idle: { idle: 1 },
@@ -199,6 +211,8 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       chug: { chug: 1 },
       turbo: { turbo: 1 },
       espresso: { espresso: 1 },
+      focus: { focus: 1 },
+      dance: { dance: 1 },
     },
   }
 }
@@ -354,6 +368,16 @@ export class BehaviorMachine {
   /** Fed a QUACK can: the duck chugs it (see core/toys/quack.ts), then races around. */
   chug(): void {
     this.enter('chug')
+  }
+
+  /** A focus session is running: headphones on, it stays still and quiet. */
+  focus(): void {
+    this.enter('focus')
+  }
+
+  /** The focus session ran to the end: a happy dance. */
+  dance(): void {
+    this.enter('dance')
   }
 
   /** Break time and the user is still at the PC: the duck stares, waiting, facing `direction`. */

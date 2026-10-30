@@ -15,9 +15,11 @@ import {
 } from '../core/tracker/activity'
 import type { FocusConfig, FocusSession } from '../core/tracker/focus'
 import { focusEndsAt } from '../core/tracker/focus'
+import type { AppHistory } from '../core/tracker/screen-time'
+import { activeMinutesOf, appHistory, screenTimeOfDay } from '../core/tracker/screen-time'
 import type { Categories, DaySummary } from '../core/tracker/summary'
 import { meetsStreak, streakOf, summarizeDay, topApps } from '../core/tracker/summary'
-import type { StatsView, TodayView } from '../shared/ipc'
+import type { ScreenTimeView, StatsView, TodayView } from '../shared/ipc'
 import type { ForegroundSource } from './foreground'
 
 /** One sample every 5 s while tracking is on: 12 per minute bucket. */
@@ -55,6 +57,12 @@ export class TrackerService {
   private saving: Promise<void> = Promise.resolve()
   /** A focus session ran to the end. */
   onFocusDone: (session: FocusSession) => void = () => undefined
+  /** A focus session started or ended, however it ended. */
+  onFocusChange: (running: boolean) => void = () => undefined
+  /** An active minute went into today's file; the count is today's total so far. */
+  onActiveMinute: (activeMinutes: number) => void = () => undefined
+  /** Points for active time so far today (kept by main, shown on Today). */
+  activePoints: () => TodayView['activePoints'] = () => ({ earned: 0, cap: 0 })
 
   constructor(
     storage: StorageAdapter,
@@ -98,7 +106,10 @@ export class TrackerService {
     const day = localDayKey(now)
     if (this.today && this.today.day !== day) await this.finishMinute() // midnight
     const done = this.bucketer.add(minuteOfDay(now), { app, idleSeconds: idle })
-    if (done) await this.write(day, (activity) => recordMinute(activity, done))
+    if (done) {
+      await this.write(day, (activity) => recordMinute(activity, done))
+      if (done.active && this.today) this.onActiveMinute(activeMinutesOf(this.today))
+    }
   }
 
   private async finishMinute(): Promise<void> {
@@ -151,6 +162,45 @@ export class TrackerService {
     return summarizeDay(activity, this.settings().categories)
   }
 
+  private async activityOf(day: number): Promise<DayActivity> {
+    if (this.today?.day === day) return this.today
+    return (
+      (await loadSave(this.storage, activityKey(day), DayActivitySchema, Date.now())) ??
+      emptyDay(day)
+    )
+  }
+
+  async screenTimeView(day: number): Promise<ScreenTimeView> {
+    const tracking = this.settings()
+    const stored = (await this.storage.list())
+      .filter((key) => ACTIVITY_KEY_PATTERN.test(key))
+      .map((key) => Number(key.slice('activity-'.length).replaceAll('-', '')))
+    const before = await Promise.all(
+      Array.from({ length: STATS_DAYS }, (_, i) => this.activityOf(addDays(day, i - STATS_DAYS))),
+    )
+    const totals = before.map(activeMinutesOf).filter((minutes) => minutes > 0)
+    return {
+      ...screenTimeOfDay(await this.activityOf(day), tracking.categories),
+      enabled: tracking.enabled,
+      today: localDayKey(Date.now()),
+      firstDay: stored.length > 0 ? Math.min(...stored) : undefined,
+      average:
+        totals.length > 0
+          ? Math.round(totals.reduce((sum, minutes) => sum + minutes, 0) / totals.length)
+          : undefined,
+    }
+  }
+
+  async appHistoryView(app: string): Promise<AppHistory> {
+    const today = localDayKey(Date.now())
+    const days = await Promise.all(
+      Array.from({ length: STATS_DAYS }, (_, i) =>
+        this.activityOf(addDays(today, i - STATS_DAYS + 1)),
+      ),
+    )
+    return appHistory(days, app)
+  }
+
   async todayView(): Promise<TodayView> {
     const tracking = this.settings()
     return {
@@ -161,6 +211,7 @@ export class TrackerService {
       focus: this.focus && { ...this.focus, endsAt: focusEndsAt(this.focus) },
       focusLengths: this.focusConfig.lengths,
       pointsPerMinute: this.focusConfig.pointsPerMinute,
+      activePoints: this.activePoints(),
     }
   }
 
@@ -195,12 +246,18 @@ export class TrackerService {
     const session: FocusSession = { startedAt: Date.now(), minutes }
     this.focus = session
     this.focusTimer = setTimeout(() => void this.finishFocus(session), minutes * 60_000)
+    this.onFocusChange(true)
   }
 
   stopFocus(): void {
     clearTimeout(this.focusTimer)
     this.focusTimer = undefined
+    if (this.focus) this.onFocusChange(false)
     this.focus = undefined
+  }
+
+  get focusing(): boolean {
+    return this.focus !== undefined
   }
 
   private async finishFocus(session: FocusSession): Promise<void> {

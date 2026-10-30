@@ -60,6 +60,8 @@ export const SettingsSchema = z.object({
   names: NamesSchema.prefault({}),
   /** The duck says hello when the user comes back to the PC (see core/care/welcome). */
   welcomeBack: z.boolean().default(true),
+  /** The duck says when it's hungry (see core/care/hunger). */
+  hungerTalk: z.boolean().default(true),
   /** Opt-in weather: a city name. Empty = off, no network (see core/care/weather). */
   weatherCity: z
     .string()
@@ -127,6 +129,7 @@ export const SettingsPatchSchema = z.strictObject({
   updates: z.strictObject({ autoCheck: z.boolean().optional() }).optional(),
   names: z.strictObject({ duck: NameSchema.optional(), you: NameSchema.optional() }).optional(),
   welcomeBack: SettingsSchema.shape.welcomeBack.unwrap().optional(),
+  hungerTalk: SettingsSchema.shape.hungerTalk.unwrap().optional(),
   weatherCity: SettingsSchema.shape.weatherCity.unwrap().optional(),
 })
 

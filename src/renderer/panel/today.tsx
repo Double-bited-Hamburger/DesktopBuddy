@@ -166,7 +166,10 @@ export function Today({ t }: { t: Translator }) {
     <section class="today">
       <FocusCard t={t} view={view} onChange={setView} />
       {!view.enabled ? (
-        <OptIn t={t} appNames={view.appNames} onChange={setView} />
+        <>
+          <OptIn t={t} appNames={view.appNames} onChange={setView} />
+          <p class="muted note">{t('today.activeOff')}</p>
+        </>
       ) : (
         <>
           <div class="tiles">
@@ -200,6 +203,9 @@ export function Today({ t }: { t: Translator }) {
             </div>
           </div>
           <Timeline t={t} timeline={summary.timeline} />
+          <p class="muted note">
+            {t('today.activePoints', { n: view.activePoints.earned, cap: view.activePoints.cap })}
+          </p>
           {!view.appNames && <p class="muted note">{t('today.noApps')}</p>}
           {summary.apps.length > 0 && (
             <ul class="apps">

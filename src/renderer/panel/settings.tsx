@@ -195,6 +195,14 @@ export function Settings({ t, onChange }: SettingsProps) {
           onChange={(e) => set({ welcomeBack: e.currentTarget.checked })}
         />
       </label>
+      <label class="row">
+        <span>{t('settings.hunger')}</span>
+        <input
+          type="checkbox"
+          checked={view.hungerTalk}
+          onChange={(e) => set({ hungerTalk: e.currentTarget.checked })}
+        />
+      </label>
       <p class="muted note">{t('settings.names.hint')}</p>
 
       <h2>{t('settings.weather')}</h2>

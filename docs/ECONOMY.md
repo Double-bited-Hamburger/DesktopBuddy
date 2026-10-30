@@ -106,3 +106,10 @@ but fails validation is copied to `ledger-backup-<time>` before starting from ze
 `loadSave`). A file that parses but fails validation is copied to `<key>-backup-<time>` before
 starting fresh, so players never silently lose items. The first `inventory` holds the starter
 items plus whatever the duck already wore, so nobody's outfit disappears when gating starts.
+
+## Active time
+
+Tracking on, every 10 active minutes pays 1 point, up to 30 a day (`activeTime` in
+`economy.json`; ledger source `active`). It's worked out from the day file, so restarts can't
+lose minutes or pay them twice. A mouse jiggler can only reach the same small cap, and playing
+with the duck still pays far more. With tracking off it pays nothing.

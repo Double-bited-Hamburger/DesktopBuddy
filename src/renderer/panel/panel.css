@@ -682,3 +682,69 @@ body {
   width: 130px;
   padding: 2px 6px;
 }
+
+.subtabs {
+  margin-bottom: 8px;
+}
+
+.day-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.big-total {
+  display: block;
+  font-size: 1.6em;
+  text-align: center;
+}
+
+.hours {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 64px;
+  margin-top: 8px;
+  border-bottom: 2px solid var(--edge);
+}
+
+.hour {
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse;
+  height: 100%;
+}
+
+.hour-labels {
+  display: flex;
+  justify-content: space-between;
+}
+
+.app-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-align: left;
+}
+
+.app-tile {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.app-bar {
+  height: 4px;
+  margin-top: 2px;
+}
+
+.app-text {
+  flex: 1;
+  min-width: 0;
+}

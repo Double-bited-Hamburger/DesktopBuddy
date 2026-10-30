@@ -1,6 +1,8 @@
 import { z } from 'zod'
+import { HungerConfigSchema } from '../care/hunger'
 import type { Catalog } from '../catalog/catalog'
 import { FocusConfigSchema } from '../tracker/focus'
+import { ActiveTimeConfigSchema } from './active-time'
 import { boxOdds, FreeGiftSchema, GiftBoxSchema } from './gifts'
 import { PricesSchema } from './inventory'
 import { SourceRuleSchema } from './ledger'
@@ -20,6 +22,10 @@ export const EconomyConfigSchema = z.object({
   quests: QuestConfigSchema,
   /** Focus sessions (Today screen): offered lengths and points per finished minute. */
   focus: FocusConfigSchema,
+  /** Points for time at the PC (needs tracking): small on purpose, the duck pays better. */
+  activeTime: ActiveTimeConfigSchema,
+  /** When the duck gets hungry and says so. */
+  hunger: HungerConfigSchema,
 })
 
 export type EconomyConfig = z.infer<typeof EconomyConfigSchema>

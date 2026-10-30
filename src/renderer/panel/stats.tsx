@@ -1,17 +1,45 @@
 import { useEffect, useState } from 'preact/hooks'
 import type { Translator } from '../../core/i18n/i18n'
 import type { StatsView } from '../../shared/ipc'
+import { ScreenTime } from './screen-time'
 import { duration } from './today'
 
-const weekday = (day: number, language: string) =>
+export const weekday = (day: number, language: string) =>
   new Date(
     Math.floor(day / 10000),
     (Math.floor(day / 100) % 100) - 1,
     day % 100,
   ).toLocaleDateString(language, { weekday: 'short' })
 
-/** The last 7 days: active and focus time per day, streaks, and where the time went. */
+/** Stats: the week (Overview) or one day, app by app (Screen time). */
 export function Stats({ t, language }: { t: Translator; language: string }) {
+  const [tab, setTab] = useState<'overview' | 'screen'>('overview')
+  return (
+    <>
+      <div class="tabs subtabs" role="tablist">
+        {(['overview', 'screen'] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+          >
+            {t(`stats.tab.${id}`)}
+          </button>
+        ))}
+      </div>
+      {tab === 'overview' ? (
+        <Overview t={t} language={language} />
+      ) : (
+        <ScreenTime t={t} language={language} />
+      )}
+    </>
+  )
+}
+
+/** The last 7 days: active and focus time per day, streaks, and where the time went. */
+function Overview({ t, language }: { t: Translator; language: string }) {
   const [view, setView] = useState<StatsView | undefined>()
   useEffect(() => {
     window.buddy.panel.activity

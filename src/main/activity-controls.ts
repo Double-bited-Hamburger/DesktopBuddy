@@ -1,10 +1,12 @@
 import { writeFile } from 'node:fs/promises'
 import { dialog } from 'electron'
+import { localDayKey } from '../core/economy/ledger'
 import type { Settings } from '../core/settings/settings'
 import type { FocusConfig } from '../core/tracker/focus'
 import { focusLength } from '../core/tracker/focus'
+import type { AppHistory } from '../core/tracker/screen-time'
 import type { Category } from '../core/tracker/summary'
-import type { StatsView, TodayView } from '../shared/ipc'
+import type { ScreenTimeView, StatsView, TodayView } from '../shared/ipc'
 import type { TrackerService } from './tracker'
 
 type Tracking = Settings['tracking']
@@ -46,6 +48,20 @@ export class ActivityControls {
 
   stats(): Promise<StatsView> {
     return this.tracker.statsView()
+  }
+
+  /** A whole-number day key, not in the future (nothing newer exists to read). */
+  screenTime(day: unknown): Promise<ScreenTimeView> {
+    if (!Number.isInteger(day) || (day as number) < 20000101) throw new Error('Invalid day')
+    if ((day as number) > localDayKey(Date.now())) throw new Error('Invalid day')
+    return this.tracker.screenTimeView(day as number)
+  }
+
+  /** An app name as it appears in the day files: it is only compared, never stored. */
+  appHistory(app: unknown): Promise<AppHistory> {
+    if (typeof app !== 'string' || app.length === 0 || app.length > MAX_APP_NAME)
+      throw new Error('Invalid app')
+    return this.tracker.appHistoryView(app)
   }
 
   async setEnabled(enabled: unknown): Promise<TodayView> {

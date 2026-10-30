@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { isSnack } from '../core/toys/snacks'
+import type { AppHistory } from '../core/tracker/screen-time'
 import type {
   AppConfig,
   BuddyApi,
@@ -8,6 +9,7 @@ import type {
   GiftResult,
   Loadout,
   PointsEvent,
+  ScreenTimeView,
   SettingsView,
   StatsView,
   StoreView,
@@ -118,6 +120,10 @@ const api: BuddyApi = {
     activity: {
       today: (): Promise<TodayView> => ipcRenderer.invoke(IPC.activityToday),
       stats: (): Promise<StatsView> => ipcRenderer.invoke(IPC.activityStats),
+      screenTime: (day: number): Promise<ScreenTimeView> =>
+        ipcRenderer.invoke(IPC.activityScreenTime, day),
+      appHistory: (app: string): Promise<AppHistory> =>
+        ipcRenderer.invoke(IPC.activityAppHistory, app),
       setEnabled: (enabled): Promise<TodayView> =>
         ipcRenderer.invoke(IPC.activitySetEnabled, enabled),
       setCategory: (app, category): Promise<TodayView> =>

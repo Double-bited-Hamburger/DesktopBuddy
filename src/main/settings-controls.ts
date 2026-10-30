@@ -45,6 +45,7 @@ export class SettingsControls {
       updates: s.updates,
       names: s.names,
       welcomeBack: s.welcomeBack,
+      hungerTalk: s.hungerTalk,
       weather: this.deps.weather(),
       autostart: {
         available: autostart.available,

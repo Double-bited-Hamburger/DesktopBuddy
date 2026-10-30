@@ -8,8 +8,19 @@ import it from '../../assets/i18n/it.json'
 import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
 import { partOfDay } from '../core/care/day'
+import {
+  EMPTY_HUNGER,
+  fedAt,
+  hungerAt,
+  hungerLine,
+  loadHunger,
+  saidAt,
+  saveHunger,
+  shouldSayHungry,
+} from '../core/care/hunger'
 import { shouldWelcome, welcomeLine } from '../core/care/welcome'
 import { equipItem, parseCatalog } from '../core/catalog/catalog'
+import { activeTimePointsDue } from '../core/economy/active-time'
 import { checkEconomy } from '../core/economy/config'
 import { localDayKey } from '../core/economy/ledger'
 import { parseEconomy } from '../core/economy/save'
@@ -76,6 +87,16 @@ function pinStateFromEnv(): BehaviorState | undefined {
   return BEHAVIOR_STATES.find((state) => state === value)
 }
 
+/** How often to ask whether the duck is hungry; it only speaks to someone who's there. */
+const HUNGER_CHECK_MS = 15 * 60_000
+const HUNGER_IDLE_SECONDS = 60
+
+/** `BUDDY_HUNGER_SECONDS` checks sooner, in dev builds only. */
+function hungerCheckMs(): number {
+  const seconds = Number(process.env.BUDDY_HUNGER_SECONDS)
+  return !app.isPackaged && seconds > 0 ? seconds * 1000 : HUNGER_CHECK_MS
+}
+
 /** After an unlock or wake-up, the duck waits this long before saying hello. */
 const WELCOME_DELAY_MS = 1500
 
@@ -95,6 +116,8 @@ async function start(): Promise<void> {
   const points = await PointsService.load(storage, economy)
   // Too many coffees yesterday: a sleepy start today. `BUDDY_TIRED=1` forces it in dev builds.
   let coffeeLog = await loadCoffeeLog(storage)
+  // A first run starts just fed, so a new duck doesn't begin by asking for food.
+  let hunger = (await loadHunger(storage)) ?? fedAt(EMPTY_HUNGER, Date.now())
   const tired =
     tiredToday(coffeeLog, localDayKey(Date.now())) ||
     (!app.isPackaged && process.env.BUDDY_TIRED === '1')
@@ -238,6 +261,12 @@ async function start(): Promise<void> {
           console.error('Could not save the smoke bar', error),
         )
       }
+      if (snackCaught === 'bread') {
+        hunger = fedAt(hunger, Date.now())
+        saveHunger(storage, hunger).catch((error) =>
+          console.error('Could not save the last meal', error),
+        )
+      }
       snackCaught = undefined
       earn('play') // a cigar pays the same capped play points as bread
     }
@@ -266,7 +295,24 @@ async function start(): Promise<void> {
       announce('focus', reward)
     }
     progress.record('focus')
+    duck.window.webContents.send(IPC.care, 'focus-done')
   }
+  // The duck wears its headphones through a session, and dances when one is finished.
+  tracker.onFocusChange = (running) =>
+    duck.window.webContents.send(IPC.care, running ? 'focus-on' : 'focus-off')
+  // Active time pays a little (needs tracking). Derived from the day file, so restarts can't
+  // lose or double-pay minutes.
+  tracker.onActiveMinute = (activeMinutes) => {
+    const earned = points.earnedToday('active')
+    const due = activeTimePointsDue(activeMinutes, earned, economy.activeTime)
+    if (due <= 0) return
+    points.grant('active', due)
+    announce('active', due)
+  }
+  tracker.activePoints = () => ({
+    earned: points.earnedToday('active'),
+    cap: economy.activeTime.dailyCap,
+  })
   tracker.sync()
   powerMonitor.on('lock-screen', () => void tracker.pause())
   powerMonitor.on('suspend', () => void tracker.pause())
@@ -300,6 +346,22 @@ async function start(): Promise<void> {
       duck.window.webContents.send(IPC.care, 'welcome')
     }, WELCOME_DELAY_MS)
   }
+  // Hunger (core/care/hunger.ts): only while the user is at the PC and nothing else is going on.
+  setInterval(() => {
+    const now = Date.now()
+    if (!settings.hungerTalk || powerMonitor.getSystemIdleTime() >= HUNGER_IDLE_SECONDS) return
+    if (awaySince !== undefined || busyNow() || breaks.busy || talk.isOpen) return
+    if (tracker.focusing || !duck.window.isVisible()) return
+    const level = hungerAt(new Date(now), hunger.lastFedAt, economy.hunger)
+    if (!shouldSayHungry(level, now, hunger.lastSaidAt, economy.hunger)) return
+    hunger = saidAt(hunger, now)
+    saveHunger(storage, hunger).catch((error) =>
+      console.error('Could not save the hunger time', error),
+    )
+    const line = hungerLine(level, settings.names.you)
+    bubble.say(t(line.key, line.vars), settings.names.duck, duck.window.getBounds(), settings.scale)
+    duck.window.webContents.send(IPC.care, 'hungry')
+  }, hungerCheckMs())
   powerMonitor.on('lock-screen', goneAway)
   powerMonitor.on('suspend', goneAway)
   powerMonitor.on('unlock-screen', cameBack)

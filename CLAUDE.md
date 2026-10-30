@@ -24,16 +24,16 @@ patterns (pressure timers, hidden odds).
 | 5 | Store, gift boxes (visible odds + pity), daily/weekly quests | ✅ |
 | 6 | Opt-in local tracking: Today, Stats, focus sessions (koffi → user32) | ✅ |
 | 7 | Settings screen + chip sounds | built; **exit not met: walking costs ~2.6–3.4% CPU** (budget 1%) |
-| 7b | Android-style screen time + points for active time (no keystroke counting — rejected) | planned |
+| 7b | Android-style screen time + points for active time (no keystroke counting — rejected) | ✅ |
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day, QUACK can, December snow | ✅ |
-| 7d | Care: break buddy with the wooden sign ✅; rubber-duck mode, focus companion, welcome back, names, hunger | in progress |
+| 7d | Care: break buddy with the wooden sign, rubber-duck mode, focus companion, welcome back, names, hunger | ✅ |
 | 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (in 0.3.0), v0.5.0 published ✅ (first Linux packages); CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
 | 8b | A local friend duck on the same PC (play, dance, tag) | planned |
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
 What's next: hear back from the Linux testers (Fedora, Ubuntu), make
-walking cheaper (closes Phase 7), the planned 7b and 7d features → CI + Releases →
+walking cheaper (closes Phase 7) → CI + Releases →
 CONTRIBUTING/licenses → Linux ([docs/LINUX.md](docs/LINUX.md)) → local friend duck → Friends.
 New fun features are cosmetic and kind: no penalties, the duck never gets sick or dies, care
 features can be switched off and never lock the PC or interrupt fullscreen apps and calls.

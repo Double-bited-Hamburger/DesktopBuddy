@@ -4,6 +4,7 @@ import type { BehaviorPrefs, BehaviorState } from '../../core/behavior/machine'
 import {
   BehaviorMachine,
   behaviorConfigFor,
+  DANCE_MS,
   GETUP_MS,
   HOP_MS,
   pinnedBehaviorConfig,
@@ -63,6 +64,8 @@ const SNACK_SPOTS = {
 } as const
 /** The tiny morning cup, at the beak and tipped into it. */
 const ESPRESSO_SPOT = { beak: { x: 33, y: 18 }, tipped: { x: 33, y: 12 } }
+/** The headphones' cup sits on the side of the head, the band over the top. */
+const HEADPHONES_SPOT = { x: 17, y: 11 }
 const PUFF_SPOT = { x: 35, y: 14 }
 /** Coffee steam curls up over the upright mug; sparks sit round the head once it is wide awake. */
 const STEAM_SPOT = { x: 34, y: 11 }
@@ -123,6 +126,7 @@ const BACK_TO_STARE: ReadonlySet<BehaviorState> = new Set([
   'zoom',
   'turbo',
   'espresso',
+  'focus',
   'turn',
   'look',
   'shake',
@@ -200,6 +204,14 @@ const animations: AnimationSet = {
   // The QUACK can: the poses come from quackAt (core/toys/quack.ts), then it races off.
   chug: { frames: ['idle'], frameMs: CHUG_MS, loop: false },
   turbo: { frames: ['wide-step', 'wide'], frameMs: 70, loop: true },
+  // Headphones on, working along with you: a slow blink now and then.
+  focus: { frames: ['idle', 'idle', 'idle', 'idle', 'idle', 'blink'], frameMs: 700, loop: true },
+  // The session is done: hop, wiggle, hop, wiggle (DANCE_MS).
+  dance: {
+    frames: ['hop', 'shake-l', 'hop', 'shake-r', 'hop', 'shake-l', 'hop', 'happy'],
+    frameMs: DANCE_MS / 8,
+    loop: false,
+  },
   // The tiny morning coffee: the cup is tipped up while the eyes are shut (see `sipping`).
   espresso: {
     frames: ['idle', 'blink', 'blink', 'savor', 'savor', 'idle'],
@@ -246,6 +258,7 @@ async function main(): Promise<void> {
   const espressoFrames = withMirrored((await loadSprite('toys', 'espresso')).frames)
   const snowFrames = (await loadSprite('emotes', 'snow')).frames // no direction: never mirrored
   const drift = (await loadSprite('toys', 'snowdrift')).frames[0]
+  const headphones = withMirrored((await loadSprite('toys', 'headphones')).frames)
   const steamFrames = withMirrored((await loadSprite('emotes', 'steam')).frames)
   const buzzFrames = withMirrored((await loadSprite('emotes', 'buzz')).frames)
   const puffFrames = (await loadSprite('emotes', 'smoke')).frames
@@ -322,6 +335,7 @@ async function main(): Promise<void> {
   let shownState: BehaviorState = machine.state
   /** Break time (the break buddy): stare at the user until the break happens. */
   let staring = false
+  let focusing = false // a focus session is running: headphones on
   /** Rubber-duck mode: the talk box is open (only *when* keys and lines happened, never text). */
   let listening: Listening | undefined
   let stateSince = performance.now()
@@ -404,7 +418,8 @@ async function main(): Promise<void> {
     const facing = lookingBack ? (machine.direction === 1 ? -1 : 1) : machine.direction
     const page = calm && machine.state === 'read' ? paperAt(performance.now() - stateSince) : ''
     const speaking = calm && machine.state === 'quack' && bubble !== undefined
-    const loved = calm && machine.state === 'happy' && heart !== undefined
+    const loved =
+      calm && (machine.state === 'happy' || machine.state === 'dance') && heart !== undefined
     const dizzy =
       calm && machine.state === 'cough'
         ? dizzyFrames[Math.floor((now - stateSince) / DIZZY_STEP_MS) % dizzyFrames.length]
@@ -424,9 +439,10 @@ async function main(): Promise<void> {
         : undefined
     const fizz = calm && machine.state === 'turbo' ? fizzAt(now - stateSince) : undefined
     const sipping = calm && machine.state === 'espresso'
+    const wired = calm && machine.state === 'focus'
     const snowy = december && calm && !page && !talk
     const flake = snowy ? snowFrames[Math.floor(now / SNOW_STEP_MS) % snowFrames.length] : undefined
-    const key = `${outfitVersion}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}`
+    const key = `${outfitVersion}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(talk ? specs : dressed, pose)
     if (!image) return
@@ -523,6 +539,7 @@ async function main(): Promise<void> {
       place(buzzFrames, cup.buzz, BUZZ_SPOT)
     }
     place(buzzFrames, fizz, BUZZ_SPOT)
+    if (wired) place(headphones, 'headphones', HEADPHONES_SPOT)
     if (sipping) {
       const tipped = clock.frameName === 'blink'
       place(
@@ -633,6 +650,8 @@ async function main(): Promise<void> {
       if (staring && BACK_TO_STARE.has(machine.state)) machine.stare(machine.direction)
       else if (listening && BACK_TO_STARE.has(machine.state) && machine.state !== 'listen')
         machine.listen()
+      else if (focusing && BACK_TO_STARE.has(machine.state) && machine.state !== 'focus')
+        machine.focus()
       clock.play(machine.state) // a no-op unless the state changed (by time or by a click)
       clock.advance(dt)
     }
@@ -726,6 +745,20 @@ async function main(): Promise<void> {
         machine.pet() // glad it could help
         sound.play('chirp')
       }
+    } else if (event === 'focus-on') {
+      focusing = true
+      if (!treat && !busy() && !staring && !listening) machine.focus()
+    } else if (event === 'focus-off') {
+      focusing = false
+      if (machine.state === 'focus') machine.enter('idle')
+    } else if (event === 'focus-done') {
+      if (!treat && !busy()) {
+        machine.dance()
+        sound.play('chirp')
+      }
+    } else if (event === 'hungry') {
+      // It says so in a bubble (main) and has a look round for crumbs.
+      if (!treat && !busy() && !staring && !listening) machine.enter('forage')
     } else if (event === 'stare') {
       staring = true
       if (!treat) machine.stare(machine.direction)
