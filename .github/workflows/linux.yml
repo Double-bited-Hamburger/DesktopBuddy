@@ -1,16 +1,18 @@
 # Linux: checks, the AppImage / .deb / .rpm packages, and a start-up smoke test on a virtual X
 # screen. Linux packages can only be built on Linux, so this is where they come from. Nothing is
-# published: the packages and a screenshot are kept as the run's artifacts (for 14 days).
+# published on a normal push: the packages and a screenshot are kept as the run's artifacts (for
+# 14 days). Pushing a v* tag (making a GitHub release) also attaches the packages to that release.
 name: Linux
 
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write # to attach the packages to a release; nothing else writes
 
 jobs:
   linux:
@@ -67,6 +69,13 @@ jobs:
           grep -q "Window shape extents" "$RUNNER_TEMP/shape.txt"
           kill "$APP"
           echo "--- app log"; cat "$RUNNER_TEMP/app.log"
+
+      - name: Attach the packages to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" --clobber             release/DesktopBuddy-*.AppImage release/DesktopBuddy.AppImage             release/desktopbuddy_*_amd64.deb release/desktopbuddy_amd64.deb             release/desktopbuddy-*.x86_64.rpm release/desktopbuddy.x86_64.rpm             release/latest-linux.yml
 
       - uses: actions/upload-artifact@v4
         if: always()
