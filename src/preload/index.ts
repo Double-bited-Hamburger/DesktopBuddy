@@ -152,6 +152,11 @@ const api: BuddyApi = {
   sign: {
     answer: (choice) => ipcRenderer.send(IPC.signAnswer, choice),
   },
+  talk: {
+    typed: () => ipcRenderer.send(IPC.talkTyped),
+    line: () => ipcRenderer.send(IPC.talkLine),
+    done: () => ipcRenderer.send(IPC.talkDone),
+  },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),
   },

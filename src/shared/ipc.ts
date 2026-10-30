@@ -62,6 +62,9 @@ export const IPC = {
   weather: 'duck:weather',
   smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
+  talkTyped: 'talk:typed',
+  talkLine: 'talk:line',
+  talkDone: 'talk:done',
   updateGet: 'panel:update-get',
   updateCheck: 'panel:update-check',
   updateDownload: 'panel:update-download',
@@ -202,9 +205,28 @@ export interface SettingsView {
 /**
  * The break buddy's news for the duck page: stare (break time, the user is still here), nag (a
  * soft quack: still typing), welcome (back from a real break) or calm (it lets it go for now).
+ * Rubber-duck mode (core/care/listen.ts): listen (the talk box opened), scribble (a key was
+ * pressed), nod (a line was finished) and listened (the box closed). Never any of the text.
  */
-export type CareEvent = 'stare' | 'nag' | 'welcome' | 'calm'
-export const CARE_EVENTS: readonly CareEvent[] = ['stare', 'nag', 'welcome', 'calm']
+export type CareEvent =
+  | 'stare'
+  | 'nag'
+  | 'welcome'
+  | 'calm'
+  | 'listen'
+  | 'scribble'
+  | 'nod'
+  | 'listened'
+export const CARE_EVENTS: readonly CareEvent[] = [
+  'stare',
+  'nag',
+  'welcome',
+  'calm',
+  'listen',
+  'scribble',
+  'nod',
+  'listened',
+]
 
 /** The weather line in Settings. */
 export interface WeatherView {
@@ -381,6 +403,15 @@ export interface BuddyApi {
   sign: {
     /** A button on the break sign was pressed. */
     answer(choice: SignChoice): void
+  }
+  /** The talk box (rubber-duck mode). Only *that* something was typed is sent, never the text. */
+  talk: {
+    /** A key was pressed (the page sends this at most every TYPING_EVERY_MS). */
+    typed(): void
+    /** A line was finished (Enter). */
+    line(): void
+    /** "Thanks, duck": close the box. */
+    done(): void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

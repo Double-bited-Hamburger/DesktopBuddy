@@ -45,6 +45,7 @@ import { ProgressService } from './progress'
 import { backUpSavesIfNewVersion, eraseBackups } from './save-backup'
 import { SettingsControls } from './settings-controls'
 import { SnackPile } from './snack-pile'
+import { TalkWindow } from './talk-window'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
 import { UpdateService } from './updates'
@@ -180,11 +181,13 @@ async function start(): Promise<void> {
   // piece is paid for once finished (capped like any play), and only for a piece it actually
   // caught, so the duck page can't claim treats it was never given.
   // The break buddy (opt-in): see break-buddy.ts.
+  // Rubber-duck mode: the talk box only passes cues to the duck, never what was typed.
+  const talk = new TalkWindow((event) => duck.window.webContents.send(IPC.care, event))
   const busyNow = windowsBusy()
   const breaks = new BreakBuddy({
     duck,
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
-    busy: busyNow,
+    busy: () => talk.isOpen || busyNow(), // never in the middle of a talk
     settings: () => settings.breaks,
     scale: () => settings.scale,
     testSeconds: breakSecondsFromEnv(),
@@ -280,7 +283,8 @@ async function start(): Promise<void> {
     if (!shouldWelcome(now - since, now, lastWelcome)) return
     // Give the desktop a moment to come back, then check it's still a good time.
     setTimeout(() => {
-      if (awaySince !== undefined || busyNow() || breaks.busy || !duck.window.isVisible()) return
+      if (awaySince !== undefined || busyNow() || breaks.busy || talk.isOpen) return
+      if (!duck.window.isVisible()) return
       lastWelcome = Date.now()
       const line = welcomeLine(Math.random, settings.names.you, partOfDay(new Date().getHours()))
       bubble.say(
@@ -336,6 +340,7 @@ async function start(): Promise<void> {
       togglePanel: () => panel.toggle(),
       feed,
       feedHandful,
+      talk: () => talk.open(duck.window.getBounds(), settings.names.duck),
       pillShown: settings.showPointsPill,
       setPill,
       update: trayUpdate(),
@@ -409,14 +414,19 @@ async function start(): Promise<void> {
     activity,
     settings: settingsControls,
     breaks,
+    talk,
     updates,
   })
 
   buildTray()
+  // Dev only: open the talk box at start, for probes (the tray can't be clicked from a script).
+  if (!app.isPackaged && process.env.BUDDY_OPEN_TALK === '1')
+    setTimeout(() => talk.open(duck.window.getBounds(), settings.names.duck), 3000)
   app.on('second-instance', () => panel.open())
   app.on('before-quit', () => {
     tray?.destroy()
     bubble.close()
+    talk.close()
     weather.stop()
   })
   // Write any batched points before the app goes away.

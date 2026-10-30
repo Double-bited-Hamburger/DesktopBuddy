@@ -8,6 +8,8 @@ interface TrayActions {
   feed(snack: Snack): void
   /** Tosses several pieces of bread at once. */
   feedHandful(): void
+  /** Opens the talk box (rubber-duck mode). */
+  talk(): void
   /** Whether the points pill is on now, and how to switch it. */
   pillShown: boolean
   setPill(shown: boolean): void
@@ -28,6 +30,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: t('tray.openPanel'), click: actions.togglePanel },
+      { label: t('tray.talk'), click: actions.talk },
       { label: t('tray.feed'), click: () => actions.feed('bread') },
       { label: t('tray.handful'), click: actions.feedHandful },
       { label: t('tray.cigar'), click: () => actions.feed('cigar') },

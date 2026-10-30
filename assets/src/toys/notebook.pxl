@@ -1,0 +1,47 @@
+# The notebook the duck scribbles in while you talk to it (rubber-duck mode), held in front of
+# its chest. Drawn for a duck facing right: resting, then the pencil going along the lines.
+name: notebook
+size: 10x10
+palette:
+  K #2a1f2d
+  B #4a6fa5
+  P #efe8da
+  G #b9b4ad
+  Y #f7d84a
+  E #1e1620
+
+@frame notebook
+..........
+..........
+KKKKKKKK..
+KBPPPPPK..
+KBPGGGPK..
+KBPPPPPK..
+KBPGGPPK..
+KBPPPPPK..
+KBPGGGPK..
+KKKKKKKK..
+
+@frame write-1
+.........Y
+........Y.
+KKKKKKKY..
+KBPPPPYK..
+KBPGGEPK..
+KBPPPPPK..
+KBPGGPPK..
+KBPPPPPK..
+KBPGGGPK..
+KKKKKKKK..
+
+@frame write-2
+..........
+..........
+KKKKKKKK.Y
+KBPPPPPKY.
+KBPGGGPY..
+KBPPPPYK..
+KBPGGEPK..
+KBPPPPPK..
+KBPGGGPK..
+KKKKKKKK..

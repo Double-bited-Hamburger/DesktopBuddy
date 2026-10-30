@@ -24,6 +24,7 @@ import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
 import type { SettingsControls } from './settings-controls'
 import type { SnackPile } from './snack-pile'
+import type { TalkWindow } from './talk-window'
 import type { UpdateService } from './updates'
 
 interface IpcDeps {
@@ -52,6 +53,8 @@ interface IpcDeps {
   readonly settings: SettingsControls
   /** The break buddy and its sign window. */
   readonly breaks: BreakBuddy
+  /** The talk box (rubber-duck mode). */
+  readonly talk: TalkWindow
   /** Check for updates, download, install. */
   readonly updates: UpdateService
 }
@@ -76,6 +79,7 @@ export function registerIpc({
   activity,
   settings,
   breaks,
+  talk,
   updates,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
@@ -83,13 +87,15 @@ export function registerIpc({
   const fromPill = (sender: WebContents) => sender === pill.webContents
   const fromSnack = (sender: WebContents) => snacks.owns(sender)
   const fromSign = (sender: WebContents) => breaks.owns(sender)
+  const fromTalk = (sender: WebContents) => talk.owns(sender)
 
   ipcMain.handle(IPC.getConfig, (event): AppConfig => {
     if (
       !fromDuck(event.sender) &&
       !fromPanel(event.sender) &&
       !fromPill(event.sender) &&
-      !fromSign(event.sender)
+      !fromSign(event.sender) &&
+      !fromTalk(event.sender)
     )
       throw new Error('Unknown sender')
     return config()
@@ -145,6 +151,19 @@ export function registerIpc({
 
   ipcMain.on(IPC.signAnswer, (event, choice: unknown) => {
     if (fromSign(event.sender) && (choice === 'finish' || choice === 'later')) breaks.answer(choice)
+  })
+
+  // The talk box says only *that* something was typed; there is no payload to validate.
+  ipcMain.on(IPC.talkTyped, (event) => {
+    if (fromTalk(event.sender)) talk.typed()
+  })
+
+  ipcMain.on(IPC.talkLine, (event) => {
+    if (fromTalk(event.sender)) talk.line()
+  })
+
+  ipcMain.on(IPC.talkDone, (event) => {
+    if (fromTalk(event.sender)) talk.close()
   })
 
   ipcMain.on(IPC.openPanel, (event) => {

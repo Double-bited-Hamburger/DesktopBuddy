@@ -387,9 +387,24 @@ duck never gets sick or dies. New art goes through `pixel-artist` (original, ≤
 The duck helps you look after yourself. Every part can be turned off in Settings; nothing locks
 the PC, and the duck never screams.
 
-- [ ] **Rubber-duck mode:** click "Talk to the duck" → a small box "Tell me what's wrong". You
-      type out the bug, the duck nods and quacks softly. Nothing is saved or sent; the text is
-      gone when the box closes
+- [x] **Rubber-duck mode:** tray → "Talk to the duck" opens a small notebook page, "Tell me
+      what's wrong", next to the duck. The duck sits in a brown leather wingback armchair
+      (`toys/armchair`), puts on round glasses (or keeps its own) and scribbles in a notebook
+      (`toys/notebook`) while you type; after each finished line it nods, chirps softly and the
+      box shows one of ten therapist replies ("And how does that make the code feel?"). "Thanks,
+      duck", × or Esc closes it and the duck is glad it helped. Brain: `core/care/listen.ts`
+      (tested); shell: `main/talk-window.ts`; page: `src/renderer/talk/`. **Privacy:** the text
+      never leaves the box's page: main and the duck only hear *that* a key was pressed (at most
+      every 400 ms) or a line was finished. Nothing is saved, and the window is destroyed on
+      close. Breaks and the welcome bubble wait while the box is open
+  - Verified 2026-10-30 in dev on a throwaway data folder (opened with the dev-only
+    `BUDDY_OPEN_TALK=1`, since a script can't click the tray): the box gets focus, typing makes
+    the duck scribble, Enter on a line makes it nod and changes the reply, an empty line does
+    nothing, the duck's name shows, "Thanks, duck" closes the window and the duck leaves the
+    armchair; the typed words were found in no save file
+  - **Not verified:** the tray item clicked by hand; dragging the box by its title; the chirp
+    heard; the Italian text's fit; hats and glasses from the Bag on the listening duck; the
+    box near the top of a screen (it goes beside the duck then)
 - [ ] **Focus companion:** during a focus session the duck wears tiny headphones, stays still and
       quiet; at the end it does a happy dance
 - [x] **Break buddy (opt-in, Settings → Breaks):** after 50 min at the PC (counted from the

@@ -11,6 +11,7 @@ import {
   TURN_MS,
   tiredBehaviorConfig,
 } from '../../src/core/behavior/machine'
+import { LISTEN_MAX_MS } from '../../src/core/care/listen'
 import { DRINK_MS } from '../../src/core/toys/coffee'
 import { sequence } from '../helpers'
 
@@ -269,6 +270,18 @@ describe('break time', () => {
     machine.update(STARE_MAX_MS - 1)
     expect(machine.state).toBe('stare')
     machine.update(1) // the safety net
+    expect(machine.state).toBe('idle')
+  })
+})
+
+describe('rubber-duck mode', () => {
+  it('listens without wandering off until the talk is over (or the safety net)', () => {
+    const machine = new BehaviorMachine(sequence([0.5]))
+    machine.listen()
+    expect(machine.state).toBe('listen')
+    machine.update(LISTEN_MAX_MS - 1)
+    expect(machine.state).toBe('listen')
+    machine.update(1)
     expect(machine.state).toBe('idle')
   })
 })

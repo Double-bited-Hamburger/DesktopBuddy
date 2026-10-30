@@ -14,6 +14,8 @@ import {
 } from '../../core/behavior/machine'
 import { PetDetector } from '../../core/behavior/pet'
 import { dayBehaviorConfig, msUntilNextPart, partOfDay } from '../../core/care/day'
+import type { Listening } from '../../core/care/listen'
+import { listenAt, msUntilListenChange } from '../../core/care/listen'
 import type { WeatherKind } from '../../core/care/weather'
 import { needsUmbrella } from '../../core/care/weather'
 import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
@@ -30,7 +32,7 @@ import {
   TIRED_MS,
 } from '../../core/toys/coffee'
 import type { Snack } from '../../core/toys/snacks'
-import type { WalkDirection } from '../../shared/ipc'
+import type { Loadout, WalkDirection } from '../../shared/ipc'
 import { ChipPlayer } from '../shared/chip-player'
 import { drawDressed, loadDressedDuck } from '../shared/outfit'
 import { loadSprite } from '../shared/sprites'
@@ -76,6 +78,16 @@ const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink' } as const
 /** Reading after a coffee: the sofa sits under the duck, the newspaper in front of its chest. */
 const SOFA_SPOT = { x: 4, y: 16 }
 const PAPER_SPOT = { x: 24, y: 20 }
+/** Rubber-duck mode: the armchair sits where the sofa does, the notebook low on the chest. */
+const ARMCHAIR_SPOT = { x: 4, y: 9 }
+const NOTEBOOK_SPOT = { x: 26, y: 21 }
+/** A nod is the walk's dip (the whole duck a pixel lower; the armchair hides the feet). */
+const NOD_POSE = 'walk-2'
+/** Listening, the duck wears glasses: the user's own if it has some on, else round ones. */
+const withSpecs = (loadout: Loadout): Loadout => ({
+  ...loadout,
+  face: loadout.face ?? 'nerd-glasses',
+})
 /** The morning after too much coffee, these poses get heavy eyelids. */
 const TIRED_POSES: Readonly<Record<string, string>> = {
   idle: 'tired',
@@ -87,7 +99,7 @@ const TIRED_POSES: Readonly<Record<string, string>> = {
 }
 
 /**
- * During a break the duck keeps staring: whatever it would drift into by itself turns back into
+ * During a break the duck keeps staring (and, in rubber-duck mode, keeps listening): whatever it would drift into by itself turns back into
  * the stare. Reactions (a click's quack, a pet, a snack) play first, then it stares again.
  */
 const BACK_TO_STARE: ReadonlySet<BehaviorState> = new Set([
@@ -103,6 +115,7 @@ const BACK_TO_STARE: ReadonlySet<BehaviorState> = new Set([
   'stretch',
   'hop',
   'forage',
+  'listen',
 ])
 
 /** A press that moves less than this (screen px) before release is a click, not a drag. */
@@ -173,6 +186,8 @@ const animations: AnimationSet = {
     loop: false,
   },
   refuse: { frames: ['stare'], frameMs: REFUSE_MS, loop: false }, // "no thanks", with the sign
+  // In the armchair, listening (rubber-duck mode): a slow blink now and then.
+  listen: { frames: ['idle', 'idle', 'idle', 'idle', 'blink'], frameMs: 700, loop: true },
 }
 
 /** Poses that override the animation while main or the user is moving the duck. */
@@ -182,6 +197,7 @@ const AIRBORNE_POSE = 'quack' // thrown or falling: screaming
 async function main(): Promise<void> {
   const config = await window.buddy.getConfig()
   let dressed = await loadDressedDuck(config.loadout)
+  let specs = await loadDressedDuck(withSpecs(config.loadout))
   const bubble = (await loadSprite('emotes', 'quack-bubble')).frames[0]
   const heart = (await loadSprite('emotes', 'heart')).frames[0]
   const digits = await loadSprite('ui', 'points-digits')
@@ -209,6 +225,10 @@ async function main(): Promise<void> {
   const sofaBack = sofa.find((f) => f.name === 'sofa-back')
   const sofaFront = sofa.find((f) => f.name === 'sofa-front')
   const paperFrames = withMirrored((await loadSprite('toys', 'newspaper')).frames)
+  const armchair = (await loadSprite('toys', 'armchair')).frames // lit from the left: never mirrored
+  const armchairBack = armchair.find((f) => f.name === 'armchair-back')
+  const armchairFront = armchair.find((f) => f.name === 'armchair-front')
+  const notebookFrames = withMirrored((await loadSprite('toys', 'notebook')).frames)
 
   const canvas = document.getElementById('stage') as HTMLCanvasElement
   canvas.width = STAGE_SIZE
@@ -268,6 +288,8 @@ async function main(): Promise<void> {
   let shownState: BehaviorState = machine.state
   /** Break time (the break buddy): stare at the user until the break happens. */
   let staring = false
+  /** Rubber-duck mode: the talk box is open (only *when* keys and lines happened, never text). */
+  let listening: Listening | undefined
   let stateSince = performance.now()
 
   // Equipping from the Bag swaps the outfit live; the version is part of the redraw key.
@@ -282,10 +304,11 @@ async function main(): Promise<void> {
 
   window.buddy.duck.onLoadout((loadout) => {
     const version = ++outfitVersion
-    loadDressedDuck(loadout)
-      .then((next) => {
+    Promise.all([loadDressedDuck(loadout), loadDressedDuck(withSpecs(loadout))])
+      .then(([next, nextSpecs]) => {
         if (version !== outfitVersion) return // a newer equip already won
         dressed = next
+        specs = nextSpecs
         render()
       })
       .catch((error) => console.error('Could not load the new outfit', error))
@@ -322,7 +345,13 @@ async function main(): Promise<void> {
     const calm = !dragging && !falling
     const now = performance.now()
     const cup = calm && treat?.kind === 'coffee' ? coffeeAt(now - treat.since) : undefined
-    const base = dragging ? HELD_POSE : falling ? AIRBORNE_POSE : (cup?.pose ?? clock.frameName)
+    const talk =
+      calm && listening && machine.state === 'listen' ? listenAt(now, listening) : undefined
+    const base = dragging
+      ? HELD_POSE
+      : falling
+        ? AIRBORNE_POSE
+        : (cup?.pose ?? (talk?.pose ? NOD_POSE : clock.frameName))
     const pose = (tired && TIRED_POSES[base]) || base
     const lookingBack =
       calm &&
@@ -342,16 +371,17 @@ async function main(): Promise<void> {
       sleepingFor >= 0
         ? zzzFrames[Math.floor(sleepingFor / ZZZ_STEP_MS) % zzzFrames.length]
         : undefined
-    const sheltered = calm && needsUmbrella(weather) && machine.state !== 'read' && umbrella
+    const sheltered =
+      calm && needsUmbrella(weather) && machine.state !== 'read' && !talk && umbrella
     const declining = calm && machine.state === 'refuse' && noSmoke !== undefined
     const rise = popupStep(now)
     const snack =
       calm && treat && treat.kind !== 'coffee'
         ? snackView(treat.kind, now - treat.since)
         : undefined
-    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}`
+    const key = `${outfitVersion}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}`
     if (key === lastKey) return // nothing changed: skip the redraw
-    let image = drawDressed(dressed, pose)
+    let image = drawDressed(talk ? specs : dressed, pose)
     if (!image) return
     lastKey = key
 
@@ -373,6 +403,17 @@ async function main(): Promise<void> {
       if (paper) {
         const x = facing === 1 ? PAPER_SPOT.x : STAGE_SIZE - PAPER_SPOT.x - paper.width
         layers.push({ frame: paper, offset: { x, y: PAPER_SPOT.y } })
+      }
+    }
+    // Listening: the armchair's back behind the duck, its arms and seat in front, then the notebook.
+    if (talk && armchairBack && armchairFront) {
+      layers.unshift({ frame: armchairBack, offset: ARMCHAIR_SPOT })
+      layers.push({ frame: armchairFront, offset: ARMCHAIR_SPOT })
+      const index = notebookFrames.right.findIndex((f) => f.name === talk.notebook)
+      const notebook = (facing === 1 ? notebookFrames.right : notebookFrames.left)[index]
+      if (notebook) {
+        const x = facing === 1 ? NOTEBOOK_SPOT.x : STAGE_SIZE - NOTEBOOK_SPOT.x - notebook.width
+        layers.push({ frame: notebook, offset: { x, y: NOTEBOOK_SPOT.y } })
       }
     }
     if (speaking && bubble) {
@@ -481,6 +522,8 @@ async function main(): Promise<void> {
       const back = machine.msUntilDecision - LOOK_TURN_MS
       wait = Math.min(wait, since < LOOK_TURN_MS ? LOOK_TURN_MS - since : back > 0 ? back : wait)
     }
+    if (listening && machine.state === 'listen')
+      wait = Math.min(wait, msUntilListenChange(performance.now(), listening))
     if (machine.state === 'cough')
       wait = Math.min(wait, DIZZY_STEP_MS - ((performance.now() - stateSince) % DIZZY_STEP_MS))
     timer = setTimeout(tick, Math.min(Math.max(wait, MIN_WAIT_MS), MAX_WAIT_MS))
@@ -513,6 +556,8 @@ async function main(): Promise<void> {
       // A quack the duck chose by itself (clicks play theirs in endDrag).
       if (machine.update(dt) && machine.state === 'quack') sound.play('quack')
       if (staring && BACK_TO_STARE.has(machine.state)) machine.stare(machine.direction)
+      else if (listening && BACK_TO_STARE.has(machine.state) && machine.state !== 'listen')
+        machine.listen()
       clock.play(machine.state) // a no-op unless the state changed (by time or by a click)
       clock.advance(dt)
     }
@@ -585,7 +630,24 @@ async function main(): Promise<void> {
   // being used, happy when the user comes back from a real break, and calm when it lets it go.
   window.buddy.duck.onCare((event) => {
     wake() // catch up first
-    if (event === 'stare') {
+    if (event === 'listen') {
+      // Rubber-duck mode (main/talk-window.ts): into the armchair, glasses on, notebook out.
+      listening = {}
+      if (!treat && !busy()) machine.listen()
+    } else if (event === 'scribble') {
+      if (listening) listening = { ...listening, typedAt: performance.now() }
+    } else if (event === 'nod') {
+      if (listening) {
+        listening = { ...listening, lineAt: performance.now() }
+        sound.play('chirp') // a soft "mm-hm"
+      }
+    } else if (event === 'listened') {
+      listening = undefined
+      if (machine.state === 'listen') {
+        machine.pet() // glad it could help
+        sound.play('chirp')
+      }
+    } else if (event === 'stare') {
       staring = true
       if (!treat) machine.stare(machine.direction)
     } else if (event === 'nag') {

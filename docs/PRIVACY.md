@@ -16,6 +16,9 @@ as each feature lands.
   weather for its position rounded to about 1 km, once an hour. Open-Meteo sees the city name,
   that rough position, your IP address and the app's user agent; nothing else. Clearing the
   field stops the requests and forgets the place.
+- **Talk to the duck** (rubber-duck mode) saves and sends nothing: what you type stays in that
+  little window and is gone when it closes. The rest of the app only hears that a key was pressed
+  or a line finished, so the duck can scribble and nod.
 - **Activity tracking is off by default.** The Today screen explains exactly what is recorded and
   records nothing until the user presses "Yes, track my day". It can be turned off any time.
 - **What tracking reads while on:** every 5 s, the seconds since the last keyboard/mouse input

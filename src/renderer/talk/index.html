@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="__CSP__" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DesktopBuddy</title>
+    <link rel="stylesheet" href="./talk.css" />
+  </head>
+  <body>
+    <main class="pop" hidden>
+      <header>
+        <h1 id="title">Tell me what's wrong</h1>
+        <button id="close" type="button">×</button>
+      </header>
+      <p id="hint" class="hint"></p>
+      <textarea id="text" spellcheck="false" maxlength="5000"></textarea>
+      <p class="reply" aria-live="polite"><b id="name"></b> <span id="reply"></span></p>
+      <div class="buttons">
+        <button id="done" type="button"></button>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

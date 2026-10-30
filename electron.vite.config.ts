@@ -20,7 +20,7 @@ function cspPlugin(): Plugin {
 
 // Main and preload entries are auto-detected (src/main/index.ts, src/preload/index.ts).
 // Renderer pages: the always-on duck, the on-demand panel, the optional pill, a carried snack
-// the break sign and the duck's speech bubble.
+// the break sign, the duck's speech bubble and the talk box (rubber-duck mode).
 export default defineConfig({
   main: {},
   preload: {},
@@ -38,6 +38,7 @@ export default defineConfig({
           snack: resolve('src/renderer/snack/index.html'),
           sign: resolve('src/renderer/sign/index.html'),
           bubble: resolve('src/renderer/bubble/index.html'),
+          talk: resolve('src/renderer/talk/index.html'),
         },
       },
     },

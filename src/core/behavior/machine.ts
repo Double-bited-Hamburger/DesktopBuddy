@@ -1,3 +1,4 @@
+import { LISTEN_MAX_MS } from '../care/listen'
 import { MEAL_MS } from '../toys/bread'
 import { COUGH_MS, REFUSE_MS, SMOKE_MS } from '../toys/cigar'
 import { DRINK_MS } from '../toys/coffee'
@@ -38,6 +39,7 @@ export const BEHAVIOR_STATES = [
   'stretch',
   'hop',
   'forage',
+  'listen',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -77,6 +79,8 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     stretch: [STRETCH_MS, STRETCH_MS], // a big wing stretch
     hop: [HOP_MS, HOP_MS], // two happy little hops
     forage: [2000, 4000], // pecks at the ground for crumbs
+    // Rubber-duck mode: the shell ends it when the talk box closes; this is only a safety net.
+    listen: [LISTEN_MAX_MS, LISTEN_MAX_MS],
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -114,6 +118,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     stretch: { idle: 1 },
     hop: { idle: 1 },
     forage: { idle: 1 },
+    listen: { idle: 1 },
   },
 }
 
@@ -148,6 +153,7 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       stretch: forever,
       hop: forever,
       forage: forever,
+      listen: forever,
     },
     next: {
       idle: { idle: 1 },
@@ -173,6 +179,7 @@ export function pinnedBehaviorConfig(): BehaviorConfig {
       stretch: { stretch: 1 },
       hop: { hop: 1 },
       forage: { forage: 1 },
+      listen: { listen: 1 },
     },
   }
 }
@@ -329,6 +336,11 @@ export class BehaviorMachine {
   stare(direction: Direction): void {
     this.enter('stare')
     this.facing = direction
+  }
+
+  /** You're talking to the duck (rubber-duck mode): it sits in its armchair and listens. */
+  listen(): void {
+    this.enter('listen')
   }
 
   /** Bread on the floor: run for it, facing the way the shell says. */
