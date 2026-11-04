@@ -1,0 +1,27 @@
+# Exotic: a shiny golden game cartridge balanced on the head, with a white heart on its red label.
+# A generic cartridge: no console's shape, name or logo.
+name: golden-cartridge
+size: 11x12
+anchor: head 5 11
+palette:
+  K #2a1f2d
+  G #f2c230
+  g #b8861b
+  L #fff0a0
+  W #fff8e1
+  R #d8344a
+  Y #ffe680
+
+@frame golden-cartridge
+.KKKKKKKKK.
+KLLGGGGGGgK
+KLgGgGgGggK
+KLGGGGGGGgK
+KLKKKKKKKgK
+KLKRWRWRKgK
+KGKRWWWRKgK
+KGKRRWRRKgK
+KGKKKKKKKgK
+KGGGGGGGGgK
+KgggggggggK
+.KYKYKYKYK.

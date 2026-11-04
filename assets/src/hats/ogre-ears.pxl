@@ -1,0 +1,22 @@
+# A leather headband with two big pointy swamp-green ears sticking up and out. Our own design.
+name: ogre-ears
+size: 21x8
+anchor: head 10 6
+palette:
+  K #2a1f2d
+  G #8fae3c
+  g #5f7d24
+  I #c76a5a
+  B #8a5a32
+  b #5e3a1e
+  Y #c08a52
+
+@frame ogre-ears
+KK.................KK
+KGKK.............KKGK
+KGGGK...........KGGGK
+.KgIGKK.......KKGIgK.
+.KggIGGKKKKKKKGGIggK.
+..KKggGBYBBBBBGggKK..
+....KKKbBBBBBbKKK....
+......KKKKKKKKK......

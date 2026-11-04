@@ -1,0 +1,29 @@
+# Our own armored hunter's helmet: gunmetal steel, a bronze band, an ember-glow visor over the eye
+# and one horn swept back. An original design, not any game's helmet.
+name: demon-hunter-helmet
+size: 14x12
+anchor: head 7 5
+palette:
+  K #2a1f2d
+  G #5a5f6b
+  g #3b3f4a
+  L #8f96a3
+  B #a8733a
+  b #6e4520
+  R #ff5a2a
+  r #b8301a
+  Y #ffd27a
+
+@frame demon-hunter-helmet
+KK............
+KBBK..KKKK....
+.KBBKKLLLGKK..
+..KBBLLGGGGGK.
+..KbLGGGGGGGGK
+.KLGGGGGGGGGGK
+.KLGBBBBBBBBBK
+KgGGGGGGGGGGGK
+KgGGGKKKKKKKKK
+KgGGKRRRRYRRRK
+KggGKrrrrrrrrK
+.KKKKKKKKKKKKK

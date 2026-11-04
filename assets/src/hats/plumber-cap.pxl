@@ -1,0 +1,22 @@
+# A teal work cap with a short bill and a little water drop on the front. No letters or logos.
+name: plumber-cap
+size: 16x8
+anchor: head 8 4
+palette:
+  K #2a1f2d
+  G #2f8f8a
+  g #1f5f5c
+  L #6fcfc6
+  S #8fd3ff
+  s #3f8fd8
+  W #f4fbff
+
+@frame plumber-cap
+....KKKKKK......
+...KLLGGSGK.....
+..KLGGGSSsK.....
+..KGGGGWSsGK....
+.KgGGGGGsGGGgK..
+.KgggggggggggKKK
+.KKKKKKKKKKKKggK
+............KKKK

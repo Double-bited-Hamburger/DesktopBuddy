@@ -209,6 +209,9 @@ async function main(): Promise<void> {
     ['strawberry', 'party-hat', null],
     ['midnight', null, 'sunglasses'],
     ['golden', 'crown', null],
+    ['ghost', 'wizard-hat', null],
+    ['neon', 'viking-helmet', 'cyber-visor'],
+    ['galaxy', 'demon-hunter-helmet', null],
   ]
   const layers: Layer[] = []
   for (const [i, [skinId, hatId, faceId]] of looks.entries()) {
@@ -235,7 +238,7 @@ async function main(): Promise<void> {
       [{ image: wardrobe, x: 0, ms: 1000 }],
       wardrobe.width,
       wardrobe.height,
-      'Six duck skins wearing hats and glasses',
+      'Nine duck skins wearing hats and glasses',
     ),
   )
   console.log(`wrote docs/media/duck-show.svg (${shots.length} shots) and docs/media/wardrobe.svg`)

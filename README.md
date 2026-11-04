@@ -47,8 +47,8 @@ throw it, dress it up. Free and open source, with no paywalls.
 | run a **focus session** (15/25/50 min, or Pomodoro with breaks) | keeps time while you work, naps on your breaks | **+3/min** |
 
 <div align="center">
-<img src="docs/media/wardrobe.svg" alt="Six duck skins wearing different hats and glasses" width="720">
-<br><sub>6 skins · 4 hats · 2 glasses, all original pixel art, all earnable in play</sub>
+<img src="docs/media/wardrobe.svg" alt="Nine duck skins wearing different hats and glasses" width="720">
+<br><sub>9 skins · 11 hats · 3 glasses, all original pixel art, all earnable in play</sub>
 </div>
 
 Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets you nowhere:

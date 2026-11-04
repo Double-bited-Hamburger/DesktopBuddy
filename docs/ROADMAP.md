@@ -70,7 +70,7 @@ Skins (palette variants), hats, faces, layered rendering by anchors, Bag UI, pan
 (pin/close), pixel UI kit with bundled OFL pixel font; everything dev-unlocked. **Exit:** pick a
 duck type + hat + face in the Bag and see it on the duck, persisted across restarts.
 
-- [x] Catalog as data: `assets/economy/catalog.json` (6 skins, 4 hats, 2 glasses), core
+- [x] Catalog as data: `assets/economy/catalog.json` (6 skins, 4 hats, 2 glasses at first), core
       `parseCatalog` / `resolveOutfit` / `equipItem` (2026-10-27)
 - [x] Skins are palette variants (classic, rubber, mint, strawberry, midnight, golden); the duck's
       eye got its own palette key `E` so dark skins can light it up
@@ -162,7 +162,13 @@ cover pity, duplicates, caps.
       caps, quest rewards ×3, focus 3 pts/min, active time 1 pt per 3 min (cap 90), a free gift
       every 40 min. Prices unchanged. All in `economy.json`; see ECONOMY.md
 - [ ] **Not verified:** whether 3× feels right over days of real play
-- [ ] Next: more items (the exotic tier is empty), achievements, emotes as items
+- [x] **Ten new items** (2026-11-04, picked by the owner): skins ghost (rare), neon (epic), galaxy
+      (legendary); hats plumber's cap (common), ogre ears (uncommon), wizard hat (rare), viking
+      helmet (epic), Demon Hunter helmet (legendary) and the golden cartridge, the first **exotic**;
+      the cyber visor (rare) for faces. All our own designs: no game's helmet, logo or character
+- [ ] **Not verified:** the new hats on every pose in the running app (checked on the idle frame
+      only), and the Italian names' fit in the Bag
+- [ ] Next: achievements, emotes as items
 
 ## Phase 6 — Focus & stats (opt-in)
 

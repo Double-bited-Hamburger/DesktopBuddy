@@ -1,0 +1,25 @@
+# A round iron helmet with a brass band and two cream horns curling up.
+name: viking-helmet
+size: 19x9
+anchor: head 9 5
+palette:
+  K #2a1f2d
+  G #8a8f99
+  g #5d616b
+  L #c3c8d0
+  B #b8862f
+  b #7f5a1c
+  Y #f2d16b
+  H #f3ead2
+  h #c9b88f
+
+@frame viking-helmet
+K.................K
+KK...............KK
+KHK....KKKKK....KHK
+KHhK..KLLLGGK..KhHK
+.KHhKKLLGGGGGKKhHK.
+..KhKLGGGGGGGgKhK..
+...KLGGGGGGGGGgK...
+...KBYBBBBBBBBbK...
+...KKKKKKKKKKKKK...

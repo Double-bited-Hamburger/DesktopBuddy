@@ -69,6 +69,48 @@
       }
     },
     {
+      "id": "ghost",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#6b78a6",
+        "W": "#e6eeff",
+        "S": "#b9c7e8",
+        "H": "#ffffff",
+        "E": "#2e3657"
+      }
+    },
+    {
+      "id": "neon",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#1a0f2e",
+        "W": "#ff4fd8",
+        "S": "#b02aa8",
+        "H": "#ffb3f0",
+        "O": "#3ff0ff",
+        "D": "#1fa8c0"
+      }
+    },
+    {
+      "id": "galaxy",
+      "slot": "skin",
+      "rarity": "legendary",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#0b0a1f",
+        "W": "#3b2a7a",
+        "S": "#1f3f7a",
+        "H": "#b08cff",
+        "E": "#9ff3ff",
+        "O": "#e85ad8",
+        "D": "#9a2a92"
+      }
+    },
+    {
       "id": "bucket-hat",
       "slot": "hat",
       "rarity": "uncommon",
@@ -99,6 +141,42 @@
       "sprite": "hats/crown"
     },
     {
+      "id": "plumber-cap",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/plumber-cap"
+    },
+    {
+      "id": "ogre-ears",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/ogre-ears"
+    },
+    {
+      "id": "wizard-hat",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/wizard-hat"
+    },
+    {
+      "id": "viking-helmet",
+      "slot": "hat",
+      "rarity": "epic",
+      "sprite": "hats/viking-helmet"
+    },
+    {
+      "id": "demon-hunter-helmet",
+      "slot": "hat",
+      "rarity": "legendary",
+      "sprite": "hats/demon-hunter-helmet"
+    },
+    {
+      "id": "golden-cartridge",
+      "slot": "hat",
+      "rarity": "exotic",
+      "sprite": "hats/golden-cartridge"
+    },
+    {
       "id": "nerd-glasses",
       "slot": "face",
       "rarity": "common",
@@ -109,6 +187,12 @@
       "slot": "face",
       "rarity": "uncommon",
       "sprite": "faces/sunglasses"
+    },
+    {
+      "id": "cyber-visor",
+      "slot": "face",
+      "rarity": "rare",
+      "sprite": "faces/cyber-visor"
     },
     {
       "id": "friend-duck",

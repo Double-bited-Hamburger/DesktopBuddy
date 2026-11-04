@@ -1,0 +1,16 @@
+# A glowing cyan visor over the eye, held on by a thin dark strap round the head.
+name: cyber-visor
+size: 12x4
+anchor: face 7 1
+palette:
+  K #2a1f2d
+  D #3a3f4f
+  C #3fe0ff
+  c #1a8fb8
+  W #e8ffff
+
+@frame cyber-visor
+.....KKKKKKK
+DDDDDKCCCWCK
+.....KcccccK
+......KKKKK.
