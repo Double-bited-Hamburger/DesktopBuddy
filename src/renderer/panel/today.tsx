@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import type { Translator } from '../../core/i18n/i18n'
+import { focusCountdown } from '../../core/tracker/focus'
 import type { Category, Segment } from '../../core/tracker/summary'
 import type { TodayView } from '../../shared/ipc'
 
@@ -50,28 +51,27 @@ function FocusCard({
   view: TodayView
   onChange: (v: TodayView) => void
 }) {
-  const [now, setNow] = useState(Date.now())
+  const [, setTick] = useState(0)
   const running = view.focus
+  // Read the clock on every render: a time kept from when the screen opened made a new
+  // session show 25:02 and then jump to 24:58.
+  const countdown = running && focusCountdown(running, Date.now())
+  const nextTickMs = countdown ? countdown.nextTickMs : undefined
   useEffect(() => {
-    if (!running) return
-    // Ticks only while a session runs and this screen is open.
-    const timer = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(timer)
-  }, [running])
+    if (nextTickMs === undefined) return
+    // Wakes only while a session runs and this screen is open, right when the second changes.
+    const timer = setTimeout(() => setTick((n) => n + 1), nextTickMs + 5)
+    return () => clearTimeout(timer)
+  })
   const call = (p: Promise<TodayView>) =>
     p.then(onChange).catch((e) => console.error('Focus failed', e))
 
-  if (running) {
-    const left = Math.max(0, running.endsAt - now)
-    const mm = String(Math.floor(left / 60_000)).padStart(2, '0')
-    const ss = String(Math.floor((left % 60_000) / 1000)).padStart(2, '0')
+  if (running && countdown) {
     return (
       <div class="card focus-card">
         <div class="grow">
           <strong>{t('focus.running', { n: running.minutes })}</strong>
-          <span class="countdown">
-            {mm}:{ss}
-          </span>
+          <span class="countdown">{countdown.text}</span>
         </div>
         <button type="button" onClick={() => call(window.buddy.panel.activity.stopFocus())}>
           {t('focus.stop')}

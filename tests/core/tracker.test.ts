@@ -11,7 +11,7 @@ import {
   recordMinute,
   recordSession,
 } from '../../src/core/tracker/activity'
-import { focusEndsAt, focusLength, focusReward } from '../../src/core/tracker/focus'
+import { focusCountdown, focusEndsAt, focusLength, focusReward } from '../../src/core/tracker/focus'
 import {
   BREAK_MINUTES,
   categoryOf,
@@ -174,5 +174,27 @@ describe('focus sessions', () => {
     const session = { startedAt: 1000, minutes: 15 }
     expect(focusEndsAt(session)).toBe(1000 + 15 * 60_000)
     expect(focusReward(config, session)).toBe(30)
+  })
+
+  it('counts down from 25:00 one second at a time, never above the length', () => {
+    const session = { startedAt: 10_000, minutes: 25 }
+    const at = (now: number) => focusCountdown(session, now)
+    // A clock read before the start (the screen was open first) must not show 25:02.
+    expect(at(7_000).text).toBe('25:00')
+    expect(at(10_000).text).toBe('25:00')
+    expect(at(10_004).text).toBe('25:00')
+    expect(at(11_004).text).toBe('24:59')
+    expect(at(12_004).text).toBe('24:58')
+    expect(at(10_000 + 25 * 60_000 - 1).text).toBe('00:01')
+    expect(at(10_000 + 25 * 60_000).text).toBe('00:00')
+    expect(at(10_000 + 26 * 60_000).text).toBe('00:00')
+  })
+
+  it('wakes up exactly when the shown second changes', () => {
+    const session = { startedAt: 10_000, minutes: 25 }
+    expect(focusCountdown(session, 10_000).nextTickMs).toBe(1000)
+    expect(focusCountdown(session, 10_004).nextTickMs).toBe(996)
+    expect(focusCountdown(session, 7_000).nextTickMs).toBe(4000)
+    expect(focusCountdown(session, 10_000 + 25 * 60_000).nextTickMs).toBeUndefined()
   })
 })

@@ -78,8 +78,9 @@ on your taskbar, and adds a Start menu + desktop icon. Nothing to type, no Node,
 
 ### 🐧 Linux
 
-> **New in 0.5.0.** Built and checked on GitHub's Ubuntu machines, not yet tried on many real
-> desktops: if something looks wrong, please
+> Every release since 0.5.0 comes for Linux too, and the links below always get the **newest**
+> version. Built and checked on GitHub's Ubuntu machines, not yet tried on many real desktops: if
+> something looks wrong, please
 > [open an issue](https://github.com/Double-bited-Hamburger/DesktopBuddy/issues).
 
 Pick the file for your distro. All of them are 64-bit (x86_64 / amd64).
@@ -128,8 +129,10 @@ instead: Ubuntu's AppArmor stops AppImages of Electron apps from starting their 
 - **Start at login:** Settings → Startup → *Start when I log in* (writes
   `~/.config/autostart/desktopbuddy.desktop`).
 - **Your saves** live in `~/.config/desktop-buddy/data`. Uninstalling never deletes them.
-- **Updating:** install the newer file the same way (`apt install` / `dnf install` over the old
-  one). Your points and items are kept.
+- **Updating** (e.g. from 0.5.0): run the same two commands again: `wget` gets the newest file,
+  and `apt install` / `dnf install` puts it over the old one. Your points and items are kept.
+  Settings → Updates → **Check** can also do it (it asks for your password), but that hasn't
+  been tried on a real Linux PC yet.
 - **Not on Linux yet:** app names in the opt-in activity tracking (Today/Stats count active and
   idle time only).
 
