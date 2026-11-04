@@ -639,6 +639,7 @@ async function main(): Promise<void> {
     tick()
   }
 
+  let toldAsleep = false
   function tick(): void {
     timer = undefined
     const now = performance.now()
@@ -659,6 +660,13 @@ async function main(): Promise<void> {
     if (machine.state !== shownState) {
       shownState = machine.state
       stateSince = now
+    }
+    // Main only hears when a nap starts or ends (the friend duck may come and nap alongside),
+    // including a duck that starts out asleep.
+    const asleep = machine.state === 'sleep'
+    if (asleep !== toldAsleep) {
+      toldAsleep = asleep
+      window.buddy.duck.sleeping(asleep)
     }
     if (treat) {
       if (now - treat.since >= TREAT_MS[treat.kind] - 1) {
@@ -764,6 +772,24 @@ async function main(): Promise<void> {
           machine.dance()
           if (prefs.chatter) sound.play('chirp')
         }
+      }
+    } else if (event === 'focus-break') {
+      // A Pomodoro break (headphones already off): a chirp, then a nap.
+      if (!treat && !busy() && !staring && !listening) {
+        machine.enter('sleep')
+        sound.play('chirp')
+      }
+    } else if (event === 'focus-back') {
+      // The break is over: up again, ready for the next round.
+      if (!treat && !busy() && !staring && !listening) {
+        machine.pet()
+        sound.play('chirp')
+      }
+    } else if (event === 'ball-kick') {
+      // Main saw the duck reach the ball: a little hop is the headbutt.
+      if (!treat && !busy()) {
+        machine.enter('hop')
+        if (prefs.chatter) sound.play('chirp')
       }
     } else if (event === 'hungry') {
       // It says so in a bubble (main) and has a look round for crumbs.

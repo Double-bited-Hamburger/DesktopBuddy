@@ -1,9 +1,12 @@
 import { z } from 'zod'
+import { CycleConfigSchema } from './pomodoro'
 
 /** economy.json `focus`: which session lengths the Today screen offers and what they pay. */
 export const FocusConfigSchema = z.object({
   lengths: z.array(z.number().int().positive()).min(1),
   pointsPerMinute: z.number().int().nonnegative(),
+  /** Pomodoro cycles: "Repeat with breaks" on the Today screen. */
+  cycle: CycleConfigSchema,
 })
 
 export type FocusConfig = z.infer<typeof FocusConfigSchema>

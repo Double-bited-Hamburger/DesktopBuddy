@@ -44,6 +44,8 @@ export class ProgressService {
   private saving: Promise<void> = Promise.resolve()
   /** Called after anything in the view changed (the panel refreshes, if open). */
   onChange: () => void = () => undefined
+  /** A new item was found or bought (not on a duplicate). */
+  onOwned: (id: string) => void = () => undefined
 
   private constructor(
     economy: EconomyConfig,
@@ -83,6 +85,13 @@ export class ProgressService {
     const service = new ProgressService(economy, catalog, storage, wallet, inventory, book, rng)
     service.scheduleSave() // a first run writes the starter inventory
     return service
+  }
+
+  /** Gives an item without a roll or a price (moving an old switch over to an item). */
+  grantOwned(id: string): void {
+    if (this.owned.has(id) || !this.catalog.items.some((item) => item.id === id)) return
+    this.owned.add(id)
+    this.changed()
   }
 
   get ownedSet(): ReadonlySet<string> {
@@ -131,6 +140,7 @@ export class ProgressService {
         ? this.economy.freeGift.duplicatePoints
         : Math.floor(box.price * this.economy.duplicateRefund)
     this.owned.add(roll.item.id)
+    if (!roll.duplicate) this.onOwned(roll.item.id)
     if (refund > 0) this.wallet.grant('refund', refund)
     this.quests.record('gift')
     this.changed()
@@ -151,6 +161,7 @@ export class ProgressService {
       return { ok: false, reason: 'points' }
     this.owned.add(featured.id)
     this.changed()
+    this.onOwned(featured.id)
     return { ok: true, item: featured.id }
   }
 

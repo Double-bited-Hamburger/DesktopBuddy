@@ -19,6 +19,15 @@ import type {
 } from '../shared/ipc'
 import { CARE_EVENTS, FALL_EVENTS, IPC, WEATHER_KINDS } from '../shared/ipc'
 
+const idOrNull = (value: unknown) => value === null || typeof value === 'string'
+
+/** A loadout from main: a skin id and hat/face ids or null (main checked them against the catalog). */
+function isLoadout(value: unknown): value is Loadout {
+  if (typeof value !== 'object' || value === null) return false
+  const { skin, hat, face } = value as Record<string, unknown>
+  return typeof skin === 'string' && idOrNull(hat) && idOrNull(face)
+}
+
 // The renderers only ever see this object. Every call maps to one fixed channel;
 // the main process validates the sender and the payload.
 const api: BuddyApi = {
@@ -99,14 +108,16 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.refused, handler)
     },
     ate: () => ipcRenderer.send(IPC.ate),
+    sleeping: (asleep) => ipcRenderer.send(IPC.duckSleep, asleep === true),
     openPanel: () => ipcRenderer.send(IPC.openPanel),
   },
   panel: {
     close: () => ipcRenderer.send(IPC.panelClose),
     setPinned: (pinned) => ipcRenderer.send(IPC.panelSetPinned, pinned),
-    equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
+    equip: (slot, id, who): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id, who),
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
     feedHandful: () => ipcRenderer.send(IPC.feedHandful),
+    throwBall: () => ipcRenderer.send(IPC.throwBall),
     smokeBar: () => ipcRenderer.invoke(IPC.smokeBar),
     store: (): Promise<StoreView> => ipcRenderer.invoke(IPC.store),
     onStore: (listener) => {
@@ -133,7 +144,8 @@ const api: BuddyApi = {
         ipcRenderer.invoke(IPC.activitySetIgnored, app, ignored),
       erase: (): Promise<number> => ipcRenderer.invoke(IPC.activityErase),
       export: (): Promise<boolean> => ipcRenderer.invoke(IPC.activityExport),
-      startFocus: (minutes): Promise<TodayView> => ipcRenderer.invoke(IPC.focusStart, minutes),
+      startFocus: (minutes, options): Promise<TodayView> =>
+        ipcRenderer.invoke(IPC.focusStart, minutes, options),
       stopFocus: (): Promise<TodayView> => ipcRenderer.invoke(IPC.focusStop),
     },
     settings: {
@@ -173,6 +185,13 @@ const api: BuddyApi = {
       }
       ipcRenderer.on(IPC.friendState, handler)
       return () => ipcRenderer.off(IPC.friendState, handler)
+    },
+    onLoadout: (listener) => {
+      const handler = (_event: unknown, loadout: unknown) => {
+        if (isLoadout(loadout)) listener(loadout)
+      }
+      ipcRenderer.on(IPC.friendLoadout, handler)
+      return () => ipcRenderer.off(IPC.friendLoadout, handler)
     },
   },
   snack: {

@@ -1,13 +1,21 @@
 import { writeFile } from 'node:fs/promises'
 import { dialog } from 'electron'
+import { z } from 'zod'
 import { localDayKey } from '../core/economy/ledger'
 import type { Settings } from '../core/settings/settings'
 import type { FocusConfig } from '../core/tracker/focus'
 import { focusLength } from '../core/tracker/focus'
+import { cleanLabel } from '../core/tracker/pomodoro'
 import type { AppHistory } from '../core/tracker/screen-time'
 import type { Category } from '../core/tracker/summary'
 import type { ScreenTimeView, StatsView, TodayView } from '../shared/ipc'
 import type { TrackerService } from './tracker'
+
+/** What the Today screen may send with Start (the label is cleaned after this). */
+const FocusOptionsSchema = z.strictObject({
+  cycle: z.boolean().optional(),
+  label: z.string().max(200).optional(),
+})
 
 type Tracking = Settings['tracking']
 
@@ -105,10 +113,16 @@ export class ActivityControls {
     return true
   }
 
-  startFocus(minutes: unknown): Promise<TodayView> {
+  /** Checks the IPC payload: an offered length, a boolean switch, and a cleaned label. */
+  startFocus(minutes: unknown, options?: unknown): Promise<TodayView> {
     const length = focusLength(this.focusConfig, minutes)
     if (length === undefined) throw new Error('Invalid focus length')
-    this.tracker.startFocus(length)
+    const parsed = FocusOptionsSchema.safeParse(options ?? {})
+    if (!parsed.success) throw new Error('Invalid focus options')
+    this.tracker.startFocus(length, {
+      cycle: parsed.data.cycle === true,
+      label: cleanLabel(parsed.data.label),
+    })
     return this.today()
   }
 

@@ -20,8 +20,12 @@ export class SnackPile {
   private chasing: SnackWindow | undefined
   /** The duck is eating: wait before sending it after the next piece. */
   private eating: ReturnType<typeof setTimeout> | undefined
+  /** The piece the friend duck is walking over to (the duck leaves that one alone). */
+  private reserved: SnackWindow | undefined
   /** Where the duck should go now, or undefined to stop chasing. */
   onTarget: (spot: SnackSpot | undefined) => void = () => undefined
+  /** A piece came to rest on a floor (the friend duck may want one). */
+  onRest: () => void = () => undefined
 
   constructor(scale: number, duckX: () => number) {
     this.scale = scale
@@ -67,6 +71,11 @@ export class SnackPile {
     this.retarget()
   }
 
+  /** Takes every piece away (the ball was thrown instead). */
+  clear(): void {
+    for (const piece of [...this.pieces]) piece.taken()
+  }
+
   /** A new size from Settings: every piece is taken away; the next ones have the new size. */
   setScale(scale: number): void {
     if (scale === this.scale) return
@@ -82,7 +91,10 @@ export class SnackPile {
       oldest.taken()
     }
     const piece = new SnackWindow(kind, this.scale, at)
-    piece.onLanded = () => this.retarget()
+    piece.onLanded = () => {
+      this.retarget()
+      this.onRest()
+    }
     piece.onLifted = () => this.lost(piece)
     piece.onGone = () => {
       this.pieces = this.pieces.filter((p) => p !== piece)
@@ -92,8 +104,45 @@ export class SnackPile {
     return piece
   }
 
+  /**
+   * A resting piece for the friend duck: the nearest to `fromX` that `reachable` allows and the
+   * duck isn't going for, and only while another piece is left for the duck (it never takes the
+   * only snack). Reserved until it's eaten or the friend gives up.
+   */
+  reserveForFriend(fromX: number, reachable: (spot: SnackSpot) => boolean): SnackSpot | undefined {
+    if (this.reserved || this.pieces.length < 2) return undefined
+    const free = this.pieces.filter(
+      (piece) => piece !== this.chasing && piece.spot && reachable(piece.spot),
+    )
+    const i = nearestSnack(
+      free.map((piece) => piece.spot?.x ?? 0),
+      fromX,
+    )
+    const piece = i === undefined ? undefined : free[i]
+    if (!piece?.spot) return undefined
+    this.reserved = piece
+    return piece.spot
+  }
+
+  /** The friend reached its piece: it's eaten. Undefined if the piece went in the meantime. */
+  friendAte(): Snack | undefined {
+    const piece = this.reserved
+    this.reserved = undefined
+    if (!piece?.spot) return undefined
+    piece.taken()
+    return piece.kind
+  }
+
+  /** The friend didn't make it (or was called away): the duck may have that piece. */
+  friendGaveUp(): void {
+    if (!this.reserved) return
+    this.reserved = undefined
+    this.retarget()
+  }
+
   /** A piece can't be reached any more (picked up or gone). */
   private lost(piece: SnackWindow): void {
+    if (this.reserved === piece) this.reserved = undefined
     if (this.chasing !== piece) return
     this.chasing = undefined
     this.onTarget(undefined)
@@ -103,7 +152,7 @@ export class SnackPile {
   /** If the duck is free, send it after the nearest resting piece. */
   private retarget(): void {
     if (this.eating || this.chasing) return
-    const resting = this.pieces.filter((piece) => piece.spot)
+    const resting = this.pieces.filter((piece) => piece.spot && piece !== this.reserved)
     const i = nearestSnack(
       resting.map((piece) => piece.spot?.x ?? 0),
       this.duckX(),

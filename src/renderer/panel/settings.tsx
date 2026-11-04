@@ -207,10 +207,13 @@ export function Settings({ t, onChange }: SettingsProps) {
         <span>{t('settings.friend')}</span>
         <input
           type="checkbox"
-          checked={view.friendDuck}
+          checked={view.friendDuck && view.friendOwned}
+          disabled={!view.friendOwned}
+          title={view.friendOwned ? undefined : t('settings.friendLocked')}
           onChange={(e) => set({ friendDuck: e.currentTarget.checked })}
         />
       </label>
+      {!view.friendOwned && <p class="muted note">{t('settings.friendLocked')}</p>}
       <p class="muted note">{t('settings.names.hint')}</p>
 
       <h2>{t('settings.weather')}</h2>

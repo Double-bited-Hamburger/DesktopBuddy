@@ -4,9 +4,22 @@ import type { Rng } from '../types'
  * A friend duck on the same PC: it wanders on the taskbar by itself, naps, and now and then runs
  * over to your duck. When it gets there they dance, then it runs off giggling (tag). Pure
  * choices and timings; the shell moves the window. During a focus session, a break, the talk box
- * or a fullscreen app it just naps, so it never gets in the way.
+ * or a fullscreen app it just naps, so it never gets in the way. It also grabs a piece of a
+ * tossed handful (fetch, eat), and when your duck naps it often walks over and naps next to it
+ * (snuggle, nap) until your duck wakes up.
  */
-export const FRIEND_STATES = ['idle', 'walk', 'sleep', 'meet', 'dance', 'flee'] as const
+export const FRIEND_STATES = [
+  'idle',
+  'walk',
+  'sleep',
+  'meet',
+  'dance',
+  'flee',
+  'fetch',
+  'eat',
+  'snuggle',
+  'nap',
+] as const
 export type FriendState = (typeof FRIEND_STATES)[number]
 
 export function isFriendState(value: unknown): value is FriendState {
@@ -21,6 +34,12 @@ const DURATIONS: Readonly<Record<FriendState, readonly [number, number]>> = {
   meet: [20_000, 20_000],
   dance: [2400, 2400],
   flee: [2000, 3500],
+  /** Gives up on a snack it can't reach in time. */
+  fetch: [15_000, 15_000],
+  eat: [1800, 1800],
+  snuggle: [20_000, 20_000],
+  /** At most this long; it gets up as soon as your duck does. */
+  nap: [120_000, 120_000],
 }
 
 /** Multiples of the walking speed. */
@@ -31,6 +50,10 @@ export const FRIEND_SPEED: Readonly<Record<FriendState, number>> = {
   meet: 3,
   dance: 0,
   flee: 4,
+  fetch: 2,
+  eat: 0,
+  snuggle: 1.5,
+  nap: 0,
 }
 
 /** What it may pick when idle, and how likely. Mostly resting: every window move costs CPU. */
@@ -43,17 +66,30 @@ const FROM_IDLE: readonly (readonly [FriendState, number])[] = [
 
 /** Close enough to dance: this many logical px between the two ducks' middles. */
 export const MEET_DISTANCE = 26
+/** Napping side by side: this many logical px between the two ducks' middles. */
+export const NAP_GAP = 22
+/** How often it goes over to nap next to a sleeping duck (otherwise it does its own thing). */
+const SNUGGLE_CHANCE = 0.6
 
 export function friendDuration(state: FriendState, rng: Rng): number {
   const [min, max] = DURATIONS[state]
   return min + rng() * (max - min)
 }
 
-/** What comes after `state` ran its course. `quiet`: something serious is going on, so nap. */
-export function nextFriendState(state: FriendState, rng: Rng, quiet: boolean): FriendState {
+/**
+ * What comes after `state` ran its course. `quiet`: something serious is going on, so nap.
+ * `duckAsleep`: your duck is napping, so it may go and nap next to it.
+ */
+export function nextFriendState(
+  state: FriendState,
+  rng: Rng,
+  quiet: boolean,
+  duckAsleep = false,
+): FriendState {
   if (quiet) return 'sleep'
   if (state === 'dance') return 'flee'
   if (state !== 'idle') return 'idle'
+  if (duckAsleep && rng() < SNUGGLE_CHANCE) return 'snuggle'
   let roll = rng()
   for (const [next, weight] of FROM_IDLE) {
     roll -= weight
@@ -65,6 +101,11 @@ export function nextFriendState(state: FriendState, rng: Rng, quiet: boolean): F
 /** Whether the friend has reached the duck (middles, screen px; `scale` px per logical px). */
 export function hasReached(friend: number, duck: number, scale: number): boolean {
   return Math.abs(friend - duck) <= MEET_DISTANCE * scale
+}
+
+/** Where to nap next to the duck (middle, screen px): on the side the friend comes from. */
+export function besideDuck(friend: number, duck: number, scale: number): number {
+  return friend < duck ? duck - NAP_GAP * scale : duck + NAP_GAP * scale
 }
 
 /** Which way to go to reach `target`. */

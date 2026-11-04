@@ -759,6 +759,58 @@ body {
   flex-basis: 100%;
 }
 
+.focus-card .focus-label {
+  flex: 1 1 100%;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.focus-card .focus-cycle {
+  gap: 6px;
+}
+
+.focus-card .note {
+  flex-basis: 100%;
+}
+
+.card.finished {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.finished ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finished li {
+  overflow-wrap: anywhere;
+}
+
 .tile-stat .muted {
   overflow-wrap: anywhere;
+}
+
+/* Bag: who is being dressed, once the friend duck is found. */
+.bag .dress {
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.bag .dress {
+  border: 0;
+  padding: 0;
+}
+
+.bag .dress legend {
+  float: left;
+  padding: 0;
 }

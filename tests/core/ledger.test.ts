@@ -132,6 +132,21 @@ describe('economy config', () => {
     expect(parsed.success).toBe(true)
   })
 
+  it('pays every slice of a handful of bread (the duck eats one every ~2 s)', () => {
+    const raw = JSON.parse(
+      readFileSync(join(__dirname, '../../assets/economy/economy.json'), 'utf8'),
+    ) as unknown
+    const economy = EconomyConfigSchema.parse(raw)
+    let now = new Date(2026, 9, 26, 12, 0, 0).getTime()
+    const ledger = new PointsLedger(economy.sources, () => now)
+    ledger.earn('play') // a throw just before doesn't eat into the snacks
+    const paid = [0, 1, 2, 3].map(() => {
+      now += 2000
+      return ledger.earn('snack').granted
+    })
+    expect(paid.every((points) => points > 0)).toBe(true)
+  })
+
   it('localDayKey is a sortable yyyymmdd number', () => {
     expect(localDayKey(new Date(2026, 9, 26, 23, 59).getTime())).toBe(20261026)
     expect(localDayKey(new Date(2026, 0, 5, 0, 0).getTime())).toBe(20260105)

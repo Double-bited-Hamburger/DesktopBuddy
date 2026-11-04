@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'preact/hooks'
-import type { CatalogItem, Slot } from '../../core/catalog/catalog'
-import { itemsForSlot } from '../../core/catalog/catalog'
+import type { CatalogItem, ItemSlot, Slot } from '../../core/catalog/catalog'
+import { FRIEND_ITEM, itemsForSlot } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
-import type { Loadout, SmokeBarView } from '../../shared/ipc'
+import type { Dressing, Loadout, SmokeBarView } from '../../shared/ipc'
 import { catalog } from '../shared/outfit'
 import { DuckPreview, RarityLabel, wearing } from './widgets'
 
-const TABS: readonly { slot: Slot; label: string }[] = [
+const TABS: readonly { slot: ItemSlot; label: string }[] = [
   { slot: 'skin', label: 'bag.skins' },
   { slot: 'hat', label: 'bag.hats' },
   { slot: 'face', label: 'bag.faces' },
+  { slot: 'friend', label: 'bag.friends' },
 ]
 
 interface TileProps {
@@ -74,25 +75,56 @@ function SmokeMeter({ t }: { t: Translator }) {
 
 /**
  * The Bag doubles as the collection book: everything in the catalog is listed, owned items can
- * be worn, the rest show as silhouettes with their rarity so progress is visible.
+ * be worn, the rest show as silhouettes with their rarity so progress is visible. Once the friend
+ * duck is found, the Bag can dress it too, and its tab lets it out or calls it home.
  */
 export function Bag({
   t,
   loadout,
+  friendLoadout,
   owned,
   onEquip,
 }: {
   t: Translator
   loadout: Loadout
+  friendLoadout?: Loadout
   owned: ReadonlySet<string>
-  onEquip: (slot: Slot, id: string | null) => void
+  onEquip: (slot: Slot, id: string | null, who: Dressing) => void
 }) {
-  const [slot, setSlot] = useState<Slot>('skin')
+  const [slot, setSlot] = useState<ItemSlot>('skin')
+  const [who, setWho] = useState<Dressing>('duck')
+  const [friendOut, setFriendOut] = useState<boolean | undefined>()
+  useEffect(() => {
+    window.buddy.panel.settings.get().then(
+      (view) => setFriendOut(view.friendDuck),
+      () => setFriendOut(undefined),
+    )
+  }, [])
+  const friendOwned = owned.has(FRIEND_ITEM)
+  const dressing = who === 'friend' && friendOwned && friendLoadout ? 'friend' : 'duck'
+  const target = dressing === 'friend' && friendLoadout ? friendLoadout : loadout
   const items = itemsForSlot(catalog, slot)
   const found = items.filter((item) => owned.has(item.id)).length
+  const toggleFriend = () => {
+    const next = !friendOut
+    window.buddy.panel.settings
+      .set({ friendDuck: next })
+      .then((view) => setFriendOut(view.friendDuck))
+      .catch((error) => console.error('Friend failed', error))
+  }
   return (
     <section class="bag">
       <SmokeMeter t={t} />
+      {friendOwned && friendLoadout && slot !== 'friend' && (
+        <fieldset class="row dress">
+          <legend class="muted">{t('bag.dress')}</legend>
+          {(['duck', 'friend'] as const).map((w) => (
+            <button key={w} type="button" aria-pressed={dressing === w} onClick={() => setWho(w)}>
+              {t(w === 'duck' ? 'bag.dressDuck' : 'bag.dressFriend')}
+            </button>
+          ))}
+        </fieldset>
+      )}
       <div class="tabs" role="tablist">
         {TABS.map((tab) => (
           <button
@@ -108,29 +140,48 @@ export function Bag({
       </div>
       <p class="found">{t('bag.found', { n: found, total: items.length })}</p>
       <div class="grid" role="tabpanel">
-        {slot !== 'skin' && (
+        {slot !== 'skin' && slot !== 'friend' && (
           <Tile
             t={t}
-            preview={{ ...loadout, [slot]: null }}
+            preview={{ ...target, [slot]: null }}
             name={t('bag.none')}
-            equipped={loadout[slot] === null}
+            equipped={target[slot] === null}
             locked={false}
-            onEquip={() => onEquip(slot, null)}
+            onEquip={() => onEquip(slot, null, dressing)}
           />
         )}
-        {items.map((item) => (
-          <Tile
-            key={item.id}
-            t={t}
-            preview={wearing(loadout, item)}
-            name={t(`item.${item.id}`)}
-            item={item}
-            equipped={loadout[slot] === item.id}
-            locked={!owned.has(item.id)}
-            onEquip={() => onEquip(slot, item.id)}
-          />
-        ))}
+        {items.map((item) => {
+          if (item.slot === 'friend')
+            return (
+              <Tile
+                key={item.id}
+                t={t}
+                preview={friendLoadout ?? wearing(loadout, item)}
+                name={t(`item.${item.id}`)}
+                item={item}
+                equipped={friendOut === true && owned.has(item.id)}
+                locked={!owned.has(item.id)}
+                onEquip={toggleFriend}
+              />
+            )
+          const wearable = item.slot
+          return (
+            <Tile
+              key={item.id}
+              t={t}
+              preview={wearing(target, item)}
+              name={t(`item.${item.id}`)}
+              item={item}
+              equipped={target[wearable] === item.id}
+              locked={!owned.has(item.id)}
+              onEquip={() => onEquip(wearable, item.id, dressing)}
+            />
+          )
+        })}
       </div>
+      {slot === 'friend' && (
+        <p class="muted note">{t(friendOwned ? 'bag.friendHint' : 'bag.friendFind')}</p>
+      )}
     </section>
   )
 }

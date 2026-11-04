@@ -29,6 +29,15 @@ function run(coach: BreakCoach, from: number, ms: number, idleSeconds = 2, busy 
 }
 
 describe('BreakCoach', () => {
+  it('a Pomodoro break counts as a break: the count starts over', () => {
+    const coach = new BreakCoach(rules, 0)
+    const { now } = run(coach, 0, 40 * MIN, 2, true) // focusing: busy, but still at the PC
+    expect(coach.active).toBeGreaterThan(30 * MIN)
+    expect(coach.rested()).toEqual([])
+    expect(coach.active).toBe(0)
+    expect(run(coach, now, 30 * MIN).events).toEqual([]) // no sign 10 minutes later
+  })
+
   it('asks for a break after 50 minutes at the PC', () => {
     const coach = new BreakCoach(rules, 0)
     const before = run(coach, 0, 49 * MIN)

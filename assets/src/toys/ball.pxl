@@ -1,0 +1,20 @@
+# A small beach ball the duck chases and headbutts along the taskbar. Red and cream panels, lit
+# from the top-left (the bright spot), shaded at the bottom-right.
+name: ball
+size: 7x7
+palette:
+  K #2a1f2d
+  W #f4efe6
+  S #c9c1b5
+  H #ffffff
+  R #d8433a
+  D #9c2a2a
+
+@frame ball
+..KKK..
+.KWWRK.
+KWHWRRK
+KRRWWRK
+KRRSWDK
+.KDRSK.
+..KKK..

@@ -43,18 +43,35 @@ function bounceOff(value: number, min: number, max: number, speed: number) {
   return { value, speed }
 }
 
+/** How a flying thing behaves on the floor: a duck by default; a ball bounces and rolls more. */
+export interface FlightFeel {
+  /** Share of the impact speed kept as a bounce off the floor. */
+  readonly bounce: number
+  /** Sideways speed kept on each floor bounce. */
+  readonly grip: number
+  /** How fast it stops sliding or rolling along the floor, in DIP per ms². */
+  readonly friction: number
+}
+
+const DUCK_FEEL: FlightFeel = { bounce: BOUNCE, grip: FLOOR_GRIP, friction: GROUND_FRICTION }
+
 /**
  * Advances a flying duck by `dtMs`: gravity pulls it down, it bounces off the sides and the top of
  * the box, bounces a little on the floor, then slides to a stop. A plain drop is a flight with no
  * starting speed.
  */
-export function flightStep(state: Flight, dtMs: number, box: FlightBox): FlightStep {
+export function flightStep(
+  state: Flight,
+  dtMs: number,
+  box: FlightBox,
+  feel: FlightFeel = DUCK_FEEL,
+): FlightStep {
   const dt = Math.max(0, dtMs)
   const resting = state.y >= box.floorY && state.vy === 0
 
   if (resting) {
     // Sliding along the floor: friction only, no gravity (the floor holds it up).
-    const slow = Math.max(0, Math.abs(state.vx) - GROUND_FRICTION * dt) * Math.sign(state.vx)
+    const slow = Math.max(0, Math.abs(state.vx) - feel.friction * dt) * Math.sign(state.vx)
     const side = bounceOff(state.x + slow * dt, box.minX, box.maxX, slow)
     return {
       x: side.value,
@@ -78,8 +95,8 @@ export function flightStep(state: Flight, dtMs: number, box: FlightBox): FlightS
 
   const impact = vy
   if (vy > MIN_BOUNCE_SPEED) {
-    vy = -vy * BOUNCE
-    vx *= FLOOR_GRIP
+    vy = -vy * feel.bounce
+    vx *= feel.grip
   } else {
     vy = 0
   }

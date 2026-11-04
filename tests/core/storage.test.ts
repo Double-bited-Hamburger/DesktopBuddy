@@ -57,6 +57,7 @@ describe('settings', () => {
       welcomeBack: true,
       hungerTalk: true,
       friendDuck: false,
+      friendLoadout: { skin: 'mint', hat: null, face: null },
       weatherCity: '', // no weather (and no network) until the user types a city
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
@@ -78,6 +79,8 @@ describe('settings', () => {
       hat: 'green-bucket-hat',
       face: null,
     })
+    // The friend duck dresses in mint until it's given something else.
+    expect(settings.friendLoadout).toEqual({ skin: 'mint', hat: null, face: null })
   })
 
   it('falls back to defaults for invalid or unreadable data instead of throwing', async () => {

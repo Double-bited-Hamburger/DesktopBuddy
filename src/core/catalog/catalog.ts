@@ -3,15 +3,22 @@ import { z } from 'zod'
 export const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'exotic'] as const
 export type Rarity = (typeof RARITIES)[number]
 
+/** What the duck can wear. */
 export const SLOTS = ['skin', 'hat', 'face'] as const
 export type Slot = (typeof SLOTS)[number]
+/** Every kind of item: the wearables, plus the friend duck (found like any item, never worn). */
+export const ITEM_SLOTS = [...SLOTS, 'friend'] as const
+export type ItemSlot = (typeof ITEM_SLOTS)[number]
+
+/** The friend duck's item: owning it lets the second duck out on the taskbar. */
+export const FRIEND_ITEM = 'friend-duck'
 
 const HexColor = z.string().regex(/^#[0-9a-f]{6}$/i)
 
 export const CatalogItemSchema = z.object({
   /** Stable kebab-case id; saved in the loadout, used for the `item.<id>` name key. */
   id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  slot: z.enum(SLOTS),
+  slot: z.enum(ITEM_SLOTS),
   rarity: z.enum(RARITIES),
   /** Baked sprite as `<category>/<name>`, e.g. `hats/beanie`. */
   sprite: z.string().regex(/^[a-z0-9-]+\/[a-z0-9-]+$/),
@@ -39,13 +46,22 @@ export function parseCatalog(raw: unknown): Catalog {
   return catalog
 }
 
-export function itemsForSlot(catalog: Catalog, slot: Slot): CatalogItem[] {
+export function itemsForSlot(catalog: Catalog, slot: ItemSlot): CatalogItem[] {
   return catalog.items.filter((item) => item.slot === slot)
 }
 
 export function findItem(catalog: Catalog, slot: Slot, id: string | null): CatalogItem | undefined {
   if (id === null) return undefined
   return catalog.items.find((item) => item.slot === slot && item.id === id)
+}
+
+export function findItemById(catalog: Catalog, id: string): CatalogItem | undefined {
+  return catalog.items.find((item) => item.id === id)
+}
+
+/** A skin, hat or glasses (not the friend duck). */
+export function isWearable(item: CatalogItem | undefined): boolean {
+  return item !== undefined && SLOTS.some((slot) => slot === item.slot)
 }
 
 export interface LoadoutIds {

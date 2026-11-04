@@ -3,18 +3,23 @@
   "sources": {
     "click": {
       "points": 1,
-      "cooldownMs": 400,
-      "dailyCap": 100
+      "cooldownMs": 250,
+      "dailyCap": 300
     },
     "pet": {
       "points": 2,
-      "cooldownMs": 2000,
-      "dailyCap": 80
+      "cooldownMs": 700,
+      "dailyCap": 240
     },
     "play": {
       "points": 3,
-      "cooldownMs": 5000,
-      "dailyCap": 150
+      "cooldownMs": 1500,
+      "dailyCap": 450
+    },
+    "snack": {
+      "points": 3,
+      "cooldownMs": 500,
+      "dailyCap": 300
     }
   },
   "starter": ["classic"],
@@ -62,7 +67,7 @@
     }
   ],
   "freeGift": {
-    "cooldownMs": 7200000,
+    "cooldownMs": 2400000,
     "box": "paper",
     "duplicatePoints": 20
   },
@@ -83,94 +88,100 @@
         "period": "daily",
         "event": "pet",
         "target": 8,
-        "reward": 25
+        "reward": 75
       },
       {
         "id": "click-15",
         "period": "daily",
         "event": "click",
         "target": 15,
-        "reward": 15
+        "reward": 45
       },
       {
         "id": "throw-2",
         "period": "daily",
         "event": "throw",
         "target": 2,
-        "reward": 20
+        "reward": 60
       },
       {
         "id": "bread-2",
         "period": "daily",
         "event": "bread",
         "target": 2,
-        "reward": 20
+        "reward": 60
       },
       {
         "id": "cigar-1",
         "period": "daily",
         "event": "cigar",
         "target": 1,
-        "reward": 20
+        "reward": 60
       },
       {
         "id": "gift-1",
         "period": "daily",
         "event": "gift",
         "target": 1,
-        "reward": 25
+        "reward": 75
       },
       {
         "id": "equip-1",
         "period": "daily",
         "event": "equip",
         "target": 1,
-        "reward": 10
+        "reward": 30
       },
       {
         "id": "focus-1",
         "period": "daily",
         "event": "focus",
         "target": 1,
-        "reward": 20
+        "reward": 60
       },
       {
         "id": "pet-60",
         "period": "weekly",
         "event": "pet",
         "target": 60,
-        "reward": 150
+        "reward": 450
       },
       {
         "id": "bread-10",
         "period": "weekly",
         "event": "bread",
         "target": 10,
-        "reward": 100
+        "reward": 300
       },
       {
         "id": "gift-5",
         "period": "weekly",
         "event": "gift",
         "target": 5,
-        "reward": 200
+        "reward": 600
       },
       {
         "id": "focus-5",
         "period": "weekly",
         "event": "focus",
         "target": 5,
-        "reward": 150
+        "reward": 450
       }
     ]
   },
   "focus": {
     "lengths": [15, 25, 50],
-    "pointsPerMinute": 1
+    "pointsPerMinute": 3,
+    "cycle": {
+      "breakMinutes": 5,
+      "longBreakMinutes": 15,
+      "longEvery": 4,
+      "bonus": 60
+    }
   },
   "activeTime": {
-    "minutesPerPoint": 10,
-    "dailyCap": 30
+    "minutesPerPoint": 3,
+    "dailyCap": 90
   },
   "hunger": {
     "peckishAfterMinutes": 240,

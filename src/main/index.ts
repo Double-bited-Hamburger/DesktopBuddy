@@ -19,7 +19,7 @@ import {
   shouldSayHungry,
 } from '../core/care/hunger'
 import { shouldWelcome, welcomeLine } from '../core/care/welcome'
-import { equipItem, parseCatalog } from '../core/catalog/catalog'
+import { equipItem, FRIEND_ITEM, parseCatalog } from '../core/catalog/catalog'
 import { activeTimePointsDue } from '../core/economy/active-time'
 import { checkEconomy } from '../core/economy/config'
 import { localDayKey } from '../core/economy/ledger'
@@ -27,6 +27,7 @@ import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
 import type { Settings } from '../core/settings/settings'
 import { loadSettings, saveSettings } from '../core/settings/settings'
+import { FLOOR_INSET, STAGE_SIZE } from '../core/stage'
 import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
 import {
   heavyCough,
@@ -39,9 +40,10 @@ import {
 } from '../core/toys/smoke-bar'
 import type { Snack } from '../core/toys/snacks'
 import { focusReward } from '../core/tracker/focus'
-import type { AppConfig, DuckLivePrefs, PointsEvent } from '../shared/ipc'
+import type { AppConfig, CareEvent, Dressing, DuckLivePrefs, PointsEvent } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
+import { BallPlay } from './ball-play'
 import { BreakBuddy } from './break-buddy'
 import { BubbleWindow } from './bubble-window'
 import { windowsBusy } from './busy-windows'
@@ -79,6 +81,16 @@ function breakSecondsFromEnv(): readonly [number, number] | undefined {
   if (app.isPackaged) return undefined
   const [work, rest] = (process.env.BUDDY_BREAK_SECONDS ?? '').split(',').map(Number)
   return work && rest && work > 0 && rest > 0 ? [work, rest] : undefined
+}
+
+/**
+ * `BUDDY_FOCUS_SECONDS=5` makes every focus and break minute last 5 s, for probing Pomodoro
+ * cycles in dev. Ignored in packaged builds.
+ */
+function focusMinuteMsFromEnv(): number | undefined {
+  if (app.isPackaged) return undefined
+  const seconds = Number(process.env.BUDDY_FOCUS_SECONDS)
+  return seconds > 0 ? seconds * 1000 : undefined
 }
 
 /** `BUDDY_PIN_STATE=walk` keeps the duck walking, etc. Ignored in packaged builds. */
@@ -138,6 +150,8 @@ async function start(): Promise<void> {
     scale: settings.scale,
     language: settings.language,
     loadout: settings.loadout,
+    friendLoadout: settings.friendLoadout,
+    friendOwned: progress.ownedSet.has(FRIEND_ITEM),
     points: points.balance,
     volume: settings.volume,
     duck: settings.duck,
@@ -182,13 +196,19 @@ async function start(): Promise<void> {
     ),
   )
   progress.onChange = () => panel.webContents?.send(IPC.storeChanged, progress.view())
-  const equip = async (slot: unknown, id: unknown) => {
-    const loadout = equipItem(catalog, settings.loadout, slot, id, progress.ownedSet)
+  // Data safety: anyone who switched the friend on before it became an item keeps it.
+  if (settings.friendDuck) progress.grantOwned(FRIEND_ITEM)
+  const ownsFriend = () => progress.ownedSet.has(FRIEND_ITEM)
+  /** Dresses your duck, or the friend duck, in an item the player owns. */
+  const equip = async (slot: unknown, id: unknown, who: Dressing = 'duck') => {
+    const before = who === 'friend' ? settings.friendLoadout : settings.loadout
+    const loadout = equipItem(catalog, before, slot, id, progress.ownedSet)
     if (!loadout) return undefined
-    const changed = JSON.stringify(loadout) !== JSON.stringify(settings.loadout)
-    settings = { ...settings, loadout }
+    const changed = JSON.stringify(loadout) !== JSON.stringify(before)
+    settings = who === 'friend' ? { ...settings, friendLoadout: loadout } : { ...settings, loadout }
     await saveSettings(storage, settings)
-    duck.window.webContents.send(IPC.loadout, loadout)
+    if (who === 'friend') friend.setLoadout(loadout)
+    else duck.window.webContents.send(IPC.loadout, loadout)
     if (changed) progress.record('equip')
     return loadout
   }
@@ -213,7 +233,9 @@ async function start(): Promise<void> {
   const breaks = new BreakBuddy({
     duck,
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
-    busy: () => talk.isOpen || busyNow(), // never in the middle of a talk
+    // Never in the middle of a talk, and not during a focus session or Pomodoro cycle (its own
+    // breaks count as breaks: see tracker.onBreak).
+    busy: () => talk.isOpen || busyNow() || tracker.running,
     settings: () => settings.breaks,
     scale: () => settings.scale,
     testSeconds: breakSecondsFromEnv(),
@@ -222,7 +244,15 @@ async function start(): Promise<void> {
   const snacks = new SnackPile(settings.scale, () => duck.middleX)
   let snackCaught: Snack | undefined
   snacks.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
+  // The ball: the duck chases and headbutts it for a few kicks; each kick pays like a throw.
+  const ball = new BallPlay(settings.scale, () => duck.middleX)
+  ball.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
+  ball.onKick = () => {
+    earn('play')
+    duck.window.webContents.send(IPC.care, 'ball-kick' satisfies CareEvent)
+  }
   duck.onCaught = () => {
+    if (ball.caught()) return
     const kind = snacks.caught()
     if (!kind) return
     snackCaught = kind
@@ -238,11 +268,18 @@ async function start(): Promise<void> {
       duck.window.webContents.send(IPC.refused) // a full smoke bar: it needs fresh air
       return
     }
+    ball.takeAway() // one thing to chase at a time
     snacks.serve(kind)
   }
   const feedHandful = () => {
     panel.closeUnlessPinned()
+    ball.takeAway()
     snacks.handful('bread')
+  }
+  const throwBall = () => {
+    panel.closeUnlessPinned()
+    snacks.clear() // snacks are free: the ball replaces any still lying around
+    ball.serve()
   }
   const ate = () => {
     if (snackCaught) {
@@ -269,7 +306,9 @@ async function start(): Promise<void> {
         )
       }
       snackCaught = undefined
-      earn('play') // a cigar pays the same capped play points as bread
+      // Every snack pays from its own source, whose cooldown is shorter than eating takes, so
+      // each slice of a handful is paid (sharing `play`'s cooldown used to drop every other one).
+      earn('snack')
     }
     snacks.ate()
   }
@@ -288,16 +327,39 @@ async function start(): Promise<void> {
     windowsForeground(),
     () => settings.tracking,
     economy.focus,
+    focusMinuteMsFromEnv(),
   )
-  tracker.onFocusDone = (session) => {
-    const reward = focusReward(economy.focus, session)
+  tracker.onFocusDone = (run, bonus) => {
+    const reward = focusReward(economy.focus, run) + bonus
     if (reward > 0) {
       points.grant('focus', reward)
       announce('focus', reward)
     }
     progress.record('focus')
-    duck.window.webContents.send(IPC.care, 'focus-done')
+    // A cycle goes straight on to its break (focus-break); a single session ends with a dance.
+    if (!run.cycle) duck.window.webContents.send(IPC.care, 'focus-done')
   }
+  // Pomodoro breaks: the duck takes its headphones off, says so and naps; when the break is
+  // over it wakes up, and the next round starts once the user is back at the PC.
+  tracker.onBreak = (event, run) => {
+    if (event === 'over') {
+      breaks.rested() // that was a break: the break buddy's count starts over
+      duck.window.webContents.send(IPC.care, 'focus-back' satisfies CareEvent)
+      sayFocus(t('focus.bubble.over'))
+      return
+    }
+    duck.window.webContents.send(IPC.care, 'focus-break' satisfies CareEvent)
+    sayFocus(t('focus.bubble.break', { n: run.minutes }))
+  }
+  const sayFocus = (line: string) => {
+    if (busyNow() || talk.isOpen || !duck.window.isVisible()) return
+    bubble.say(line, settings.names.duck, duck.window.getBounds(), settings.scale)
+  }
+  // A session or cycle that was running when the app closed carries on (once the duck page is
+  // there to put its headphones on).
+  if (duck.window.webContents.isLoading())
+    duck.window.webContents.once('did-finish-load', () => void tracker.resumeFocus())
+  else void tracker.resumeFocus()
   // The duck wears its headphones through a session, and dances when one is finished.
   tracker.onFocusChange = (running) =>
     duck.window.webContents.send(IPC.care, running ? 'focus-on' : 'focus-off')
@@ -317,14 +379,57 @@ async function start(): Promise<void> {
   tracker.sync()
   powerMonitor.on('lock-screen', () => void tracker.pause())
   // The friend duck: only exists while it's switched on, and naps through anything serious.
+  let duckAsleep = false
   const friend = new FriendWindow({
     scale: () => settings.scale,
     floor: () => duck.floorNow,
     duckMiddle: () => duck.middleX,
     quiet: () => tracker.focusing || breaks.busy || talk.isOpen || busyNow(),
     onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance'),
+    loadout: () => settings.friendLoadout,
+    duckAsleep: () => duckAsleep,
   })
-  friend.setEnabled(settings.friendDuck || (!app.isPackaged && process.env.BUDDY_FRIEND === '1'))
+  // The duck page says when it naps: the friend may come and nap next to it.
+  const duckSleeping = (asleep: boolean) => {
+    duckAsleep = asleep
+    friend.duckSleeping(asleep)
+  }
+  // Sharing a snack: when pieces lie around (a handful), the friend walks over and eats one on
+  // its floor, never the only piece and never the one your duck is going for. It pays the same.
+  snacks.onRest = () => {
+    if (!friend.out) return
+    const scale = settings.scale
+    const size = STAGE_SIZE * scale
+    const floor = duck.floorNow
+    const bottom = floor.y + size - FLOOR_INSET * scale
+    const spot = snacks.reserveForFriend(
+      friend.middleX,
+      (piece) =>
+        Math.abs(piece.floorY - bottom) <= 2 * scale &&
+        piece.x >= floor.minX + size / 2 &&
+        piece.x <= floor.maxX + size / 2,
+    )
+    if (!spot) return
+    const sent = friend.fetch(spot.x, {
+      arrive: () => {
+        const kind = snacks.friendAte()
+        if (kind) earn('snack')
+        return kind !== undefined
+      },
+      giveUp: () => snacks.friendGaveUp(),
+    })
+    if (!sent) snacks.friendGaveUp()
+  }
+  // It comes out only once the player has found it (or in dev with BUDDY_FRIEND=1).
+  const friendWanted = () =>
+    (settings.friendDuck && ownsFriend()) || (!app.isPackaged && process.env.BUDDY_FRIEND === '1')
+  friend.setEnabled(friendWanted())
+  // Found in a gift or bought: the friend arrives right away (the Settings switch says it's on).
+  progress.onOwned = (id) => {
+    if (id !== FRIEND_ITEM) return
+    if (settings.friendDuck) friend.setEnabled(friendWanted())
+    else void applySettings({ ...settings, friendDuck: true })
+  }
   powerMonitor.on('suspend', () => void tracker.pause())
   // Welcome back (core/care/welcome.ts): away = locked or asleep; the duck cheers on the way back.
   const bubble = new BubbleWindow()
@@ -416,6 +521,7 @@ async function start(): Promise<void> {
       togglePanel: () => panel.toggle(),
       feed,
       feedHandful,
+      throwBall,
       talk: () => talk.open(duck.window.getBounds(), settings.names.duck),
       pillShown: settings.showPointsPill,
       setPill,
@@ -442,9 +548,10 @@ async function start(): Promise<void> {
     if (next.scale !== before.scale) {
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
+      ball.setScale(next.scale)
       friend.setScale()
     }
-    if (next.friendDuck !== before.friendDuck) friend.setEnabled(next.friendDuck)
+    if (next.friendDuck !== before.friendDuck) friend.setEnabled(friendWanted())
     if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
     if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
     if (next.weatherCity !== before.weatherCity) await weather.sync() // so the view has the result
@@ -468,6 +575,7 @@ async function start(): Promise<void> {
     },
     eraseBackups: () => eraseBackups(app.getPath('userData')),
     weather: () => weather.view(),
+    friendOwned: ownsFriend,
   })
   registerIpc({
     config,
@@ -475,6 +583,7 @@ async function start(): Promise<void> {
     earn,
     feed,
     feedHandful,
+    throwBall,
     smokeBar: () => {
       const now = Date.now()
       return {
@@ -484,10 +593,12 @@ async function start(): Promise<void> {
       }
     },
     ate,
+    duckSleeping,
     duck,
     panel,
     pill,
     snacks,
+    ball,
     progress,
     activity,
     settings: settingsControls,
@@ -506,6 +617,7 @@ async function start(): Promise<void> {
     bubble.close()
     talk.close()
     friend.setEnabled(false)
+    ball.takeAway()
     weather.stop()
   })
   // Write any batched points before the app goes away.

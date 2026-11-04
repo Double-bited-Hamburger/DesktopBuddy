@@ -64,7 +64,7 @@ function Reveal({
       </p>
       <div class="row">
         <button type="button" onClick={() => onWear(item)}>
-          {t('store.wear')}
+          {t(item.slot === 'friend' ? 'store.letOut' : 'store.wear')}
         </button>
         <button type="button" onClick={onClose}>
           {t('store.close')}

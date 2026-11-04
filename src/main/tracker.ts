@@ -13,8 +13,17 @@ import {
   recordMinute,
   recordSession,
 } from '../core/tracker/activity'
-import type { FocusConfig, FocusSession } from '../core/tracker/focus'
-import { focusEndsAt } from '../core/tracker/focus'
+import type { FocusConfig } from '../core/tracker/focus'
+import type { FocusRun } from '../core/tracker/pomodoro'
+import {
+  afterPhase,
+  FocusRunSchema,
+  nextRound,
+  phaseEndsAt,
+  resumeRun,
+  setBonus,
+  startRun,
+} from '../core/tracker/pomodoro'
 import type { AppHistory } from '../core/tracker/screen-time'
 import { activeMinutesOf, appHistory, screenTimeOfDay } from '../core/tracker/screen-time'
 import type { Categories, DaySummary } from '../core/tracker/summary'
@@ -29,6 +38,12 @@ const IDLE_AFTER_SECONDS = 60
 /** Day files are written at most this often (and on pause/quit). */
 const SAVE_DELAY_MS = 30_000
 const STATS_DAYS = 7
+/** The running focus session or Pomodoro cycle, so a restart picks it up again. */
+const FOCUS_STATE_KEY = 'focus-state'
+/** After a Pomodoro break: how often to look whether the user is back at the PC. */
+const BACK_CHECK_MS = 5000
+/** Nobody came back for this long after a break: the cycle ends. */
+const GIVE_UP_WAITING_MS = 2 * 60 * 60_000
 
 export interface TrackingSettings {
   readonly enabled: boolean
@@ -51,14 +66,19 @@ export class TrackerService {
   private sampleTimer: ReturnType<typeof setInterval> | undefined
   private saveTimer: ReturnType<typeof setTimeout> | undefined
   private focusTimer: ReturnType<typeof setTimeout> | undefined
-  private focus: FocusSession | undefined
+  private backTimer: ReturnType<typeof setInterval> | undefined
+  private run: FocusRun | undefined
+  /** One minute of focus time (shorter only for dev probes: BUDDY_FOCUS_SECONDS). */
+  private readonly minuteMs: number
   /** The day file being written to (loaded lazily). */
   private today: DayActivity | undefined
   private saving: Promise<void> = Promise.resolve()
-  /** A focus session ran to the end. */
-  onFocusDone: (session: FocusSession) => void = () => undefined
-  /** A focus session started or ended, however it ended. */
+  /** A focus round ran to the end; `bonus` is extra for completing a full Pomodoro set. */
+  onFocusDone: (run: FocusRun, bonus: number) => void = () => undefined
+  /** Focus time started or ended (a break, Stop, or the end), however it ended. */
   onFocusChange: (running: boolean) => void = () => undefined
+  /** A Pomodoro break started, or ended (`over`: the next round waits for the user). */
+  onBreak: (event: 'start' | 'over', run: FocusRun) => void = () => undefined
   /** An active minute went into today's file; the count is today's total so far. */
   onActiveMinute: (activeMinutes: number) => void = () => undefined
   /** Points for active time so far today (kept by main, shown on Today). */
@@ -70,7 +90,9 @@ export class TrackerService {
     foreground: ForegroundSource,
     settings: () => TrackingSettings,
     focusConfig: FocusConfig,
+    minuteMs = 60_000,
   ) {
+    this.minuteMs = minuteMs
     this.storage = storage
     this.idleSeconds = idleSeconds
     this.foreground = foreground
@@ -208,9 +230,16 @@ export class TrackerService {
       appNames: this.foreground.available,
       summary: await this.summary(localDayKey(Date.now())),
       ignore: [...tracking.ignore],
-      focus: this.focus && { ...this.focus, endsAt: focusEndsAt(this.focus) },
+      focus: this.run && this.focusView(this.run),
+      sessionsToday: (await this.activityOf(localDayKey(Date.now()))).sessions.map(
+        ([start, minutes, label]) => ({ start, minutes, ...(label ? { label } : {}) }),
+      ),
       focusLengths: this.focusConfig.lengths,
       pointsPerMinute: this.focusConfig.pointsPerMinute,
+      cycleBonus: {
+        points: this.focusConfig.cycle.bonus,
+        rounds: this.focusConfig.cycle.longEvery,
+      },
       activePoints: this.activePoints(),
     }
   }
@@ -241,37 +270,133 @@ export class TrackerService {
     }
   }
 
-  startFocus(minutes: number): void {
+  /** Starts a focus session, or a Pomodoro cycle (with `cycle`), replacing one that is running. */
+  startFocus(minutes: number, options: { cycle?: boolean; label?: string } = {}): void {
     this.stopFocus()
-    const session: FocusSession = { startedAt: Date.now(), minutes }
-    this.focus = session
-    this.focusTimer = setTimeout(() => void this.finishFocus(session), minutes * 60_000)
+    this.begin(startRun(minutes, Date.now(), options.cycle === true, options.label))
     this.onFocusChange(true)
   }
 
+  /** Stop: ends the session or the whole cycle (an unfinished round pays nothing). */
   stopFocus(): void {
-    clearTimeout(this.focusTimer)
-    this.focusTimer = undefined
-    if (this.focus) this.onFocusChange(false)
-    this.focus = undefined
+    const was = this.run
+    this.clearFocusTimers()
+    this.run = undefined
+    if (!was) return
+    void this.saveRun()
+    if (was.phase === 'focus') this.onFocusChange(false)
   }
 
+  /** Focus time is running (headphones on). */
   get focusing(): boolean {
-    return this.focus !== undefined
+    return this.run?.phase === 'focus'
   }
 
-  private async finishFocus(session: FocusSession): Promise<void> {
-    if (this.focus !== session) return
-    this.stopFocus()
-    await this.write(localDayKey(session.startedAt), (activity) =>
-      recordSession(activity, minuteOfDay(session.startedAt), session.minutes),
-    )
-    await this.flush()
-    this.onFocusDone(session)
+  /** A focus session or cycle is going, including its breaks. */
+  get running(): boolean {
+    return this.run !== undefined
+  }
+
+  /** On start: picks up a session or cycle that was running when the app closed. */
+  async resumeFocus(): Promise<void> {
+    let saved: FocusRun | undefined
+    try {
+      const parsed = FocusRunSchema.safeParse(await this.storage.read(FOCUS_STATE_KEY))
+      saved = parsed.success ? parsed.data : undefined
+    } catch {
+      saved = undefined
+    }
+    const run = saved && resumeRun(saved, Date.now(), this.minuteMs)
+    if (!run) {
+      if (saved) void this.saveRun() // ended while the app was closed: forget it
+      return
+    }
+    this.begin(run)
+    if (run.phase === 'focus') this.onFocusChange(true)
+  }
+
+  private begin(run: FocusRun): void {
+    this.clearFocusTimers()
+    this.run = run
+    void this.saveRun()
+    const end = phaseEndsAt(run, this.minuteMs)
+    if (end !== undefined) {
+      this.focusTimer = setTimeout(() => void this.phaseEnded(run), Math.max(0, end - Date.now()))
+      return
+    }
+    // After a break: the next round starts once the user is back at the PC.
+    this.backTimer = setInterval(() => this.checkBack(run), BACK_CHECK_MS)
+  }
+
+  private async phaseEnded(run: FocusRun): Promise<void> {
+    if (this.run !== run) return
+    this.clearFocusTimers()
+    const now = Date.now()
+    if (run.phase === 'focus') {
+      await this.write(localDayKey(run.startedAt), (activity) =>
+        recordSession(activity, minuteOfDay(run.startedAt), run.minutes, run.label),
+      )
+      await this.flush()
+    }
+    const next = afterPhase(run, this.focusConfig.cycle, now)
+    this.run = undefined
+    if (run.phase === 'focus') {
+      this.onFocusChange(false)
+      this.onFocusDone(run, setBonus(run, this.focusConfig.cycle))
+    }
+    if (!next) {
+      void this.saveRun()
+      return
+    }
+    this.begin(next)
+    if (next.phase === 'waiting') this.onBreak('over', next)
+    else if (next.phase !== 'focus') this.onBreak('start', next)
+  }
+
+  private checkBack(run: FocusRun): void {
+    if (this.run !== run) return
+    const now = Date.now()
+    if (now - run.startedAt >= GIVE_UP_WAITING_MS) {
+      this.stopFocus()
+      return
+    }
+    if (this.idleSeconds() >= IDLE_AFTER_SECONDS) return
+    this.begin(nextRound(run, now))
+    this.onFocusChange(true)
+  }
+
+  private clearFocusTimers(): void {
+    clearTimeout(this.focusTimer)
+    clearInterval(this.backTimer)
+    this.focusTimer = undefined
+    this.backTimer = undefined
+  }
+
+  private saveRun(): Promise<void> {
+    const run = this.run
+    const write = run
+      ? this.storage.write(FOCUS_STATE_KEY, run)
+      : this.storage.remove(FOCUS_STATE_KEY)
+    return write.catch((error) => console.error('Could not save the focus session', error))
+  }
+
+  /** The run as the Today screen shows it (its end time is real, even with dev-short minutes). */
+  private focusView(run: FocusRun): NonNullable<TodayView['focus']> {
+    return {
+      phase: run.phase,
+      round: run.round,
+      cycle: run.cycle,
+      startedAt: run.startedAt,
+      minutes: run.minutes,
+      focusMinutes: run.focusMinutes,
+      endsAt: phaseEndsAt(run, this.minuteMs),
+      ...(run.label ? { label: run.label } : {}),
+    }
   }
 
   /** Deletes every activity file (and what is in memory). Focus sessions in them go too. */
   async erase(): Promise<number> {
+    this.stopFocus() // its label goes too (and the saved run with it)
     clearTimeout(this.saveTimer)
     this.saveTimer = undefined
     this.bucketer.flush()
@@ -295,10 +420,11 @@ export class TrackerService {
     return days
   }
 
+  /** On quit: timers stop, but a running session stays saved and resumes on the next start. */
   stop(): void {
     clearInterval(this.sampleTimer)
     this.sampleTimer = undefined
-    this.stopFocus()
+    this.clearFocusTimers()
     this.foreground.stop()
   }
 }

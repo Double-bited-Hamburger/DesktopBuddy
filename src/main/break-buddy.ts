@@ -79,6 +79,11 @@ export class BreakBuddy {
     this.handle(choice === 'finish' ? this.coach.takeBreak(now) : this.coach.later(now))
   }
 
+  /** A Pomodoro break ended: that was a break, so the work count starts over. */
+  rested(): void {
+    if (this.coach) this.handle(this.coach.rested())
+  }
+
   /** The duck got a coffee or a cigar: a waiting duck lets it go for half an hour. */
   calm(): void {
     if (this.coach) this.handle(this.coach.later(Date.now(), 'calm'))

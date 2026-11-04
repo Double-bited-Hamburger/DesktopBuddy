@@ -120,7 +120,19 @@ hands 🙌). **Exit:** earning rate matches `docs/ECONOMY.md`; auto-clicking is 
       paid +3 each; frames checked for the pickup, puffs and bites in both facings; smoke test green
 - [ ] **Not verified:** carrying/throwing a snack with the real mouse (CDP can't move the cursor);
       chase jumps across two monitors; the tray "Give a cigar" item by hand
-- [ ] Next: more toys (bubbles, a ball), emotes, ledger compaction
+- [x] **Bread paid every slice** (2026-11-04, found by a teacher): a handful paid only about half,
+      because snacks shared the `play` source and its 5 s cooldown with throws. Snacks now pay
+      from their own `snack` source (0.5 s cooldown, shorter than eating takes). Bug test first
+      (`ledger.test.ts`); verified in dev on a throwaway folder: a handful of 4 paid 4 × 3
+- [x] **The ball** (2026-11-04, the owner's pick): Feed menu / tray → "Throw the ball". Carried,
+      dropped or thrown like a snack (the snack window, with a bouncier `BALL_FEEL`), it bounces and
+      rolls; the duck chases it and headbutts it (a hop) 3–6 times, each kick paying `play`, then
+      leaves it; it goes away 10 s later. One window, only while it's out (`main/ball-play.ts`,
+      core `toys/ball.ts`, sprite `toys/ball.pxl`). Verified in dev on a throwaway folder: 5
+      kicks paid 3 each, the window closed by itself, no page errors
+  - **Not verified:** what it looks like rolling (no screenshot taken), throwing it with the real
+    mouse, CPU while it rolls (`npm run perf` not run)
+- [ ] Next: more toys (bubbles), emotes, ledger compaction
 
 ## Phase 5 — Store, gifts & quests
 
@@ -146,6 +158,10 @@ cover pity, duplicates, caps.
       claimed once, wearing an unowned item rejected, smoke test green; screens checked visually
 - [ ] **Not verified:** a real 2 h free-gift wait and midnight/Monday quest rollover in the app
       (covered by unit tests with a fake clock); balance over days of real play
+- [x] **Everything earns about 3× faster** (2026-11-04, the owner's call): shorter cooldowns, triple
+      caps, quest rewards ×3, focus 3 pts/min, active time 1 pt per 3 min (cap 90), a free gift
+      every 40 min. Prices unchanged. All in `economy.json`; see ECONOMY.md
+- [ ] **Not verified:** whether 3× feels right over days of real play
 - [ ] Next: more items (the exotic tier is empty), achievements, emotes as items
 
 ## Phase 6 — Focus & stats (opt-in)
@@ -182,6 +198,24 @@ recorded.
 - [ ] **Not verified:** whole-app CPU with tracking on (`npm run perf` not run); a real midnight
       rollover and lock/suspend in the app (covered by code paths, not exercised); export dialog
       (needs a human to pick a file); koffi inside a packaged build (Phase 8: unpack from asar)
+- [x] **Focus timer starts at 25:00** (2026-11-04, found by a teacher): it showed 25:02 then
+      jumped to 24:58, because the Today screen kept the clock from when it opened. It now reads
+      the clock on every redraw and wakes exactly when the second changes (core `focusCountdown`)
+- [x] **Pomodoro cycles** (2026-11-04): Today → "Repeat with breaks" and an optional "What are
+      you working on?" label (40 characters, cleaned). Focus → 5 min break → focus …, a 15 min
+      break after every 4th round and a bonus for a full set (`focus.cycle` in economy.json). At a
+      break the duck takes its headphones off, says so in its bubble and naps; after it, the next
+      round starts only once the user is back at the PC (gives up after 2 h). "Finished today"
+      lists the sessions with their labels (`[start, minutes, label?]` in the day file; old files
+      still read). A running session or cycle is saved and resumes after a restart; a phase that
+      ended while the app was closed is dropped. The break buddy no longer asks during a focus
+      session, and a Pomodoro break counts as its break. Core `tracker/pomodoro.ts`, tested
+  - Verified in dev on a throwaway folder with `BUDDY_FOCUS_SECONDS=2`: focus → break → waiting
+    → round 2, the round paid 45 (15 × 3) and saved its cleaned label, a bad payload was refused,
+    and a session survived a forced kill and restart with the same end time; Today screens
+    checked visually (English)
+  - **Not verified:** a real 25-minute round, the bubble lines on screen, the Italian layout of
+    the new controls, the long break and bonus in the app (unit-tested only)
 
 ## Phase 7 — Settings & polish
 
@@ -613,8 +647,21 @@ apps. Off means no window and no cost; `BUDDY_FRIEND=1` turns it on in dev build
   on a noisy PC, so it was calmed down (more rest, shorter trips). The re-run read 0.27% / 0.38%,
   below a single duck, which isn't believable (cause unknown; the lock screen was not up right after).
   Needs another run. RAM with both ducks: 102–116 MB (budget 120).
-- **Not built yet from the plan below:** earning it as a rare item, its own outfit, a shared
-  snack, napping side by side.
+- **Finished 2026-11-04:** it's now a **rare item** (`friend-duck`, slot `friend`: in Ribbon/Royal
+  boxes and the daily item, never worn). The Settings switch only works once it's owned, and
+  finding it lets it out. Anyone who had the switch on before gets the item on the first run (data
+  safety). The Bag has a **Friends** tab to let it out or call it home, and a "Dressing: My duck /
+  Friend" toggle: it wears **its own outfit** (`settings.friendLoadout`, mint by default, owned
+  items only). It **shares a tossed handful**, taking a piece on its own floor, never the only
+  one or your duck's, and pays the same `snack` points. When your duck **naps**, it often walks
+  over and naps beside it with a zzz, and gets up when your duck does (`duck:sleep` IPC).
+  - Verified in dev on a throwaway folder: the old switch became the item and the friend came
+    out, dressing it redrew its page, wearing an unowned item and a bad "who" were refused, the
+    Friends tab checked visually, and with the duck pinned asleep the friend went snuggle → nap
+    66 px away (22 × 3)
+  - **Not verified:** the friend eating a shared piece. In the test the bread landed on the other
+    monitor, where the mouse was, and the friend correctly stayed on its own floor. Also not
+    checked: the zzz on screen, buying it in the Store by hand, and CPU with the friend out
 - **Not verified:** seen moving on a real screen, the size setting with a friend out, a second
   monitor, Linux, your duck's dance in view of the friend.
 

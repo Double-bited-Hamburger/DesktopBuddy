@@ -62,8 +62,17 @@ export const SettingsSchema = z.object({
   welcomeBack: z.boolean().default(true),
   /** The duck says when it's hungry (see core/care/hunger). */
   hungerTalk: z.boolean().default(true),
-  /** A second duck on the same PC (see core/care/friend). Off: no window, no cost. */
+  /** A second duck on the same PC (see core/care/friend). Off: no window, no cost. Only works
+   * once the friend duck item is owned (found in a gift or bought in the Store). */
   friendDuck: z.boolean().default(false),
+  /** What the friend duck wears: its own outfit, from items the player owns. */
+  friendLoadout: z
+    .object({
+      skin: z.string().default('mint'),
+      hat: z.string().nullable().default(null),
+      face: z.string().nullable().default(null),
+    })
+    .prefault({}),
   /** Opt-in weather: a city name. Empty = off, no network (see core/care/weather). */
   weatherCity: z
     .string()

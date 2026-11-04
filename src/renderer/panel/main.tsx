@@ -8,7 +8,7 @@ import { createTranslator } from '../../core/i18n/i18n'
 import type { Theme } from '../../core/settings/settings'
 import type { Snack } from '../../core/toys/snacks'
 import { SNACKS } from '../../core/toys/snacks'
-import type { Loadout, SettingsView, StoreView } from '../../shared/ipc'
+import type { Dressing, Loadout, SettingsView, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
 import { Quests } from './quests'
 import { Settings } from './settings'
@@ -57,6 +57,10 @@ function FeedMenu({ t }: { t: Translator }) {
     setOpen(false)
     window.buddy.panel.feedHandful()
   }
+  const ball = () => {
+    setOpen(false)
+    window.buddy.panel.throwBall()
+  }
   return (
     <div class="feed">
       <button type="button" aria-expanded={open} onClick={toggle}>
@@ -71,6 +75,9 @@ function FeedMenu({ t }: { t: Translator }) {
           ))}
           <button type="button" role="menuitem" onClick={handful}>
             {t('snack.handful')}
+          </button>
+          <button type="button" role="menuitem" onClick={ball}>
+            {t('snack.ball')}
           </button>
         </div>
       )}
@@ -87,6 +94,7 @@ function App() {
   const [screen, setScreen] = useState<Screen>('bag')
   const [store, setStore] = useState<StoreView | undefined>()
   const [theme, setTheme] = useState<Theme>('system')
+  const [friendLoadout, setFriendLoadout] = useState<Loadout | undefined>()
   useTheme(theme)
 
   useEffect(() => {
@@ -95,6 +103,7 @@ function App() {
       setLanguage(config.language)
       setTheme(config.theme)
       setLoadout(config.loadout)
+      setFriendLoadout(config.friendLoadout)
       setPoints((shown) => shown ?? config.points)
     })
     window.buddy.panel
@@ -115,12 +124,17 @@ function App() {
     window.buddy.panel.setPinned(next)
   }
 
-  const equip = (slot: Slot, id: string | null) => {
+  const equip = (slot: Slot, id: string | null, who: Dressing = 'duck') => {
     window.buddy.panel
-      .equip(slot, id)
-      .then(setLoadout)
+      .equip(slot, id, who)
+      .then(who === 'friend' ? setFriendLoadout : setLoadout)
       .catch((error) => console.error('Equip failed', error))
   }
+  /** The friend duck from the Store: "let it out" switches it on (main checks it is owned). */
+  const letFriendOut = () =>
+    window.buddy.panel.settings
+      .set({ friendDuck: true })
+      .catch((error) => console.error('Friend failed', error))
 
   /** Language and theme apply to the whole panel as soon as Settings saves them. */
   const settingsChanged = (view: SettingsView) => {
@@ -168,7 +182,13 @@ function App() {
         ))}
       </nav>
       {loadout && store && screen === 'bag' && (
-        <Bag t={t} loadout={loadout} owned={new Set(store.owned)} onEquip={equip} />
+        <Bag
+          t={t}
+          loadout={loadout}
+          friendLoadout={friendLoadout}
+          owned={new Set(store.owned)}
+          onEquip={equip}
+        />
       )}
       {loadout && store && screen === 'store' && (
         <Store
@@ -176,7 +196,7 @@ function App() {
           view={store}
           points={points ?? 0}
           loadout={loadout}
-          onWear={(item) => equip(item.slot, item.id)}
+          onWear={(item) => (item.slot === 'friend' ? letFriendOut() : equip(item.slot, item.id))}
         />
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}

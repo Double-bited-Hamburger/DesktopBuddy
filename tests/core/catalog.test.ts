@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/core/catalog/catalog'
 import {
   equipItem,
+  FRIEND_ITEM,
   findItem,
+  findItemById,
+  isWearable,
   itemsForSlot,
   parseCatalog,
   RARITIES,
@@ -22,6 +25,7 @@ const catalog: Catalog = parseCatalog({
     { id: 'blue', slot: 'skin', rarity: 'rare', sprite: 'ducks/base', palette: { W: '#3355ff' } },
     { id: 'tophat', slot: 'hat', rarity: 'epic', sprite: 'hats/tophat' },
     { id: 'monocle', slot: 'face', rarity: 'uncommon', sprite: 'faces/monocle' },
+    { id: 'friend-duck', slot: 'friend', rarity: 'rare', sprite: 'ducks/base' },
   ],
 })
 
@@ -57,6 +61,15 @@ describe('catalog', () => {
     expect(equipItem(catalog, worn, 'hat', 42)).toBeUndefined()
   })
 
+  it('the friend duck is an item you find, not one you wear', () => {
+    const worn = { skin: 'plain', hat: null, face: null }
+    expect(itemsForSlot(catalog, 'friend').map((i) => i.id)).toEqual([FRIEND_ITEM])
+    expect(equipItem(catalog, worn, 'friend', FRIEND_ITEM)).toBeUndefined()
+    expect(equipItem(catalog, worn, 'skin', FRIEND_ITEM)).toBeUndefined()
+    expect(isWearable(findItemById(catalog, FRIEND_ITEM))).toBe(false)
+    expect(isWearable(findItemById(catalog, 'tophat'))).toBe(true)
+  })
+
   it('rejects duplicate ids, bad sprite refs, bad colors and catalogs without skins', () => {
     const skin = { id: 'a', slot: 'skin', rarity: 'common', sprite: 'ducks/a' }
     expect(() => parseCatalog({ version: 1, items: [skin, skin] })).toThrow(/Duplicate/)
@@ -72,6 +85,13 @@ describe('catalog', () => {
 
 describe('shipped catalog (assets/economy/catalog.json)', () => {
   const shipped = parseCatalog(readJson('assets/economy/catalog.json'))
+
+  it('has the friend duck as a rare item', () => {
+    expect(shipped.items.find((i) => i.id === FRIEND_ITEM)).toMatchObject({
+      slot: 'friend',
+      rarity: 'rare',
+    })
+  })
 
   it('starts with the classic duck, the default skin', () => {
     expect(itemsForSlot(shipped, 'skin')[0]?.id).toBe('classic')
@@ -102,7 +122,7 @@ describe('shipped catalog (assets/economy/catalog.json)', () => {
 
   it('hat and face sprites declare the anchor of their slot', () => {
     const slotAnchor = { hat: 'head', face: 'face' } as const
-    for (const item of shipped.items.filter((i) => i.slot !== 'skin')) {
+    for (const item of shipped.items.filter((i) => i.slot === 'hat' || i.slot === 'face')) {
       const doc = parsePxl(
         readFileSync(join(__dirname, '../../assets/src', `${item.sprite}.pxl`), 'utf8'),
       )

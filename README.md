@@ -40,10 +40,11 @@ throw it, dress it up. Free and open source, with no paywalls.
 | **throw** it (drag fast, let go)       | flies, bounces off the screen edges        |     **+3** |
 | drop it from high up                   | lands on its bottom and sees stars ✨      |          — |
 | **feed** it bread or a cigar 🚬        | runs/flies to where you drop it, pecks it up, eats or smokes it |     **+3** |
-| finish **quests** (3 a day + weekly)   | —                                          | **+10…200** |
+| throw it the **ball** 🏐             | chases it and headbutts it along the taskbar | **+3** a kick |
+| finish **quests** (3 a day + weekly)   | —                                          | **+30…600** |
 | open **gifts** in the Store            | new skins, hats, glasses (odds shown, pity) | spend 80–700 |
 | open the **Bag** (right-click)         | wears what you've found, live              |          — |
-| run a **focus session** (15/25/50 min) | keeps time while you work                  | **+1/min** |
+| run a **focus session** (15/25/50 min, or Pomodoro with breaks) | keeps time while you work, naps on your breaks | **+3/min** |
 
 <div align="center">
 <img src="docs/media/wardrobe.svg" alt="Six duck skins wearing different hats and glasses" width="720">
@@ -54,9 +55,10 @@ Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets
 
 ```mermaid
 pie showData title Most points a day from each source
-    "click (1 pt, 0.4 s cooldown)" : 100
-    "pet (2 pts, 2 s cooldown)" : 80
-    "play: throw or bread (3 pts, 5 s)" : 150
+    "click (1 pt, 0.25 s cooldown)" : 300
+    "pet (2 pts, 0.7 s cooldown)" : 240
+    "throw (3 pts, 1.5 s)" : 450
+    "snacks (3 pts each)" : 300
 ```
 
 ## 🚀 Install

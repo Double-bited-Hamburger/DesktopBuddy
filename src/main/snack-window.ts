@@ -1,6 +1,6 @@
 import type { Rectangle, WebContents } from 'electron'
 import { BrowserWindow, screen } from 'electron'
-import type { Flight, Sample } from '../core/flight'
+import type { Flight, FlightFeel, Sample } from '../core/flight'
 import { flightStep, releaseVelocity } from '../core/flight'
 import { clamp } from '../core/stage'
 import type { Snack } from '../core/toys/snacks'
@@ -24,10 +24,12 @@ export interface SnackSpot {
  * One piece of a snack (bread, a cigar). The user carries it with the mouse (it follows the
  * cursor), then drops or throws it with a click, or it is tossed from a handful. It falls to the
  * floor and waits there for the duck. Clicking a resting piece picks it up again. The window
- * exists only from "Feed" until the duck takes it (see `SnackPile`).
+ * exists only from "Feed" until the duck takes it (see `SnackPile`). The ball (`BallPlay`) is one
+ * too, with a bouncier feel.
  */
-export class SnackWindow {
-  readonly kind: Snack
+export class SnackWindow<K extends Snack | 'ball' = Snack> {
+  readonly kind: K
+  private readonly feel: FlightFeel | undefined
   private readonly size: number
   private win: BrowserWindow | null
   private followTimer: ReturnType<typeof setInterval> | undefined
@@ -42,8 +44,9 @@ export class SnackWindow {
   /** The window is gone (taken, or closed by Windows). */
   onGone: () => void = () => undefined
 
-  constructor(kind: Snack, scale: number, at: { x: number; y: number }) {
+  constructor(kind: K, scale: number, at: { x: number; y: number }, feel?: FlightFeel) {
     this.kind = kind
+    this.feel = feel
     this.size = SNACK_STAGE * scale
     this.win = this.create(at)
   }
@@ -160,12 +163,17 @@ export class SnackWindow {
         y: Math.round(state.y),
       }).workArea
       const floorY = area.y + area.height - this.size
-      const next = flightStep(state, Math.min(now - last, 50), {
-        minX: area.x,
-        maxX: area.x + area.width - this.size,
-        minY: Math.min(...screen.getAllDisplays().map((d) => d.workArea.y)),
-        floorY,
-      })
+      const next = flightStep(
+        state,
+        Math.min(now - last, 50),
+        {
+          minX: area.x,
+          maxX: area.x + area.width - this.size,
+          minY: Math.min(...screen.getAllDisplays().map((d) => d.workArea.y)),
+          floorY,
+        },
+        this.feel,
+      )
       last = now
       state = next
       this.win?.setBounds({

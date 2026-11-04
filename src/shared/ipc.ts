@@ -37,9 +37,11 @@ export const IPC = {
   points: 'buddy:points',
   feed: 'panel:feed',
   feedHandful: 'panel:feed-handful',
+  throwBall: 'panel:throw-ball',
   fed: 'duck:fed',
   refused: 'duck:refused',
   ate: 'duck:ate',
+  duckSleep: 'duck:sleep',
   chase: 'duck:chase',
   snackClick: 'snack:click',
   store: 'panel:store',
@@ -67,6 +69,7 @@ export const IPC = {
   care: 'duck:care',
   weather: 'duck:weather',
   friendState: 'friend:state',
+  friendLoadout: 'friend:loadout',
   smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
   talkTyped: 'talk:typed',
@@ -84,6 +87,9 @@ export interface AppConfig {
   readonly scale: number
   readonly language: Settings['language']
   readonly loadout: Loadout
+  /** What the friend duck wears, and whether the player has found it (an item in the Store). */
+  readonly friendLoadout: Loadout
+  readonly friendOwned: boolean
   /** Points balance right now (updates arrive through `onPoints`). */
   readonly points: number
   /** Sound volume, 0 = silent. */
@@ -110,6 +116,9 @@ export interface AppConfig {
 export type Loadout = Settings['loadout']
 
 /** What the duck page may ask to earn for. Throws (`play`) are detected by main itself. */
+/** Who the Bag is dressing: your duck or the friend duck. */
+export type Dressing = 'duck' | 'friend'
+
 export type EarnSource = 'click' | 'pet'
 export const EARN_SOURCES: readonly EarnSource[] = ['click', 'pet']
 
@@ -166,8 +175,29 @@ export interface TodayView {
   readonly summary: DaySummary
   /** Lowercase process names that are never recorded. */
   readonly ignore: readonly string[]
-  /** A running focus session (works with tracking off too). */
-  readonly focus?: { readonly startedAt: number; readonly minutes: number; readonly endsAt: number }
+  /** A running focus session or Pomodoro cycle (works with tracking off too). */
+  readonly focus?: {
+    readonly phase: 'focus' | 'break' | 'long-break' | 'waiting'
+    /** Which focus round (from 1); during a break, the round just finished. */
+    readonly round: number
+    readonly cycle: boolean
+    readonly startedAt: number
+    /** This phase's length. */
+    readonly minutes: number
+    /** The focus length the user picked. */
+    readonly focusMinutes: number
+    /** When this phase ends; none while waiting for the user to come back. */
+    readonly endsAt?: number
+    readonly label?: string
+  }
+  /** Focus sessions finished today, oldest first (start = minute of the day). */
+  readonly sessionsToday: readonly {
+    readonly start: number
+    readonly minutes: number
+    readonly label?: string
+  }[]
+  /** Points for finishing a whole Pomodoro set, and how many rounds that is. */
+  readonly cycleBonus: { readonly points: number; readonly rounds: number }
   readonly focusLengths: readonly number[]
   readonly pointsPerMinute: number
   /** Points for active time so far today, out of the daily cap. */
@@ -225,6 +255,8 @@ export interface SettingsView {
   readonly welcomeBack: boolean
   readonly hungerTalk: boolean
   readonly friendDuck: boolean
+  /** The friend duck item is owned: only then can it be switched on. */
+  readonly friendOwned: boolean
   readonly weather: WeatherView
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
@@ -251,6 +283,9 @@ export type CareEvent =
   | 'focus-done'
   | 'hungry'
   | 'friend-dance'
+  | 'ball-kick'
+  | 'focus-break'
+  | 'focus-back'
 export const CARE_EVENTS: readonly CareEvent[] = [
   'stare',
   'nag',
@@ -265,6 +300,9 @@ export const CARE_EVENTS: readonly CareEvent[] = [
   'focus-done',
   'hungry',
   'friend-dance',
+  'ball-kick',
+  'focus-break',
+  'focus-back',
 ]
 
 /** The weather line in Settings. */
@@ -370,8 +408,10 @@ export interface BuddyApi {
     onFed(listener: (snack: Snack, heavy: boolean) => void): () => void
     /** A cigar was offered with a full smoke bar: the duck turns it down. */
     onRefused(listener: () => void): () => void
-    /** The snack is finished. Main pays `play` points once per snack the duck actually caught. */
+    /** The snack is finished. Main pays `snack` points once per snack the duck actually caught. */
     ate(): void
+    /** The duck fell asleep (true) or woke up: the friend duck may nap next to it. */
+    sleeping(asleep: boolean): void
     /**
      * Asks for points for a click or a pet. Main applies the cooldowns and daily caps from
      * economy.json and answers through `onPoints` only when something was granted.
@@ -386,11 +426,13 @@ export interface BuddyApi {
      * Wears `id` in `slot` (null takes the hat or glasses off). Main checks the id against the
      * catalog, saves it and tells the duck. Resolves to the loadout now in effect.
      */
-    equip(slot: Slot, id: string | null): Promise<Loadout>
+    equip(slot: Slot, id: string | null, who?: Dressing): Promise<Loadout>
     /** Puts a snack in the user's hand, to drop or throw for the duck. */
     feed(snack: Snack): void
     /** Tosses a handful of bread pieces from the cursor; the duck eats them one by one. */
     feedHandful(): void
+    /** Puts the ball in the user's hand; the duck chases and headbutts it once it lands. */
+    throwBall(): void
     /** How full the duck's smoke bar is (core/toys/smoke-bar.ts). */
     smokeBar(): Promise<SmokeBarView>
     /** Store, quests and what the player owns. */
@@ -420,7 +462,8 @@ export interface BuddyApi {
       erase(): Promise<number>
       /** Asks where to save a JSON copy of all activity; false if the user cancelled. */
       export(): Promise<boolean>
-      startFocus(minutes: number): Promise<TodayView>
+      /** A session, or a Pomodoro cycle with `cycle`; `label` is what the user works on. */
+      startFocus(minutes: number, options?: { cycle?: boolean; label?: string }): Promise<TodayView>
       stopFocus(): Promise<TodayView>
     }
     /** The Settings screen. Main validates every patch. */
@@ -461,6 +504,8 @@ export interface BuddyApi {
   /** The friend duck's page only draws: it hears what to show and asks for nothing. */
   friend: {
     onState(listener: (state: FriendState, direction: 1 | -1) => void): () => void
+    /** Its outfit: on start and whenever it's dressed from the Bag. */
+    onLoadout(listener: (loadout: Loadout) => void): () => void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

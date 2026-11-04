@@ -9,13 +9,14 @@ const FRAMES = {
   cigar: 'cigar',
   coffee: 'coffee-full',
   quack: 'quack-full',
+  ball: 'ball',
 } as const
 
-// The carried snack; main says which one in the URL hash. Drawn once; main moves the window.
+// The carried snack (or the ball); main says which one in the URL hash. Drawn once; main moves the window.
 // A click drops/throws it, or picks it up again once it lies on the floor.
 async function main(): Promise<void> {
   const hash = location.hash.slice(1)
-  const snack = isSnack(hash) ? hash : 'bread'
+  const snack = isSnack(hash) || hash === 'ball' ? hash : 'bread'
   const frame = (await loadSprite('toys', snack)).frames.find((f) => f.name === FRAMES[snack])
   const canvas = document.getElementById('snack') as HTMLCanvasElement
   canvas.width = STAGE

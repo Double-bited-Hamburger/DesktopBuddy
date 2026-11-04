@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  besideDuck,
   FRIEND_SPEED,
   FRIEND_STATES,
   friendDuration,
   hasReached,
   isFriendState,
   MEET_DISTANCE,
+  NAP_GAP,
   nextFriendState,
   towards,
 } from '../../src/core/care/friend'
@@ -16,7 +18,16 @@ describe('nextFriendState', () => {
   })
 
   it('goes back to idle after anything else', () => {
-    for (const state of ['walk', 'sleep', 'meet', 'flee'] as const)
+    for (const state of [
+      'walk',
+      'sleep',
+      'meet',
+      'flee',
+      'eat',
+      'fetch',
+      'nap',
+      'snuggle',
+    ] as const)
       expect(nextFriendState(state, () => 0, false)).toBe('idle')
   })
 
@@ -25,6 +36,19 @@ describe('nextFriendState', () => {
       Array.from({ length: 100 }, (_, i) => nextFriendState('idle', () => i / 100, false)),
     )
     expect(picks).toEqual(new Set(['walk', 'idle', 'sleep', 'meet']))
+  })
+
+  it('often goes to nap next to your duck while it sleeps', () => {
+    expect(nextFriendState('idle', () => 0.1, false, true)).toBe('snuggle')
+    expect(nextFriendState('idle', () => 0.9, false, true)).not.toBe('snuggle')
+    expect(nextFriendState('idle', () => 0.1, false, false)).not.toBe('snuggle')
+    expect(nextFriendState('walk', () => 0.1, false, true)).toBe('idle')
+    expect(nextFriendState('idle', () => 0.1, true, true)).toBe('sleep') // quiet still wins
+  })
+
+  it('picks the spot beside the duck on its own side', () => {
+    expect(besideDuck(100, 400, 3)).toBe(400 - NAP_GAP * 3)
+    expect(besideDuck(900, 400, 3)).toBe(400 + NAP_GAP * 3)
   })
 
   it('only naps while something serious is going on', () => {
@@ -44,6 +68,10 @@ describe('moving', () => {
     expect(FRIEND_SPEED.sleep).toBe(0)
     expect(FRIEND_SPEED.dance).toBe(0)
     expect(FRIEND_SPEED.meet).toBeGreaterThan(FRIEND_SPEED.walk)
+    expect(FRIEND_SPEED.eat).toBe(0)
+    expect(FRIEND_SPEED.nap).toBe(0)
+    expect(FRIEND_SPEED.fetch).toBeGreaterThan(0)
+    expect(FRIEND_SPEED.snuggle).toBeGreaterThan(0)
   })
 
   it('knows when it has reached the duck, at any scale', () => {

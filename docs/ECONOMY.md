@@ -22,13 +22,14 @@ Everything is free and earnable; there is no real money and no locked "premium" 
 
 | Source        | Points                | Cooldown | Daily cap     | Notes                                             |
 | ------------- | --------------------- | -------- | ------------- | ------------------------------------------------- |
-| `click`       | 1                     | 0.4 s    | 100           | Single click on the duck                          |
-| `pet`         | 2                     | 2 s      | 80            | Stroke the mouse back and forth over the duck ×3  |
-| `play`        | 3                     | 5 s      | 150           | Throwing the duck, a snack (bread/cigar); toys   |
-| Quests        | 10–200 per quest      | —        | by quest pool | 3 daily drawn from the pool, all weekly ones      |
-| Free gift     | one paper gift        | 2 h      | —             | Ready on first launch; a duplicate pays 20 pts    |
+| `click`       | 1                     | 0.25 s   | 300           | Single click on the duck                          |
+| `pet`         | 2                     | 0.7 s    | 240           | Stroke the mouse back and forth over the duck ×3  |
+| `play`        | 3                     | 1.5 s    | 450           | Throwing the duck; toys                           |
+| `snack`       | 3                     | 0.5 s    | 300           | Each snack eaten (bread, cigar, coffee, QUACK)    |
+| Quests        | 30–600 per quest      | —        | by quest pool | 3 daily drawn from the pool, all weekly ones      |
+| Free gift     | one paper gift        | 40 min   | —             | Ready on first launch; a duplicate pays 20 pts    |
 | Refunds       | ½ the box price       | —        | —             | When a bought box gives an item you already own   |
-| Focus session | 1 per minute (15/25/50) | —      | —             | Paid only when it runs to the end (`focus` in economy.json) |
+| Focus session | 3 per minute (15/25/50) | —      | —             | Paid only when it runs to the end (`focus` in economy.json) |
 
 `earn(source)` returns `{ granted }` or `{ granted: 0, reason }` with `unknown-source`, `cooldown`
 or `daily-cap`; at the cap it pays out only what is left. `grant` is for rewards limited by other
@@ -49,7 +50,7 @@ shows exactly those numbers (core `boxOdds`, the same function the roll uses).
 - **Pity** counts opens of that box in a row below its pity rarity; the open after `after - 1`
   misses only rolls the pity rarity and better. The Store shows how many opens are left.
 - **Duplicates** refund `duplicateRefund` (50%) of the box price; the free gift pays 20 pts.
-- **The free gift** opens a paper box every 2 h (ready on first launch, so a new player gets a
+- **The free gift** opens a paper box every 40 min (ready on first launch, so a new player gets a
   first item right away). It has its own timer and doesn't move the paper box's pity counter.
 - **Featured item:** one non-starter item per local day, rotating through the catalog, at a fixed
   price by rarity: common 60 · uncommon 150 · rare 400 · epic 900 · legendary 2000 · exotic 4000.
@@ -65,18 +66,18 @@ Old days and weeks simply stop counting; nothing claimable is lost before its pe
 
 | Quest                | Period | Target | Reward |
 | -------------------- | ------ | -----: | -----: |
-| Pet the duck         | daily  |      8 |     25 |
-| Click the duck       | daily  |     15 |     15 |
-| Throw the duck       | daily  |      2 |     20 |
-| Feed it bread        | daily  |      2 |     20 |
-| Share a cigar        | daily  |      1 |     20 |
-| Open gifts           | daily  |      1 |     25 |
-| Change its outfit    | daily  |      1 |     10 |
-| Pet the duck         | weekly |     60 |    150 |
-| Feed it bread        | weekly |     10 |    100 |
-| Open gifts           | weekly |      5 |    200 |
-| Finish a focus session | daily  |    1 |     20 |
-| Finish a focus session | weekly |    5 |    150 |
+| Pet the duck         | daily  |      8 |     75 |
+| Click the duck       | daily  |     15 |     45 |
+| Throw the duck       | daily  |      2 |     60 |
+| Feed it bread        | daily  |      2 |     60 |
+| Share a cigar        | daily  |      1 |     60 |
+| Open gifts           | daily  |      1 |     75 |
+| Change its outfit    | daily  |      1 |     30 |
+| Pet the duck         | weekly |     60 |    450 |
+| Feed it bread        | weekly |     10 |    300 |
+| Open gifts           | weekly |      5 |    600 |
+| Finish a focus session | daily  |    1 |     60 |
+| Finish a focus session | weekly |    5 |    450 |
 
 ## Items
 
@@ -89,14 +90,18 @@ play. Duck types (skins) are items too.
 - First common item within the first session (~10 min of casual play).
 - A rare item in roughly 2–3 days of casual daily use; an exotic in weeks, never required.
 - A player who ignores quests still progresses, just slower.
-- Auto-clicker gains over a day ≤ the daily caps (a few hundred points), not unbounded.
+- Auto-clicker gains over a day ≤ the daily caps (about 1,300 points from play), not unbounded.
+- 2026-11-04: everything earns about 3× faster (owner's call: shorter cooldowns, triple caps,
+  quest rewards, focus and active-time pay, a free gift every 40 min). Prices didn't change, so a
+  legendary (2000) takes about 2 days of play instead of 6.
 
 ## Saves
 
 Only main writes the ledger. The duck page may *ask* for `click` and `pet` (any other source, or
-any request from the panel, is ignored); `play` is granted by main when it sees a throw, or when
-the duck reports it finished a snack (bread or a cigar) that it actually caught (one payout per
-snack).
+any request from the panel, is ignored); `play` is granted by main when it sees a throw, and `snack` when
+the duck reports it finished a snack that it actually caught (one payout per snack). Snacks have
+their own source because a handful is eaten about one every 2 s: sharing `play`'s cooldown paid
+only every other slice.
 
 The ledger is append-only and not compacted yet: at the daily caps that is ≈ 200 entries a day
 (≈ 4 MB a year). Compacting old days into one carried entry is a later task. A ledger that parses
@@ -109,7 +114,7 @@ items plus whatever the duck already wore, so nobody's outfit disappears when ga
 
 ## Active time
 
-Tracking on, every 10 active minutes pays 1 point, up to 30 a day (`activeTime` in
+Tracking on, every 3 active minutes pays 1 point, up to 90 a day (`activeTime` in
 `economy.json`; ledger source `active`). It's worked out from the day file, so restarts can't
 lose minutes or pay them twice. A mouse jiggler can only reach the same small cap, and playing
 with the duck still pays far more. With tracking off it pays nothing.

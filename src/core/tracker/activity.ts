@@ -14,10 +14,20 @@ export const DayActivitySchema = z.object({
   minutes: z.array(
     z.tuple([z.number().int().min(0).max(1439), z.number().int(), z.literal([0, 1])]),
   ),
-  /** Focus sessions the user finished: [start minute, length in minutes]. Recorded even with
-   * tracking off, since the user started them on purpose. */
+  /** Focus sessions the user finished: [start minute, length in minutes, what it was for?].
+   * Recorded even with tracking off, since the user started them on purpose. The label is
+   * typed by the user (optional, local only, erased with the rest). */
   sessions: z
-    .array(z.tuple([z.number().int().min(0).max(1439), z.number().int().positive()]))
+    .array(
+      z.union([
+        z.tuple([z.number().int().min(0).max(1439), z.number().int().positive()]),
+        z.tuple([
+          z.number().int().min(0).max(1439),
+          z.number().int().positive(),
+          z.string().min(1).max(80),
+        ]),
+      ]),
+    )
     .default([]),
 })
 
@@ -44,8 +54,16 @@ export function emptyDay(day: number): DayActivity {
   return { version: 1, day, apps: [], minutes: [], sessions: [] }
 }
 
-export function recordSession(activity: DayActivity, start: number, minutes: number): DayActivity {
-  return { ...activity, sessions: [...activity.sessions, [start, minutes]] }
+export function recordSession(
+  activity: DayActivity,
+  start: number,
+  minutes: number,
+  label?: string,
+): DayActivity {
+  const session: DayActivity['sessions'][number] = label
+    ? [start, minutes, label]
+    : [start, minutes]
+  return { ...activity, sessions: [...activity.sessions, session] }
 }
 
 /** The day key `n` days after `day` (negative goes back), across months and years. */

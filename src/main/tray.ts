@@ -8,6 +8,8 @@ interface TrayActions {
   feed(snack: Snack): void
   /** Tosses several pieces of bread at once. */
   feedHandful(): void
+  /** Puts the ball in the hand. */
+  throwBall(): void
   /** Opens the talk box (rubber-duck mode). */
   talk(): void
   /** Whether the points pill is on now, and how to switch it. */
@@ -36,6 +38,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
       { label: t('tray.cigar'), click: () => actions.feed('cigar') },
       { label: t('tray.coffee'), click: () => actions.feed('coffee') },
       { label: t('tray.quack'), click: () => actions.feed('quack') },
+      { label: t('tray.ball'), click: actions.throwBall },
       {
         label: t('tray.pill'),
         type: 'checkbox',

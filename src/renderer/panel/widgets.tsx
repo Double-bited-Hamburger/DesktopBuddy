@@ -72,8 +72,12 @@ export function SpriteIcon({
   return <canvas ref={canvas} class="icon" style={{ width: `${size}px`, height: `${size}px` }} />
 }
 
+/** The friend duck as the Store and Bag show it: in its own mint colour. */
+export const FRIEND_PREVIEW: Loadout = { skin: 'mint', hat: null, face: null }
+
 /** The loadout with `item` worn in its slot: how a tile or a gift reveal previews it. */
 export function wearing(loadout: Loadout, item: CatalogItem): Loadout {
+  if (item.slot === 'friend') return FRIEND_PREVIEW
   return { ...loadout, [item.slot]: item.id }
 }
 

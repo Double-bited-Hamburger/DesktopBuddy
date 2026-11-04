@@ -134,6 +134,11 @@ export class BreakCoach {
     return ['drop']
   }
 
+  /** A break happened some other way (a Pomodoro break): the count starts over. */
+  rested(): CoachEvent[] {
+    return this.tookBreak()
+  }
+
   /** Away for a whole break: the count starts over (and a waiting duck is happy). */
   private tookBreak(): CoachEvent[] {
     const wasWaiting = this.current !== 'working'

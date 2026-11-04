@@ -31,8 +31,11 @@ as each feature lands.
   and the UI says so.
 - Samples are not stored. Each minute becomes one bucket: active or idle, plus the most-seen app
   name (when available). Apps on the ignore list are never written.
-- **Focus sessions** the user finishes are recorded (start minute and length) even with tracking
-  off, because the user started them on purpose. They pay points and count for quests.
+- **Focus sessions** the user finishes are recorded (start minute, length, and the optional
+  "what are you working on" label the user typed) even with tracking off, because the user
+  started them on purpose. They pay points and count for quests. A running session or Pomodoro
+  cycle is kept in `focus-state` so a restart picks it up. Labels stay on this PC, are in the
+  export, and go with "Erase all activity" (which also stops a running session).
 - **Erase:** "Erase all activity" deletes every `activity-*` file (two clicks). **Export:** the
   user picks a file in a save dialog and gets every stored day as JSON; nothing is written
   anywhere else.

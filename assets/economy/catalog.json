@@ -109,6 +109,12 @@
       "slot": "face",
       "rarity": "uncommon",
       "sprite": "faces/sunglasses"
+    },
+    {
+      "id": "friend-duck",
+      "slot": "friend",
+      "rarity": "rare",
+      "sprite": "ducks/placeholder-duck"
     }
   ]
 }

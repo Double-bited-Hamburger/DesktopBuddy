@@ -166,7 +166,11 @@ describe('streaks', () => {
 })
 
 describe('focus sessions', () => {
-  const config = { lengths: [15, 25], pointsPerMinute: 2 }
+  const config = {
+    lengths: [15, 25],
+    pointsPerMinute: 2,
+    cycle: { breakMinutes: 5, longBreakMinutes: 15, longEvery: 4, bonus: 30 },
+  }
   it('only offers configured lengths, ends on time, pays per minute', () => {
     expect(focusLength(config, 25)).toBe(25)
     expect(focusLength(config, 24)).toBeUndefined()
