@@ -203,17 +203,6 @@ export function Settings({ t, onChange }: SettingsProps) {
           onChange={(e) => set({ hungerTalk: e.currentTarget.checked })}
         />
       </label>
-      <label class="row">
-        <span>{t('settings.friend')}</span>
-        <input
-          type="checkbox"
-          checked={view.friendDuck && view.friendOwned}
-          disabled={!view.friendOwned}
-          title={view.friendOwned ? undefined : t('settings.friendLocked')}
-          onChange={(e) => set({ friendDuck: e.currentTarget.checked })}
-        />
-      </label>
-      {!view.friendOwned && <p class="muted note">{t('settings.friendLocked')}</p>}
       <p class="muted note">{t('settings.names.hint')}</p>
 
       <h2>{t('settings.weather')}</h2>
@@ -236,7 +225,53 @@ export function Settings({ t, onChange }: SettingsProps) {
         />
       </label>
       {view.weather.state !== 'off' && <p class="muted note">{weatherLine(t, view.weather)}</p>}
+      <label class="row">
+        <span>{t('settings.weather.alerts')}</span>
+        <input
+          type="checkbox"
+          checked={view.weatherAlerts}
+          disabled={!view.weather.city}
+          onChange={(e) => set({ weatherAlerts: e.currentTarget.checked })}
+        />
+      </label>
       <p class="muted note">{t('settings.weather.hint')}</p>
+
+      <h2>{t('settings.fullscreen')}</h2>
+      <label class="row">
+        <span>{t('settings.fullscreen.video')}</span>
+        <select
+          value={view.fullscreen.video}
+          onChange={(e) =>
+            set({
+              fullscreen: { video: e.currentTarget.value as SettingsView['fullscreen']['video'] },
+            })
+          }
+        >
+          {(['lie', 'hide', 'show'] as const).map((choice) => (
+            <option key={choice} value={choice}>
+              {t(`settings.fullscreen.${choice}`)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label class="row">
+        <span>{t('settings.fullscreen.games')}</span>
+        <select
+          value={view.fullscreen.games}
+          onChange={(e) =>
+            set({
+              fullscreen: { games: e.currentTarget.value as SettingsView['fullscreen']['games'] },
+            })
+          }
+        >
+          {(['hide', 'show'] as const).map((choice) => (
+            <option key={choice} value={choice}>
+              {t(`settings.fullscreen.${choice}`)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p class="muted note">{t('settings.fullscreen.hint')}</p>
 
       <h2>{t('settings.breaks')}</h2>
       <label class="row">

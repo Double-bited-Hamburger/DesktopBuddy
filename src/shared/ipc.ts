@@ -1,4 +1,5 @@
 import type { BehaviorState } from '../core/behavior/machine'
+import type { DayForecast, RainAlert } from '../core/care/forecast'
 import type { FriendState } from '../core/care/friend'
 import type { WeatherKind } from '../core/care/weather'
 import type { Rarity, Slot } from '../core/catalog/catalog'
@@ -28,6 +29,9 @@ export const IPC = {
   walk: 'duck:walk',
   turned: 'duck:turned',
   fall: 'duck:fall',
+  rocket: 'duck:rocket',
+  lie: 'duck:lie',
+  buyBoost: 'panel:buy-boost',
   openPanel: 'duck:open-panel',
   panelClose: 'panel:close',
   panelSetPinned: 'panel:set-pinned',
@@ -41,6 +45,7 @@ export const IPC = {
   fed: 'duck:fed',
   refused: 'duck:refused',
   ate: 'duck:ate',
+  treatDropped: 'duck:treat-dropped',
   duckSleep: 'duck:sleep',
   chase: 'duck:chase',
   snackClick: 'snack:click',
@@ -48,6 +53,7 @@ export const IPC = {
   storeChanged: 'panel:store-changed',
   openGift: 'panel:open-gift',
   buyFeatured: 'panel:buy-featured',
+  claimSeasonal: 'panel:claim-seasonal',
   claimQuest: 'panel:claim-quest',
   activityToday: 'panel:activity-today',
   activityStats: 'panel:activity-stats',
@@ -69,9 +75,11 @@ export const IPC = {
   care: 'duck:care',
   weather: 'duck:weather',
   friendState: 'friend:state',
-  friendLoadout: 'friend:loadout',
+  companions: 'panel:companions',
+  toggleCompanion: 'panel:toggle-companion',
   smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
+  bubbleAnswer: 'bubble:answer',
   talkTyped: 'talk:typed',
   talkLine: 'talk:line',
   talkDone: 'talk:done',
@@ -87,9 +95,6 @@ export interface AppConfig {
   readonly scale: number
   readonly language: Settings['language']
   readonly loadout: Loadout
-  /** What the friend duck wears, and whether the player has found it (an item in the Store). */
-  readonly friendLoadout: Loadout
-  readonly friendOwned: boolean
   /** Points balance right now (updates arrive through `onPoints`). */
   readonly points: number
   /** Sound volume, 0 = silent. */
@@ -116,8 +121,16 @@ export interface AppConfig {
 export type Loadout = Settings['loadout']
 
 /** What the duck page may ask to earn for. Throws (`play`) are detected by main itself. */
-/** Who the Bag is dressing: your duck or the friend duck. */
-export type Dressing = 'duck' | 'friend'
+/** The mini friends out with your duck (Bag, Friends tab), and what they add to the points. */
+export interface CompanionsView {
+  /** The minis out now (item ids, at most `max`). */
+  readonly out: readonly string[]
+  readonly max: number
+  /** What playing with the duck pays now: 1 + every bonus. */
+  readonly multiplier: number
+  /** Each mini's own bonus (0.5 = +50%), by item id. */
+  readonly bonus: Readonly<Record<string, number>>
+}
 
 export type EarnSource = 'click' | 'pet'
 export const EARN_SOURCES: readonly EarnSource[] = ['click', 'pet']
@@ -146,6 +159,14 @@ export interface StoreView {
   readonly freeGift: { readonly box: string; readonly readyAt: number }
   /** Today's featured item and its fixed price. */
   readonly featured?: { readonly id: string; readonly price: number }
+  /** This month's free seasonal item (the Christmas skin in December), while not owned. */
+  readonly seasonal?: { readonly id: string; readonly item: string }
+  /** The Rocket Boost: its price and what each edge hit pays, up to `maxHits` hits. */
+  readonly rocket: {
+    readonly price: number
+    readonly pointsPerHit: number
+    readonly maxHits: number
+  }
   readonly quests: readonly QuestView[]
 }
 
@@ -254,10 +275,11 @@ export interface SettingsView {
   readonly names: Names
   readonly welcomeBack: boolean
   readonly hungerTalk: boolean
-  readonly friendDuck: boolean
-  /** The friend duck item is owned: only then can it be switched on. */
-  readonly friendOwned: boolean
   readonly weather: WeatherView
+  /** The duck says when rain or snow is coming. */
+  readonly weatherAlerts: boolean
+  /** Fullscreen video: lie flat / leave / stay; games and other fullscreen apps: leave / stay. */
+  readonly fullscreen: { readonly video: 'lie' | 'hide' | 'show'; readonly games: 'hide' | 'show' }
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string
@@ -315,6 +337,10 @@ export interface WeatherView {
   readonly kind?: WeatherKind
   /** When the weather was last read (epoch ms). */
   readonly checkedAt?: number
+  /** The next days from today on (Home screen). */
+  readonly days?: readonly DayForecast[]
+  /** Rain or snow due in the next hours, while it's dry now. */
+  readonly next?: RainAlert
 }
 
 export const WEATHER_KINDS: readonly WeatherKind[] = [
@@ -361,8 +387,21 @@ export type ChaseDirection = 1 | -1 | 0
 export type WalkDirection = 1 | -1 | 0
 
 /** Main's flight news: took off (thrown, dropped, walked off a ledge), landed, or landed hard. */
-export type FallEvent = 'start' | 'land' | 'hurt'
-export const FALL_EVENTS: readonly FallEvent[] = ['start', 'land', 'hurt']
+/**
+ * The Rocket Boost's show, for the duck page: the shocked stare, the lift-off, the burst, the cool
+ * float down with sunglasses; `end` when it was cut short (grabbed).
+ */
+export type RocketPhase = 'shock' | 'lift' | 'boom' | 'cool' | 'end'
+export const ROCKET_PHASES: readonly RocketPhase[] = ['shock', 'lift', 'boom', 'cool', 'end']
+
+/** Buying a boost: done, too few points, or the duck can't go now (held, flying, on the sign). */
+export type BoostResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: 'short' | 'busy' }
+
+/** A flight: it starts, maybe opens an umbrella (`float`) on the way down, then lands or hurts. */
+export type FallEvent = 'start' | 'float' | 'land' | 'hurt'
+export const FALL_EVENTS: readonly FallEvent[] = ['start', 'float', 'land', 'hurt']
 
 /** The only surface the renderers get (exposed as `window.buddy` by the preload script). */
 export interface BuddyApi {
@@ -391,6 +430,10 @@ export interface BuddyApi {
      * send `walk` again after landing.
      */
     onFall(listener: (event: FallEvent) => void): () => void
+    /** The Rocket Boost's show, phase by phase (main moves the window). */
+    onRocket(listener: (phase: RocketPhase) => void): () => void
+    /** A fullscreen video on its screen: lie flat out of the way (true) or get up (false). */
+    onLie(listener: (lying: boolean) => void): () => void
     /** Volume or behavior switches changed in Settings. Returns an unsubscribe function. */
     onPrefs(listener: (prefs: DuckLivePrefs) => void): () => void
     /** The opt-in weather changed (undefined: off or unknown). Returns an unsubscribe function. */
@@ -403,13 +446,19 @@ export interface BuddyApi {
     onChase(listener: (direction: ChaseDirection) => void): () => void
     /**
      * The duck reached the snack: eat the bread / smoke the cigar, then call `ate`. `heavy`: a
-     * cigar on a high smoke bar, so a hard cough with dizzy stars follows.
+     * cigar on a high smoke bar, so a hard cough with dizzy stars follows. `offset`: a half-eaten
+     * piece picked up again resumes this far into its meal (core/toys/meal.ts), else 0.
      */
-    onFed(listener: (snack: Snack, heavy: boolean) => void): () => void
+    onFed(listener: (snack: Snack, heavy: boolean, offset: number) => void): () => void
     /** A cigar was offered with a full smoke bar: the duck turns it down. */
     onRefused(listener: () => void): () => void
     /** The snack is finished. Main pays `snack` points once per snack the duck actually caught. */
     ate(): void
+    /**
+     * The meal was cut short (grabbed, petted, clicked): the piece drops with what is left of it
+     * and the duck finishes it later. `elapsed`: ms into the meal's timeline.
+     */
+    treatDropped(elapsed: number): void
     /** The duck fell asleep (true) or woke up: the friend duck may nap next to it. */
     sleeping(asleep: boolean): void
     /**
@@ -426,7 +475,11 @@ export interface BuddyApi {
      * Wears `id` in `slot` (null takes the hat or glasses off). Main checks the id against the
      * catalog, saves it and tells the duck. Resolves to the loadout now in effect.
      */
-    equip(slot: Slot, id: string | null, who?: Dressing): Promise<Loadout>
+    equip(slot: Slot, id: string | null): Promise<Loadout>
+    /** The mini friends out now and the points bonus they give. */
+    companions(): Promise<CompanionsView>
+    /** Lets a mini out, or calls it home (at most `max` out). Main checks it is owned. */
+    toggleCompanion(id: string): Promise<CompanionsView>
     /** Puts a snack in the user's hand, to drop or throw for the duck. */
     feed(snack: Snack): void
     /** Tosses a handful of bread pieces from the cursor; the duck eats them one by one. */
@@ -443,6 +496,10 @@ export interface BuddyApi {
     openGift(box: string): Promise<GiftResult>
     /** Buys today's featured item at its fixed price. */
     buyFeatured(): Promise<BuyResult>
+    /** Takes this month's free seasonal item. */
+    claimSeasonal(): Promise<BuyResult>
+    /** Buys a boost (the rocket) and sets it off right away; nothing is spent if it can't go. */
+    buyBoost(id: 'rocket'): Promise<BoostResult>
     /** Claims a finished quest; resolves to the points paid (0 if it couldn't be claimed). */
     claimQuest(id: string): Promise<number>
     /** Opt-in activity tracking and focus sessions (Today / Stats). */
@@ -492,6 +549,11 @@ export interface BuddyApi {
     /** A button on the break sign was pressed. */
     answer(choice: SignChoice): void
   }
+  /** The duck's speech bubble, when it asks something ("It'll rain in 5 hours" [OK]). */
+  bubble: {
+    /** The button with this index was pressed. */
+    answer(choice: number): void
+  }
   /** The talk box (rubber-duck mode). Only *that* something was typed is sent, never the text. */
   talk: {
     /** A key was pressed (the page sends this at most every TYPING_EVERY_MS). */
@@ -501,11 +563,9 @@ export interface BuddyApi {
     /** "Thanks, duck": close the box. */
     done(): void
   }
-  /** The friend duck's page only draws: it hears what to show and asks for nothing. */
+  /** A mini friend's page only draws: it hears what to show and asks for nothing. */
   friend: {
     onState(listener: (state: FriendState, direction: 1 | -1) => void): () => void
-    /** Its outfit: on start and whenever it's dressed from the Bag. */
-    onLoadout(listener: (loadout: Loadout) => void): () => void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

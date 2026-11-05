@@ -29,6 +29,8 @@ export interface SnackSpot {
  */
 export class SnackWindow<K extends Snack | 'ball' = Snack> {
   readonly kind: K
+  /** A half-eaten piece (dropped mid-meal): how far into its meal it is (core/toys/meal.ts). */
+  readonly offset: number
   private readonly feel: FlightFeel | undefined
   private readonly size: number
   private win: BrowserWindow | null
@@ -44,8 +46,9 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
   /** The window is gone (taken, or closed by Windows). */
   onGone: () => void = () => undefined
 
-  constructor(kind: K, scale: number, at: { x: number; y: number }, feel?: FlightFeel) {
+  constructor(kind: K, scale: number, at: { x: number; y: number }, feel?: FlightFeel, offset = 0) {
     this.kind = kind
+    this.offset = offset
     this.feel = feel
     this.size = SNACK_STAGE * scale
     this.win = this.create(at)
@@ -95,6 +98,12 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
     if (bounds) this.fly({ x: bounds.x, y: bounds.y, vx, vy })
   }
 
+  /** Out of sight while a fullscreen game runs; back where it was afterwards. */
+  setHidden(hidden: boolean): void {
+    if (hidden) this.win?.hide()
+    else this.win?.showInactive()
+  }
+
   /** The duck caught it, or it was taken away. */
   taken(): void {
     this.stopAll()
@@ -131,7 +140,7 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
       this.resting = undefined
       this.onGone()
     })
-    void loadPage(win, 'snack', this.kind)
+    void loadPage(win, 'snack', this.offset ? `${this.kind}@${this.offset}` : this.kind)
     return win
   }
 

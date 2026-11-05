@@ -139,7 +139,7 @@ describe('economy config', () => {
     const economy = EconomyConfigSchema.parse(raw)
     let now = new Date(2026, 9, 26, 12, 0, 0).getTime()
     const ledger = new PointsLedger(economy.sources, () => now)
-    ledger.earn('play') // a throw just before doesn't eat into the snacks
+    ledger.earn('ball') // a kick just before doesn't eat into the snacks
     const paid = [0, 1, 2, 3].map(() => {
       now += 2000
       return ledger.earn('snack').granted
@@ -150,5 +150,30 @@ describe('economy config', () => {
   it('localDayKey is a sortable yyyymmdd number', () => {
     expect(localDayKey(new Date(2026, 9, 26, 23, 59).getTime())).toBe(20261026)
     expect(localDayKey(new Date(2026, 0, 5, 0, 0).getTime())).toBe(20260105)
+  })
+})
+
+describe('ball and throws', () => {
+  const economy = EconomyConfigSchema.parse(
+    JSON.parse(readFileSync(join(__dirname, '../../assets/economy/economy.json'), 'utf8')),
+  )
+
+  it('the ball has its own cap, apart from throws', () => {
+    let now = new Date(2026, 10, 5, 12, 0, 0).getTime()
+    const ledger = new PointsLedger(economy.sources, () => now)
+    for (let i = 0; i < 1000; i++) {
+      now += 1000
+      ledger.earn('bounce')
+    }
+    expect(ledger.earnedToday('bounce')).toBe(economy.sources.bounce?.dailyCap)
+    now += 1000
+    expect(ledger.earn('ball').granted).toBeGreaterThan(0)
+  })
+
+  it('pays every hit of one throw (no cooldown between hits)', () => {
+    const now = new Date(2026, 10, 5, 12, 0, 0).getTime()
+    const ledger = new PointsLedger(economy.sources, () => now)
+    const paid = [0, 1].map(() => ledger.earn('bounce').granted)
+    expect(paid).toEqual([3, 3]) // the right wall, then the floor: +6
   })
 })

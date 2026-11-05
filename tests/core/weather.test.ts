@@ -6,7 +6,6 @@ import {
   geocodeUrl,
   loadWeather,
   needsUmbrella,
-  parseCurrentWeather,
   pickPlace,
   saveWeather,
   WEATHER_KEY,
@@ -93,18 +92,16 @@ describe('Open-Meteo answers', () => {
     expect(pickPlace(['nope', null], 'x')).toBeUndefined()
   })
 
-  it('reads the current weather code', () => {
-    expect(parseCurrentWeather({ current: { weather_code: 63, time: 'x' } })).toBe('rain')
-    expect(parseCurrentWeather({ current: { weather_code: 'rain' } })).toBeUndefined()
-    expect(parseCurrentWeather(null)).toBeUndefined()
-  })
-
   it('only the city or the rounded spot goes in the address', () => {
     expect(geocodeUrl('São Paulo & co', 'it')).toBe(
       'https://geocoding-api.open-meteo.com/v1/search?name=S%C3%A3o%20Paulo%20%26%20co&count=10&language=it&format=json',
     )
     expect(forecastUrl({ name: 'Roma', latitude: 41.89, longitude: 12.51 })).toBe(
-      'https://api.open-meteo.com/v1/forecast?latitude=41.89&longitude=12.51&current=weather_code&timezone=auto',
+      'https://api.open-meteo.com/v1/forecast?latitude=41.89&longitude=12.51' +
+        '&current=weather_code%2Cprecipitation%2Crain%2Cshowers%2Csnowfall' +
+        '&hourly=weather_code%2Cprecipitation_probability%2Cprecipitation' +
+        '&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_probability_max' +
+        '&forecast_hours=12&forecast_days=7&timezone=auto',
     )
   })
 })

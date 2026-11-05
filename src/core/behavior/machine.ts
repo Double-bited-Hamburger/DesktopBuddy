@@ -391,6 +391,11 @@ export class BehaviorMachine {
     this.enter('listen')
   }
 
+  /** A half-eaten snack picked up again: the eating state lasts only for what is left of it. */
+  shorten(ms: number): void {
+    this.remainingMs = Math.min(this.remainingMs, Math.max(0, ms))
+  }
+
   /** Bread on the floor: run for it, facing the way the shell says. */
   chase(direction: Direction): void {
     this.enter('run')

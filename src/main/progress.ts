@@ -12,6 +12,7 @@ import { localDayKey } from '../core/economy/ledger'
 import type { QuestEvent } from '../core/economy/quests'
 import { QuestBook, QuestSaveSchema } from '../core/economy/quests'
 import { INVENTORY_KEY, loadSave, QUESTS_KEY } from '../core/economy/save'
+import { seasonalOffer } from '../core/economy/seasonal'
 import type { StorageAdapter } from '../core/storage/storage'
 import type { Rng } from '../core/types'
 import type { BuyResult, GiftResult, StoreView } from '../shared/ipc'
@@ -113,6 +114,12 @@ export class ProgressService {
         readyAt: freeGiftReadyAt(this.freeGiftAt, this.economy.freeGift),
       },
       featured: featured && { id: featured.id, price: this.economy.prices[featured.rarity] },
+      seasonal: this.seasonalNow(),
+      rocket: {
+        price: this.economy.boosts.rocket.price,
+        pointsPerHit: this.economy.boosts.rocket.pointsPerHit,
+        maxHits: this.economy.boosts.rocket.maxHits,
+      },
       quests: this.quests.quests,
     }
   }
@@ -163,6 +170,21 @@ export class ProgressService {
     this.changed()
     this.onOwned(featured.id)
     return { ok: true, item: featured.id }
+  }
+
+  private seasonalNow(): StoreView['seasonal'] {
+    const gift = seasonalOffer(this.economy.seasonal, new Date(), this.owned)
+    return gift && { id: gift.id, item: gift.item }
+  }
+
+  /** This month's free seasonal item: given once, only while it isn't owned. */
+  claimSeasonal(): BuyResult {
+    const gift = seasonalOffer(this.economy.seasonal, new Date(), this.owned)
+    if (!gift) return { ok: false, reason: 'owned' }
+    this.owned.add(gift.item)
+    this.changed()
+    this.onOwned(gift.item)
+    return { ok: true, item: gift.item }
   }
 
   claimQuest(id: unknown): number {

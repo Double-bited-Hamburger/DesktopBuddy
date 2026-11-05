@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'preact/hooks'
 import type { CatalogItem } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
+import { composeLayers } from '../../core/sprite/compositor'
 import { STAGE_SIZE } from '../../core/stage'
 import type { Loadout } from '../../shared/ipc'
-import { drawDressed, loadDressedDuck } from '../shared/outfit'
+import { drawDressed, loadDressedDuck, loadSkin } from '../shared/outfit'
 import { loadSpriteRef } from '../shared/sprites'
 
 /** A pixel-perfect thumbnail of the duck wearing `loadout`. */
@@ -43,10 +44,13 @@ export function SpriteIcon({
   sprite,
   frame,
   size,
+  height = size,
 }: {
   sprite: string
   frame: string
   size: number
+  /** For a sprite that isn't square (keep both an integer multiple of its pixels). */
+  height?: number
 }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
@@ -69,16 +73,63 @@ export function SpriteIcon({
       live = false
     }
   }, [sprite, frame])
-  return <canvas ref={canvas} class="icon" style={{ width: `${size}px`, height: `${size}px` }} />
+  return <canvas ref={canvas} class="icon" style={{ width: `${size}px`, height: `${height}px` }} />
 }
-
-/** The friend duck as the Store and Bag show it: in its own mint colour. */
-export const FRIEND_PREVIEW: Loadout = { skin: 'mint', hat: null, face: null }
 
 /** The loadout with `item` worn in its slot: how a tile or a gift reveal previews it. */
 export function wearing(loadout: Loadout, item: CatalogItem): Loadout {
-  if (item.slot === 'friend') return FRIEND_PREVIEW
+  if (item.slot === 'friend') return loadout
   return { ...loadout, [item.slot]: item.id }
+}
+
+/** Where a mini stands on a duck-sized preview: half the size, feet on the same line. */
+const MINI_PREVIEW_SPOT = { x: 12, y: 22 }
+
+/** A mini friend in its own colors, on a duck-sized stage, so it shows at half your duck's size. */
+export function MiniPreview({ item, class: className }: { item: CatalogItem; class?: string }) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    let live = true
+    loadSkin(item)
+      .then((mini) => {
+        const frame = mini.frames.find((f) => f.name === 'idle') ?? mini.frames[0]
+        const ctx = canvas.current?.getContext('2d')
+        if (!live || !frame || !ctx) return
+        const image = composeLayers(STAGE_SIZE, STAGE_SIZE, [{ frame, offset: MINI_PREVIEW_SPOT }])
+        ctx.clearRect(0, 0, STAGE_SIZE, STAGE_SIZE)
+        ctx.putImageData(
+          new ImageData(image.data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height),
+          0,
+          0,
+        )
+      })
+      .catch((error) => console.error('Preview failed', error))
+    return () => {
+      live = false
+    }
+  }, [item])
+  return (
+    <canvas
+      ref={canvas}
+      class={`preview ${className ?? ''}`}
+      width={STAGE_SIZE}
+      height={STAGE_SIZE}
+    />
+  )
+}
+
+/** Any catalog item as a tile or a reveal shows it: worn by your duck, or a mini on its own. */
+export function ItemPreview({
+  item,
+  loadout,
+  class: className,
+}: {
+  item: CatalogItem
+  loadout: Loadout
+  class?: string
+}) {
+  if (item.slot === 'friend') return <MiniPreview item={item} class={className} />
+  return <DuckPreview loadout={wearing(loadout, item)} class={className} />
 }
 
 export function RarityLabel({ t, item }: { t: Translator; item: CatalogItem }) {

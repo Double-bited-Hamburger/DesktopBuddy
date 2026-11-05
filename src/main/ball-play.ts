@@ -72,6 +72,11 @@ export class BallPlay {
     return true
   }
 
+  /** Out of sight while a fullscreen game runs, back afterwards. */
+  setHidden(hidden: boolean): void {
+    this.ball?.setHidden(hidden)
+  }
+
   /** Taken away (a snack was served, the size changed, or the app quits). */
   takeAway(): void {
     this.ball?.taken()

@@ -58,6 +58,7 @@ describe('shipped economy.json', () => {
 
   it('is valid and has the sources the duck earns from', () => {
     const economy = parseEconomy(json)
-    for (const source of ['click', 'pet', 'play']) expect(economy.sources[source]).toBeDefined()
+    for (const source of ['click', 'pet', 'snack', 'ball', 'bounce'])
+      expect(economy.sources[source]).toBeDefined()
   })
 })

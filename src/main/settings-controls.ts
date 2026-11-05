@@ -19,8 +19,6 @@ interface SettingsDeps {
   readonly eraseBackups: () => Promise<void>
   /** The weather line (opt-in, see main/weather.ts). */
   readonly weather: () => WeatherView
-  /** The friend duck item is owned. */
-  readonly friendOwned: () => boolean
 }
 
 /**
@@ -48,9 +46,9 @@ export class SettingsControls {
       names: s.names,
       welcomeBack: s.welcomeBack,
       hungerTalk: s.hungerTalk,
-      friendDuck: s.friendDuck,
-      friendOwned: this.deps.friendOwned(),
       weather: this.deps.weather(),
+      weatherAlerts: s.weatherAlerts,
+      fullscreen: s.fullscreen,
       autostart: {
         available: autostart.available,
         enabled: autostart.enabled(),

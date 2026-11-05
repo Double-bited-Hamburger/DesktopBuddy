@@ -24,14 +24,23 @@ Everything is free and earnable; there is no real money and no locked "premium" 
 | ------------- | --------------------- | -------- | ------------- | ------------------------------------------------- |
 | `click`       | 1                     | 0.25 s   | 300           | Single click on the duck                          |
 | `pet`         | 2                     | 0.7 s    | 240           | Stroke the mouse back and forth over the duck ×3  |
-| `play`        | 3                     | 1.5 s    | 450           | Throwing the duck; toys                           |
+| `bounce`      | 3 per edge hit        | —        | 450           | A thrown duck hitting a wall, the ceiling or the floor; up to 10 hits a throw (`throws.maxHitsPerThrow`) |
+| `ball`        | 2                     | 0.8 s    | 300           | Each headbutt of the ball (its own cap since 0.8.0) |
 | `snack`       | 3                     | 0.5 s    | 300           | Each snack eaten (bread, cigar, coffee, QUACK)    |
 | Quests        | 30–600 per quest      | —        | by quest pool | 3 daily drawn from the pool, all weekly ones      |
 | Free gift     | one paper gift        | 40 min   | —             | Ready on first launch; a duplicate pays 20 pts    |
 | Refunds       | ½ the box price       | —        | —             | When a bought box gives an item you already own   |
+| Rocket Boost  | 3 per edge hit        | —        | —             | Bought for 200; a random speed after the burst decides how many hits, at most 60 (so it never pays back more than 180) |
 | Focus session | 3 per minute (15/25/50) | —      | —             | Paid only when it runs to the end (`focus` in economy.json) |
 
-`earn(source)` returns `{ granted }` or `{ granted: 0, reason }` with `unknown-source`, `cooldown`
+**Mini friends** multiply what playing pays: `click`, `pet`, `snack`, `ball` and `bounce` (the
+`companions.boosted` list) pay ×(1 + the bonuses of the minis that are out), and their daily caps
+grow by the same factor. Up to two minis out at once; bonuses by rarity: common +0.5 · uncommon
++0.75 · rare +1 · epic +1.5 · legendary +2 · exotic +3 (two exotics out: ×7). Fractions are carried
+per source (×1.5 on a 1-point click pays 1, 2, 1, 2…). Quests, focus, active time, gifts and
+refunds are never multiplied.
+
+`earn(source, multiplier)` returns `{ granted }` or `{ granted: 0, reason }` with `unknown-source`, `cooldown`
 or `daily-cap`; at the cap it pays out only what is left. `grant` is for rewards limited by other
 means (quests, gifts). `spend` never overdraws.
 
@@ -54,6 +63,13 @@ shows exactly those numbers (core `boxOdds`, the same function the roll uses).
   first item right away). It has its own timer and doesn't move the paper box's pity counter.
 - **Featured item:** one non-starter item per local day, rotating through the catalog, at a fixed
   price by rarity: common 60 · uncommon 150 · rare 400 · epic 900 · legendary 2000 · exotic 4000.
+- **Seasonal gift:** during its month the Store offers one item free (`seasonal` in economy.json):
+  the Christmas skin in December, to anyone who doesn't own it yet. Owning it is the record. It is
+  in the gift boxes all year too (epic), as is the Christmas hat (rare).
+- **Rocket Boost (Store → Boost, 200):** only charged when the duck can launch (on screen, on its
+  feet, not lying flat). Its range of speeds and the 60-hit limit are data (`boosts.rocket`).
+- **Opening a box** rolls the prize first by the odds above; the strip that spins past before it
+  is only a show, its other tiles drawn by the same odds.
 - **Collection book:** the Bag lists every item; ones you don't own are silhouettes with their
   rarity and an "n / total found" count per tab. Only owned items can be worn (checked in main).
 
@@ -81,7 +97,7 @@ Old days and weeks simply stop counting; nothing claimable is lost before its pe
 
 ## Items
 
-`{ id, slot, rarity, price?, spriteRef }`, slots `skin | hat | face | toy | emote`, rarities
+`{ id, slot, rarity, price?, spriteRef }`, slots `skin | hat | face | friend` (friend = a mini duck, with its points bonus), rarities
 common · uncommon · rare · epic · legendary · exotic. Everything in the catalog is obtainable in
 play. Duck types (skins) are items too.
 

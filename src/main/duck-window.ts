@@ -1,8 +1,15 @@
 import type { Rectangle } from 'electron'
 import { BrowserWindow, screen } from 'electron'
 import { catchSpot, JUMP_DISTANCE, jumpVelocity, RUN_SPEED, runStep } from '../core/chase'
-import type { Flight, Sample } from '../core/flight'
-import { flightStep, HURT_SPEED, releaseVelocity } from '../core/flight'
+import type { Flight, FlightFeel, Sample } from '../core/flight'
+import {
+  DUCK_FEEL,
+  FLOAT_FEEL,
+  flightStep,
+  HURT_SPEED,
+  opensUmbrella,
+  releaseVelocity,
+} from '../core/flight'
 import { duckCenterX, floorAt } from '../core/floor'
 import { isValidShape } from '../core/sprite/shape'
 import type { FloorBounds } from '../core/stage'
@@ -15,8 +22,20 @@ import {
   WALK_SPEED,
   walkStep,
 } from '../core/stage'
+import type { Burst } from '../core/toys/rocket'
+import {
+  BOOM_MS,
+  boomShake,
+  COOL_FEEL,
+  cooledDown,
+  coolStart,
+  LIFT_MS,
+  LIFT_SPEED,
+  ROCKET_FEEL,
+  SHOCK_MS,
+} from '../core/toys/rocket'
 import type { Point, Rect } from '../core/types'
-import type { ChaseDirection, FallEvent, WalkDirection } from '../shared/ipc'
+import type { ChaseDirection, FallEvent, RocketPhase, WalkDirection } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
 import type { SnackSpot } from './snack-window'
@@ -60,8 +79,23 @@ export class DuckWindow {
   private walkDirection: 1 | -1 = 1
   /** Steps per walk step: 1, or more while racing after a drink (same 12 Hz timer). */
   private walkStride = 1
-  /** Called when the user throws the duck (released while moving fast): that counts as play. */
+  /** Called when the user throws the duck (released while moving fast): a quest counts it. */
   onThrown: () => void = () => undefined
+  /** A duck the user let go hit a screen edge (each one pays, up to `maxHits` per throw). */
+  onHit: () => void = () => undefined
+  maxHits = 10
+  /** Hits still paid in the current flight (0 for a jump after a snack). */
+  private hitsLeft = 0
+  /**
+   * Whether a falling duck has an umbrella to open (it rains, or it wears the umbrella hat): it
+   * floats down instead of dropping.
+   */
+  canFloat: () => boolean = () => false
+  /** The Rocket Boost is on (from the shocked stare to landing). */
+  private rocketing = false
+  /** Lying flat for a fullscreen video (see setLying). */
+  private lying = false
+  private rocketTimer: ReturnType<typeof setTimeout> | undefined
   /** Called when the duck reaches the snack it was chasing. */
   onCaught: () => void = () => undefined
   /** A snack lying on a floor that the duck is going for. */
@@ -138,6 +172,7 @@ export class DuckWindow {
   }
 
   dragStart(): void {
+    this.endRocket()
     this.walk(0) // held in the hand: the renderer restarts the walk after the drop
     this.stopRun() // a chase resumes after the drop
     if (this.flightTimer) this.stopFlight('land') // caught in mid-air
@@ -179,6 +214,7 @@ export class DuckWindow {
     this.refreshFloor(bounds)
     const thrown = vx !== 0 || vy !== 0
     if (thrown) this.onThrown()
+    this.hitsLeft = this.maxHits
     if (bounds.y < this.floor.y || thrown) {
       this.fly({ x: bounds.x, y: Math.min(bounds.y, this.floor.y), vx, vy })
       return
@@ -197,7 +233,7 @@ export class DuckWindow {
   walk(direction: WalkDirection, stride = 1): void {
     clearInterval(this.walkTimer)
     this.walkTimer = undefined
-    if (direction === 0 || this.drag || this.flightTimer || this.target) return
+    if (direction === 0 || this.drag || this.flightTimer || this.target || this.lying) return
     this.walkDirection = direction
     this.walkStride = stride
     this.walkTimer = setInterval(() => this.step(), 1000 / (WALK_SPEED / this.stepPx))
@@ -264,7 +300,7 @@ export class DuckWindow {
   }
 
   private resumeChase(how: FallEvent): void {
-    if (!this.target) return
+    if (!this.target || !this.window.isVisible() || this.lying) return
     clearTimeout(this.resumeTimer)
     this.resumeTimer = setTimeout(
       () => this.pursue(),
@@ -275,7 +311,7 @@ export class DuckWindow {
   /** Runs to the snack, or launches itself at it when it is far away or on another floor. */
   private pursue(): void {
     const target = this.target
-    if (!target || this.drag || this.flightTimer) return
+    if (!target || this.drag || this.flightTimer || !this.window.isVisible() || this.lying) return
     this.stopRun()
     const standY = target.floorY - this.size + FLOOR_INSET * this.scale
     const floor = floorAt(this.areas, target.x, this.scale, standY) ?? this.floor
@@ -313,24 +349,42 @@ export class DuckWindow {
   }
 
   private fly(start: Flight, gentle = false): void {
+    if (gentle) this.hitsLeft = 0 // a jump on purpose isn't a trick
     this.walk(0)
     clearInterval(this.flightTimer)
     let state: Flight = start
     let last = performance.now()
     let hardest = 0
+    let feel: FlightFeel = DUCK_FEEL
+    let floating = false
     this.window.webContents.send(IPC.fall, 'start' satisfies FallEvent)
     this.flightTimer = setInterval(() => {
       const now = performance.now()
       // Clamp dt so a stalled timer can't tunnel the duck through the floor in one huge step.
-      const next = flightStep(state, Math.min(now - last, 50), {
-        minX: this.floor.minX,
-        maxX: this.floor.maxX,
-        minY: this.ceilingY,
-        floorY: this.floor.y,
-      })
+      if (!gentle && !floating && opensUmbrella(state, this.canFloat())) {
+        floating = true // the umbrella pops open: it drifts down from here
+        feel = FLOAT_FEEL
+        state = { ...state, vx: state.vx * 0.6 }
+        this.window.webContents.send(IPC.fall, 'float' satisfies FallEvent)
+      }
+      const next = flightStep(
+        state,
+        Math.min(now - last, 50),
+        {
+          minX: this.floor.minX,
+          maxX: this.floor.maxX,
+          minY: this.ceilingY,
+          floorY: this.floor.y,
+        },
+        feel,
+      )
       last = now
       state = next
       hardest = Math.max(hardest, next.impact)
+      for (let i = 0; i < next.hits && this.hitsLeft > 0; i++) {
+        this.hitsLeft--
+        this.onHit()
+      }
       this.x = next.x
       this.y = next.y
       // Flying sideways can cross onto another monitor with a different floor.
@@ -338,8 +392,19 @@ export class DuckWindow {
       if (floor) this.floor = floor
       this.place()
       // A jump after a snack is on purpose: the duck lands on its feet.
-      if (next.landed) this.stopFlight(!gentle && hardest > HURT_SPEED ? 'hurt' : 'land')
+      // Under an umbrella it lands softly too.
+      if (next.landed)
+        this.stopFlight(!gentle && !floating && hardest > HURT_SPEED ? 'hurt' : 'land')
     }, FLIGHT_FRAME_MS)
+  }
+
+  /** The rocket show is cut short (grabbed, hidden, resized): it just falls from where it is. */
+  private endRocket(): void {
+    if (!this.rocketing) return
+    this.rocketing = false
+    clearTimeout(this.rocketTimer)
+    this.rocketTimer = undefined
+    this.window.webContents.send(IPC.rocket, 'end' satisfies RocketPhase)
   }
 
   private stopFlight(how: FallEvent): void {
@@ -370,6 +435,7 @@ export class DuckWindow {
    */
   setScale(scale: number): void {
     if (scale === this.scale) return
+    this.endRocket()
     this.walk(0)
     this.stopRun()
     this.target = undefined
@@ -386,18 +452,23 @@ export class DuckWindow {
     this.place()
   }
 
-  /** Off the taskbar for a moment (it is standing on the break sign). */
+  /**
+   * Off the taskbar for a moment (it is standing on the break sign). A snack it was going for
+   * stays its target (whoever sent it still thinks so), and the chase goes on once it is back.
+   */
   hide(): void {
+    this.endRocket()
     this.walk(0)
     this.stopRun()
-    this.target = undefined
     if (this.flightTimer) this.stopFlight('land')
     this.window.hide()
   }
 
-  /** Back where it was, if it was hidden. */
+  /** Back where it was, if it was hidden; off again after any snack it was going for. */
   show(): void {
-    if (!this.window.isVisible()) this.window.showInactive()
+    if (this.window.isVisible()) return
+    this.window.showInactive()
+    this.resumeChase('land')
   }
 
   /** Shown at a screen point in mid-air (where it stood on the sign), landing on its feet. */
@@ -413,12 +484,130 @@ export class DuckWindow {
   /** Puts the duck straight onto the floor of the display it is on. Used when displays change. */
   snapToFloor(): void {
     if (this.drag) return // the drop will settle it
+    this.endRocket()
     if (this.flightTimer) this.stopFlight('land')
     const bounds = this.window.getBounds()
     this.refreshFloor(bounds)
     this.x = clamp(bounds.x, this.floor.minX, this.floor.maxX)
     this.y = this.floor.y
     this.place()
+  }
+
+  /**
+   * A fullscreen video on its screen: it stops on the floor and lies flat (the page draws it),
+   * and gets up when the video ends, off again after any snack it was going for.
+   */
+  setLying(lying: boolean): void {
+    if (lying === this.lying) return
+    this.lying = lying
+    if (lying) {
+      this.endRocket()
+      this.walk(0)
+      this.stopRun()
+      this.snapToFloor()
+    }
+    this.window.webContents.send(IPC.lie, lying)
+    if (!lying) this.resumeChase('land')
+  }
+
+  get isLying(): boolean {
+    return this.lying
+  }
+
+  /** Whether the Rocket Boost can go off now: on screen, on its feet, not held or flying. */
+  get canLaunch(): boolean {
+    return (
+      this.window.isVisible() && !this.drag && !this.flightTimer && !this.rocketing && !this.lying
+    )
+  }
+
+  /**
+   * The Rocket Boost (core/toys/rocket.ts): it stares at you in shock, shoots up on the rocket,
+   * bursts and bounces round the screen (`onHit` for each edge, up to `maxHits`), then puts its
+   * sunglasses on and floats down. False (nothing happens) when it can't launch now.
+   */
+  launchRocket(burst: Burst, maxHits: number, onHit: () => void): boolean {
+    if (!this.canLaunch) return false
+    this.rocketing = true
+    this.walk(0)
+    this.stopRun()
+    const send = (phase: RocketPhase) => this.window.webContents.send(IPC.rocket, phase)
+    this.window.webContents.send(IPC.fall, 'start' satisfies FallEvent)
+    send('shock')
+    this.rocketTimer = setTimeout(() => {
+      send('lift')
+      let last = performance.now()
+      const until = last + LIFT_MS
+      this.flightTimer = setInterval(() => {
+        const now = performance.now()
+        this.y = Math.max(this.ceilingY, this.y - LIFT_SPEED * Math.min(now - last, 50))
+        last = now
+        this.place()
+        if (now < until && this.y > this.ceilingY) return
+        clearInterval(this.flightTimer)
+        this.flightTimer = undefined
+        send('boom')
+        // It hangs there while it bursts, the window shaking, then it's thrown round the screen.
+        const hangX = this.x
+        const hangY = this.y
+        const boomAt = performance.now()
+        this.flightTimer = setInterval(() => {
+          const t = performance.now() - boomAt
+          if (t < BOOM_MS) {
+            const shake = boomShake(t, Math.random)
+            this.x = hangX + shake.x * this.scale
+            this.y = Math.max(this.ceilingY, hangY + shake.y * this.scale)
+            this.place()
+            return
+          }
+          clearInterval(this.flightTimer)
+          this.x = hangX
+          this.y = hangY
+          this.rocketFly({ x: hangX, y: hangY, vx: burst.vx, vy: burst.vy }, maxHits, onHit, () =>
+            send('cool'),
+          )
+        }, FLIGHT_FRAME_MS)
+      }, FLIGHT_FRAME_MS)
+    }, SHOCK_MS)
+    return true
+  }
+
+  /** After the burst: bouncing round fast, then the cool float down. */
+  private rocketFly(start: Flight, maxHits: number, onHit: () => void, onCool: () => void): void {
+    let state = start
+    let last = performance.now()
+    let hits = 0
+    let cool = false
+    this.flightTimer = setInterval(() => {
+      const now = performance.now()
+      const next = flightStep(
+        state,
+        Math.min(now - last, 50),
+        { minX: this.floor.minX, maxX: this.floor.maxX, minY: this.ceilingY, floorY: this.floor.y },
+        cool ? COOL_FEEL : ROCKET_FEEL,
+      )
+      last = now
+      state = next
+      if (!cool)
+        for (let i = 0; i < next.hits && hits < maxHits; i++) {
+          hits++
+          onHit()
+        }
+      this.x = next.x
+      this.y = next.y
+      const floor = floorAt(this.areas, duckCenterX(this.x, this.scale), this.scale, this.y)
+      if (floor) this.floor = floor
+      this.place()
+      if (!cool && (cooledDown(next) || hits >= maxHits)) {
+        cool = true
+        state = coolStart(state)
+        onCool()
+      }
+      if (next.landed && cool) {
+        this.rocketing = false
+        this.stopFlight('land')
+      }
+    }, FLIGHT_FRAME_MS)
   }
 
   private place(): void {

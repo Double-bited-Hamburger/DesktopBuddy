@@ -16,7 +16,18 @@ export type Tone =
     }
   | { readonly rest: number }
 
-export const SOUND_NAMES = ['quack', 'ouch', 'chomp', 'chirp', 'cough', 'fizz'] as const
+export const SOUND_NAMES = [
+  'quack',
+  'ouch',
+  'chomp',
+  'chirp',
+  'cough',
+  'fizz',
+  'tick',
+  'tada',
+  'boom',
+  'whoosh',
+] as const
 export type SoundName = (typeof SOUND_NAMES)[number]
 
 const bite: Tone = { wave: 'square', from: 190, to: 120, ms: 60, gain: 0.35 }
@@ -59,6 +70,24 @@ export const SOUNDS: Readonly<Record<SoundName, readonly Tone[]>> = {
     { rest: 210 },
     gulp,
   ],
+  // The gift reel: one short click per item rolling past.
+  tick: [{ wave: 'square', from: 1400, to: 1100, ms: 18, gain: 0.18 }],
+  // The reel stops on the prize: a bright little arpeggio.
+  tada: [
+    { wave: 'square', from: 660, to: 660, ms: 90, gain: 0.3 },
+    { wave: 'square', from: 830, to: 830, ms: 90, gain: 0.3 },
+    { wave: 'square', from: 990, to: 990, ms: 90, gain: 0.3 },
+    { wave: 'triangle', from: 1320, to: 1320, ms: 260, gain: 0.35 },
+  ],
+  // The rocket goes off: a rumbling whoosh, then the pop.
+  /** The rocket bursts: a crack, then a long low rumble. */
+  boom: [
+    { wave: 'square', from: 180, to: 50, ms: 110, gain: 0.5 },
+    { wave: 'sawtooth', from: 210, to: 30, ms: 520, gain: 0.45 },
+    { wave: 'triangle', from: 90, to: 28, ms: 420, gain: 0.3 },
+  ],
+  /** The rocket takes off. */
+  whoosh: [{ wave: 'sawtooth', from: 90, to: 320, ms: 750, gain: 0.2 }],
 }
 
 export function isSoundName(value: unknown): value is SoundName {

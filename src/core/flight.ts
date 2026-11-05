@@ -10,6 +10,8 @@ export const MIN_BOUNCE_SPEED = 0.4
 export const FLOOR_GRIP = 0.7
 /** How fast a duck sliding along the floor stops, in DIP per ms². */
 export const GROUND_FRICTION = 0.004
+/** Hitting a screen edge at least this fast counts as a hit (a throw pays per hit). */
+export const MIN_HIT_SPEED = 0.3
 /** Hitting the floor faster than this hurts: the duck lands on its bottom (about a 125 DIP drop). */
 export const HURT_SPEED = 1
 
@@ -35,12 +37,18 @@ export interface FlightStep extends Flight {
   readonly landed: boolean
   /** Downward speed at which the floor was hit during this step, 0 when it wasn't. */
   readonly impact: number
+  /**
+   * Screen edges hit hard enough to count (side walls, the top, a bouncing floor hit, or the
+   * floor at the end of a fall): a throw pays for each one.
+   */
+  readonly hits: number
 }
 
-function bounceOff(value: number, min: number, max: number, speed: number) {
-  if (value < min) return { value: min, speed: Math.abs(speed) * WALL_BOUNCE }
-  if (value > max) return { value: max, speed: -Math.abs(speed) * WALL_BOUNCE }
-  return { value, speed }
+function bounceOff(value: number, min: number, max: number, speed: number, keep = WALL_BOUNCE) {
+  const hit = Math.abs(speed) >= MIN_HIT_SPEED
+  if (value < min) return { value: min, speed: Math.abs(speed) * keep, hit }
+  if (value > max) return { value: max, speed: -Math.abs(speed) * keep, hit }
+  return { value, speed, hit: false }
 }
 
 /** How a flying thing behaves on the floor: a duck by default; a ball bounces and rolls more. */
@@ -51,9 +59,36 @@ export interface FlightFeel {
   readonly grip: number
   /** How fast it stops sliding or rolling along the floor, in DIP per ms². */
   readonly friction: number
+  /** Gravity, in DIP per ms² (GRAVITY by default; an open umbrella falls on much less). */
+  readonly gravity?: number
+  /** The fastest it may fall, in DIP per ms (no limit by default; an umbrella floats down). */
+  readonly maxFall?: number
+  /** Share of the speed kept off the sides and the top (WALL_BOUNCE by default). */
+  readonly wallBounce?: number
 }
 
-const DUCK_FEEL: FlightFeel = { bounce: BOUNCE, grip: FLOOR_GRIP, friction: GROUND_FRICTION }
+export const DUCK_FEEL: FlightFeel = {
+  bounce: BOUNCE,
+  grip: FLOOR_GRIP,
+  friction: GROUND_FRICTION,
+}
+
+/**
+ * Under an open umbrella (rain, or the umbrella hat): it drifts down like a cartoon parachute,
+ * still bouncing off the sides, and lands softly on its feet.
+ */
+export const FLOAT_FEEL: FlightFeel = {
+  bounce: 0,
+  grip: 0.5,
+  friction: GROUND_FRICTION,
+  gravity: GRAVITY / 8,
+  maxFall: 0.2,
+}
+
+/** Whether a flying duck should open its umbrella now: it has started to come down. */
+export function opensUmbrella(state: Flight, canFloat: boolean): boolean {
+  return canFloat && state.vy > 0
+}
 
 /**
  * Advances a flying duck by `dtMs`: gravity pulls it down, it bounces off the sides and the top of
@@ -72,7 +107,7 @@ export function flightStep(
   if (resting) {
     // Sliding along the floor: friction only, no gravity (the floor holds it up).
     const slow = Math.max(0, Math.abs(state.vx) - feel.friction * dt) * Math.sign(state.vx)
-    const side = bounceOff(state.x + slow * dt, box.minX, box.maxX, slow)
+    const side = bounceOff(state.x + slow * dt, box.minX, box.maxX, slow, feel.wallBounce)
     return {
       x: side.value,
       y: box.floorY,
@@ -80,27 +115,32 @@ export function flightStep(
       vy: 0,
       landed: side.speed === 0,
       impact: 0,
+      hits: side.hit ? 1 : 0,
     }
   }
 
-  let vy = state.vy + GRAVITY * dt
-  const side = bounceOff(state.x + state.vx * dt, box.minX, box.maxX, state.vx)
+  let vy = state.vy + (feel.gravity ?? GRAVITY) * dt
+  if (feel.maxFall !== undefined) vy = Math.min(vy, feel.maxFall)
+  const side = bounceOff(state.x + state.vx * dt, box.minX, box.maxX, state.vx, feel.wallBounce)
+  let hits = side.hit ? 1 : 0
   let vx = side.speed
   let y = state.y + vy * dt
   if (y < box.minY) {
     y = box.minY
-    vy = Math.abs(vy) * WALL_BOUNCE
+    if (-vy >= MIN_HIT_SPEED) hits++
+    vy = Math.abs(vy) * (feel.wallBounce ?? WALL_BOUNCE)
   }
-  if (y < box.floorY) return { x: side.value, y, vx, vy, landed: false, impact: 0 }
+  if (y < box.floorY) return { x: side.value, y, vx, vy, landed: false, impact: 0, hits }
 
   const impact = vy
+  if (vy >= MIN_HIT_SPEED) hits++
   if (vy > MIN_BOUNCE_SPEED) {
     vy = -vy * feel.bounce
     vx *= feel.grip
   } else {
     vy = 0
   }
-  return { x: side.value, y: box.floorY, vx, vy, landed: vy === 0 && vx === 0, impact }
+  return { x: side.value, y: box.floorY, vx, vy, landed: vy === 0 && vx === 0, impact, hits }
 }
 
 export interface Sample {

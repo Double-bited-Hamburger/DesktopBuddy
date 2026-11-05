@@ -1,3 +1,4 @@
+import { isResumeOffset, pieceFrame } from '../../core/toys/meal'
 import { isSnack } from '../../core/toys/snacks'
 import { loadSprite } from '../shared/sprites'
 
@@ -15,9 +16,13 @@ const FRAMES = {
 // The carried snack (or the ball); main says which one in the URL hash. Drawn once; main moves the window.
 // A click drops/throws it, or picks it up again once it lies on the floor.
 async function main(): Promise<void> {
-  const hash = location.hash.slice(1)
-  const snack = isSnack(hash) || hash === 'ball' ? hash : 'bread'
-  const frame = (await loadSprite('toys', snack)).frames.find((f) => f.name === FRAMES[snack])
+  // "bread" or, for a half-eaten piece, "bread@1350" (how far into the meal it got).
+  const [name = '', at] = location.hash.slice(1).split('@')
+  const snack = isSnack(name) || name === 'ball' ? name : 'bread'
+  const offset = Number(at)
+  const shown =
+    snack !== 'ball' && isResumeOffset(snack, offset) ? pieceFrame(snack, offset) : FRAMES[snack]
+  const frame = (await loadSprite('toys', snack)).frames.find((f) => f.name === shown)
   const canvas = document.getElementById('snack') as HTMLCanvasElement
   canvas.width = STAGE
   canvas.height = STAGE

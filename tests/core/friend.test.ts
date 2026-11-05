@@ -93,3 +93,17 @@ describe('isFriendState', () => {
     expect(isFriendState(1)).toBe(false)
   })
 })
+
+describe('the ghost mini', () => {
+  it('floats round the duck, above the floor, facing the way it goes', async () => {
+    const { orbitAt } = await import('../../src/core/care/friend')
+    for (let t = 0; t < 30; t += 0.25) {
+      const spot = orbitAt(t, 1000, 500, 3)
+      expect(Math.abs(spot.x - 1000)).toBeLessThanOrEqual(28 * 3)
+      expect(spot.y).toBeLessThan(500)
+      const ahead = orbitAt(t + 0.01, 1000, 500, 3)
+      if (Math.abs(ahead.x - spot.x) > 0.01)
+        expect(Math.sign(ahead.x - spot.x)).toBe(spot.direction)
+    }
+  })
+})

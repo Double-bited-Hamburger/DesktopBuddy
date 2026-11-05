@@ -30,9 +30,12 @@ export class PointsService {
     return this.ledger.balance
   }
 
-  /** Returns the points granted (0 when on cooldown or capped for today). */
-  earn(source: string): number {
-    const { granted } = this.ledger.earn(source)
+  /**
+   * Returns the points granted (0 when on cooldown or capped for today). `multiplier`: what the
+   * mini friends out add (core/economy/companions.ts).
+   */
+  earn(source: string, multiplier = 1): number {
+    const { granted } = this.ledger.earn(source, multiplier)
     if (granted > 0) this.scheduleSave()
     return granted
   }

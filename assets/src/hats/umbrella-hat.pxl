@@ -1,0 +1,34 @@
+# A rainbow umbrella on a headband: silly and cheerful. Wearing it, a thrown duck floats down
+# under it like a parachute and lands on its feet (main/duck-window.ts).
+name: umbrella-hat
+size: 22x11
+anchor: head 11 9
+palette:
+  K #2a1f2d
+  R #d83a3a
+  r #9e2a2a
+  O #f2872b
+  o #b8561a
+  Y #f7d84a
+  y #c9a82a
+  G #5cb85c
+  g #3a7a3a
+  B #4a8ad8
+  b #2e5a9a
+  V #9a5ad8
+  v #5e3196
+  W #f4efe6
+  k #6b5a4a
+
+@frame umbrella-hat
+........KKKKKKK.......
+.....KOOYYYYGGGBBK....
+...KROOOYYYYGGGBBBVK..
+..KRROOOYYYYGGGBBBVVK.
+.KRRROOOYYYYGGGBBBVVVK
+.KrrroooyyyygggbbbvvvK
+.KK.KKK.KKK.KKK.KKK.KK
+...........k..........
+...........k..........
+.......KWWWWWWWK......
+.......KKKKKKKKK......

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { FullscreenSettingsSchema } from '../care/fullscreen'
 import { CITY_MAX } from '../care/weather'
 import { isCleanName } from '../care/welcome'
 import type { StorageAdapter } from '../storage/storage'
@@ -62,10 +63,14 @@ export const SettingsSchema = z.object({
   welcomeBack: z.boolean().default(true),
   /** The duck says when it's hungry (see core/care/hunger). */
   hungerTalk: z.boolean().default(true),
-  /** A second duck on the same PC (see core/care/friend). Off: no window, no cost. Only works
-   * once the friend duck item is owned (found in a gift or bought in the Store). */
+  /**
+   * Before 0.8.0: the full-size friend duck was out. Read once to let its mini out (see
+   * `companions`); kept so an older version still reads the file.
+   */
   friendDuck: z.boolean().default(false),
-  /** What the friend duck wears: its own outfit, from items the player owns. */
+  /** The mini friend ducks out with your duck (item ids, at most economy.json companions.max). */
+  companions: z.array(z.string().max(60)).max(4).default([]),
+  /** Before 0.8.0 the friend duck wore its own outfit; kept for older versions, unused now. */
   friendLoadout: z
     .object({
       skin: z.string().default('mint'),
@@ -78,8 +83,20 @@ export const SettingsSchema = z.object({
     .string()
     .refine((city) => isCleanName(city, CITY_MAX), 'not a clean city name')
     .default(''),
+  /** With a city set: the duck says when rain or snow is coming in the next few hours. */
+  weatherAlerts: z.boolean().default(true),
+  /** Fullscreen video: the duck lies flat (or leaves, or stays); games and other apps: it leaves. */
+  fullscreen: FullscreenSettingsSchema.prefault({}),
   /** Look for a new version on GitHub once a day. Off: no network unless the user asks. */
-  updates: z.object({ autoCheck: z.boolean().default(false) }).prefault({}),
+  updates: z
+    .object({
+      autoCheck: z.boolean().default(false),
+      /** The duck asked once whether to check at startup (whatever the answer). */
+      asked: z.boolean().default(false),
+      /** The last new version the duck announced, so each one is said only once. */
+      announced: z.string().max(40).default(''),
+    })
+    .prefault({}),
   loadout: LoadoutSchema.prefault({}),
   /** Activity tracking for Today/Stats: off until the user turns it on (see docs/PRIVACY.md). */
   tracking: z
@@ -143,6 +160,13 @@ export const SettingsPatchSchema = z.strictObject({
   hungerTalk: SettingsSchema.shape.hungerTalk.unwrap().optional(),
   friendDuck: SettingsSchema.shape.friendDuck.unwrap().optional(),
   weatherCity: SettingsSchema.shape.weatherCity.unwrap().optional(),
+  weatherAlerts: SettingsSchema.shape.weatherAlerts.unwrap().optional(),
+  fullscreen: z
+    .strictObject({
+      video: FullscreenSettingsSchema.shape.video.unwrap().optional(),
+      games: FullscreenSettingsSchema.shape.games.unwrap().optional(),
+    })
+    .optional(),
 })
 
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
@@ -151,7 +175,7 @@ export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
 export function applySettingsPatch(settings: Settings, patch: unknown): Settings | undefined {
   const parsed = SettingsPatchSchema.safeParse(patch)
   if (!parsed.success) return undefined
-  const { duck, breaks, updates, names, ...rest } = parsed.data
+  const { duck, breaks, updates, names, fullscreen, ...rest } = parsed.data
   return SettingsSchema.parse({
     ...settings,
     ...definedOnly(rest),
@@ -159,6 +183,7 @@ export function applySettingsPatch(settings: Settings, patch: unknown): Settings
     breaks: { ...settings.breaks, ...definedOnly(breaks ?? {}) },
     updates: { ...settings.updates, ...definedOnly(updates ?? {}) },
     names: { ...settings.names, ...definedOnly(names ?? {}) },
+    fullscreen: { ...settings.fullscreen, ...definedOnly(fullscreen ?? {}) },
   })
 }
 

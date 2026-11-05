@@ -84,6 +84,8 @@ possible if the RAM budget cannot be met.
 
 Budget (resting app = duck window only): **CPU < 1%** of one core (60 s average), **private RAM <
 120 MB** (all Electron processes), ≤ 12 fps awake / ≤ 2 fps asleep, walking IPC ≤ 12 msg/s.
+With **mini friends out** (one small window each, up to two) the RAM budget is **< 140 MB**
+(raised by the owner on 2026-11-05, after two minis measured 127–132 MB).
 
 Measured **2026-10-26**, Windows 11, 16 logical cores, 2560×1440, scale 3, **production build**
 (`npm run build` + `electron-vite preview`), 4 Electron processes, behavior left to run freely
@@ -288,6 +290,23 @@ day's busy numbers above.**
 - The software canvas saved 3 MB idle and nothing measurable walking here, not the 7 MB seen
   that day.
 - The free mix, what a real duck does all day, is 1.17%: about the budget, not under it.
+
+### Quick RAM check with two mini friends (0.8.0, 2026-11-05)
+
+Built app (`electron-vite preview`), throwaway data folder, private working set summed over the
+app's processes (the perf script's metric), two samples 10 s apart after 50 s:
+
+| Minis out | Processes | RAM |
+| --- | --- | --- |
+| none | 4 | 92.4 / 93.1 MB |
+| two (ghost + comet) | 6 | 131.8 / 126.7 MB |
+
+- **Two minis were over the old 120 MB budget** (about 17 MB per mini window; one mini should
+  be around 110 MB, estimated, not measured). Their windows already use the lean page settings
+  (`pages.ts`: no spellcheck, sandboxed).
+- **Owner's decision (2026-11-05): raise the budget** to < 140 MB with minis out, rather than
+  draw both minis in one shared window. The duck alone stays at < 120 MB. Two minis: ✅.
+- CPU with minis out: not measured (no long perf runs).
 
 ## Decisions that differ from the original plan
 

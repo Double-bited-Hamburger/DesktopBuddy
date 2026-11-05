@@ -52,13 +52,16 @@ describe('settings', () => {
       theme: 'system',
       duck: { wander: true, naps: true, chatter: true, fidget: true },
       breaks: { enabled: false, workMinutes: 50, breakMinutes: 5 }, // the break buddy is opt-in
-      updates: { autoCheck: false }, // no network unless the user turns it on
+      updates: { autoCheck: false, asked: false, announced: '' }, // no network unless the user turns it on
       names: { duck: '', you: '' }, // no names until the user gives some
       welcomeBack: true,
       hungerTalk: true,
       friendDuck: false,
       friendLoadout: { skin: 'mint', hat: null, face: null },
+      companions: [],
       weatherCity: '', // no weather (and no network) until the user types a city
+      weatherAlerts: true, // only matters once a city is typed
+      fullscreen: { video: 'lie', games: 'hide' }, // lie flat over videos, leave for games
       loadout: { skin: 'classic', hat: null, face: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })

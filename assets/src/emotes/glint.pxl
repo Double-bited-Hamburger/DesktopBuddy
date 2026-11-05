@@ -1,0 +1,19 @@
+# A glint on the sunglasses as the duck floats down after the rocket: so cool.
+name: glint
+size: 5x5
+palette:
+  W #ffffff
+
+@frame glint-1
+..W..
+.WWW.
+WWWWW
+.WWW.
+..W..
+
+@frame glint-2
+..W..
+..W..
+WWWWW
+..W..
+..W..

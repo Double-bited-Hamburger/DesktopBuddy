@@ -111,6 +111,18 @@
       }
     },
     {
+      "id": "christmas",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/placeholder-duck",
+      "palette": {
+        "K": "#1d4a2a",
+        "W": "#d23a3a",
+        "S": "#f4ede0",
+        "H": "#f07a6c"
+      }
+    },
+    {
       "id": "bucket-hat",
       "slot": "hat",
       "rarity": "uncommon",
@@ -177,6 +189,18 @@
       "sprite": "hats/golden-cartridge"
     },
     {
+      "id": "umbrella-hat",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/umbrella-hat"
+    },
+    {
+      "id": "santa-hat",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/santa-hat"
+    },
+    {
       "id": "nerd-glasses",
       "slot": "face",
       "rarity": "common",
@@ -198,7 +222,96 @@
       "id": "friend-duck",
       "slot": "friend",
       "rarity": "rare",
-      "sprite": "ducks/placeholder-duck"
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#b9dcf5",
+        "S": "#8bbbe0",
+        "H": "#e4f3ff"
+      }
+    },
+    {
+      "id": "mini-pebble",
+      "slot": "friend",
+      "rarity": "common",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#c9c4bd",
+        "S": "#a39d94",
+        "H": "#e6e2dc"
+      }
+    },
+    {
+      "id": "mini-sandy",
+      "slot": "friend",
+      "rarity": "common",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#e8cfa0",
+        "S": "#c9a874",
+        "H": "#f6e6c4"
+      }
+    },
+    {
+      "id": "mini-peach",
+      "slot": "friend",
+      "rarity": "uncommon",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#f7c59f",
+        "S": "#e09f72",
+        "H": "#fde2cc"
+      }
+    },
+    {
+      "id": "mini-lilac",
+      "slot": "friend",
+      "rarity": "uncommon",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#cdb8ee",
+        "S": "#a690d4",
+        "H": "#eadfff"
+      }
+    },
+    {
+      "id": "mini-ember",
+      "slot": "friend",
+      "rarity": "epic",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#f08a5d",
+        "S": "#c8603a",
+        "H": "#ffc2a3",
+        "O": "#ffd84a"
+      }
+    },
+    {
+      "id": "mini-ghost",
+      "slot": "friend",
+      "rarity": "legendary",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#e8f0ff",
+        "S": "#b8c6e6",
+        "H": "#ffffff",
+        "E": "#6a7bd6",
+        "O": "#b8c6e6",
+        "K": "#4a5580"
+      },
+      "motion": "fly"
+    },
+    {
+      "id": "mini-comet",
+      "slot": "friend",
+      "rarity": "exotic",
+      "sprite": "companions/mini-duck",
+      "palette": {
+        "W": "#2f3a7a",
+        "S": "#1f2757",
+        "H": "#6a7be0",
+        "E": "#ffe066",
+        "O": "#ffd84a"
+      }
     }
   ]
 }

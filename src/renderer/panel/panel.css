@@ -814,3 +814,169 @@ body {
   float: left;
   padding: 0;
 }
+
+/* --- home ---------------------------------------------------------------------------------- */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home h2,
+.home h3 {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.home-duck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.home-duck .preview.big {
+  width: 120px;
+  height: 120px;
+}
+
+.home-now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-now p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.home .icon {
+  image-rendering: pixelated;
+}
+
+/* Seven narrow days in a row; the Italian weekday names are as short as the English ones. */
+.week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.week li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0;
+  border: 2px solid var(--edge);
+  border-radius: 6px;
+  background: var(--paper);
+  font-size: 11px;
+}
+
+.week li:first-child {
+  border-color: var(--accent);
+}
+
+.week .day {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+/* A mini friend's points bonus under its name, and how many are out. */
+.tile .bonus {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.friends-now {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* --- gift reel ------------------------------------------------------------------------------ */
+/* A strip of tiles behind a window, rolled by one CSS transition (ease-out, REEL_MS long). */
+.reel {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 92px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.reel-strip {
+  display: flex;
+  gap: 4px;
+  padding: 8px 0;
+  transition: transform 4.5s cubic-bezier(0.33, 1, 0.68, 1);
+  will-change: transform;
+}
+
+.reel-tile {
+  flex: 0 0 64px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--edge);
+  border-radius: 6px;
+  background: var(--cream);
+}
+
+.reel-tile .preview.small {
+  width: 56px;
+  height: 56px;
+}
+
+.rarity-edge-common {
+  border-color: #a8998a;
+}
+.rarity-edge-uncommon {
+  border-color: #2f8a3c;
+}
+.rarity-edge-rare {
+  border-color: #2f5fc0;
+}
+.rarity-edge-epic {
+  border-color: #8a3cc2;
+}
+.rarity-edge-legendary {
+  border-color: #c96f0e;
+}
+.rarity-edge-exotic {
+  border-color: #c8243c;
+}
+
+/* The marker the prize stops under. */
+.reel-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px var(--ink);
+}
+
+/* The Store's Boost section */
+.store-head {
+  margin: 12px 0 4px;
+  font-size: inherit;
+}
+.card.boost .icon {
+  margin: 0 12px;
+}
+.card .warn {
+  color: var(--accent, #c0603a);
+}

@@ -26,6 +26,11 @@ export class SnackPile {
   onTarget: (spot: SnackSpot | undefined) => void = () => undefined
   /** A piece came to rest on a floor (the friend duck may want one). */
   onRest: () => void = () => undefined
+  /**
+   * The duck page never said the meal was finished (its timers were held up, or the message got
+   * lost): treat it as eaten, so it is paid and the duck moves on.
+   */
+  onEatTimeout: () => void = () => this.ate()
 
   constructor(scale: number, duckX: () => number) {
     this.scale = scale
@@ -53,15 +58,28 @@ export class SnackPile {
     this.pieces.find((piece) => piece.webContents === sender)?.click()
   }
 
-  /** The duck reached the piece it was going for: it is eaten. Returns what it was. */
-  caught(): Snack | undefined {
+  /**
+   * The duck reached the piece it was going for: it is eaten. Returns what it was and how far
+   * into its meal it already is (0, or a half-eaten piece picked up again).
+   */
+  caught(): { kind: Snack; offset: number } | undefined {
     const piece = this.chasing
     if (!piece) return undefined
     this.chasing = undefined
     clearTimeout(this.eating)
-    this.eating = setTimeout(() => this.ate(), EATING_TIMEOUT_MS)
+    this.eating = setTimeout(() => this.onEatTimeout(), EATING_TIMEOUT_MS)
     piece.taken()
-    return piece.kind
+    return { kind: piece.kind, offset: piece.offset }
+  }
+
+  /**
+   * The meal was cut short: what is left drops from the duck's beak (`at`), and the duck goes
+   * back for it once it is free again.
+   */
+  dropped(kind: Snack, offset: number, at: { x: number; y: number }, facing: 1 | -1): void {
+    clearTimeout(this.eating)
+    this.eating = undefined
+    this.add(kind, at, offset)?.toss(0.15 * facing, -0.35)
   }
 
   /** The duck finished eating: on to the next piece, if any. */
@@ -72,6 +90,11 @@ export class SnackPile {
   }
 
   /** Takes every piece away (the ball was thrown instead). */
+  /** Out of sight while a fullscreen game runs (the duck is away too), back afterwards. */
+  setHidden(hidden: boolean): void {
+    for (const piece of this.pieces) piece.setHidden(hidden)
+  }
+
   clear(): void {
     for (const piece of [...this.pieces]) piece.taken()
   }
@@ -83,14 +106,14 @@ export class SnackPile {
     for (const piece of [...this.pieces]) piece.taken()
   }
 
-  private add(kind: Snack, at: { x: number; y: number }): SnackWindow | undefined {
+  private add(kind: Snack, at: { x: number; y: number }, offset = 0): SnackWindow | undefined {
     if (this.pieces.length >= MAX_SNACKS) {
       // Full: the piece that has waited longest makes room (never the one being chased).
       const oldest = this.pieces.find((p) => p !== this.chasing && !p.carried)
       if (!oldest) return undefined
       oldest.taken()
     }
-    const piece = new SnackWindow(kind, this.scale, at)
+    const piece = new SnackWindow(kind, this.scale, at, undefined, offset)
     piece.onLanded = () => {
       this.retarget()
       this.onRest()
@@ -150,7 +173,7 @@ export class SnackPile {
   }
 
   /** If the duck is free, send it after the nearest resting piece. */
-  private retarget(): void {
+  retarget(): void {
     if (this.eating || this.chasing) return
     const resting = this.pieces.filter((piece) => piece.spot && piece !== this.reserved)
     const i = nearestSnack(

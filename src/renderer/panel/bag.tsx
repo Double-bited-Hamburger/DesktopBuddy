@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'preact/hooks'
 import type { CatalogItem, ItemSlot, Slot } from '../../core/catalog/catalog'
-import { FRIEND_ITEM, itemsForSlot } from '../../core/catalog/catalog'
+import { itemsForSlot } from '../../core/catalog/catalog'
+import { multiplierLabel } from '../../core/economy/companions'
 import type { Translator } from '../../core/i18n/i18n'
-import type { Dressing, Loadout, SmokeBarView } from '../../shared/ipc'
+import type { CompanionsView, Loadout, SmokeBarView } from '../../shared/ipc'
 import { catalog } from '../shared/outfit'
-import { DuckPreview, RarityLabel, wearing } from './widgets'
+import { DuckPreview, MiniPreview, RarityLabel, wearing } from './widgets'
 
 const TABS: readonly { slot: ItemSlot; label: string }[] = [
   { slot: 'skin', label: 'bag.skins' },
@@ -21,9 +22,11 @@ interface TileProps {
   equipped: boolean
   locked: boolean
   onEquip: () => void
+  /** A mini friend: drawn on its own, with its points bonus. */
+  mini?: { readonly bonus: number }
 }
 
-function Tile({ t, preview, name, item, equipped, locked, onEquip }: TileProps) {
+function Tile({ t, preview, name, item, equipped, locked, onEquip, mini }: TileProps) {
   return (
     <button
       type="button"
@@ -33,8 +36,9 @@ function Tile({ t, preview, name, item, equipped, locked, onEquip }: TileProps) 
       title={locked ? t('bag.locked') : undefined}
       onClick={onEquip}
     >
-      <DuckPreview loadout={preview} />
+      {mini && item ? <MiniPreview item={item} /> : <DuckPreview loadout={preview} />}
       <span class="name">{name}</span>
+      {mini && <span class="bonus">{t('bag.bonus', { n: Math.round(mini.bonus * 100) })}</span>}
       {item ? <RarityLabel t={t} item={item} /> : <span class="rarity">&nbsp;</span>}
     </button>
   )
@@ -75,56 +79,44 @@ function SmokeMeter({ t }: { t: Translator }) {
 
 /**
  * The Bag doubles as the collection book: everything in the catalog is listed, owned items can
- * be worn, the rest show as silhouettes with their rarity so progress is visible. Once the friend
- * duck is found, the Bag can dress it too, and its tab lets it out or calls it home.
+ * be worn, the rest show as silhouettes with their rarity so progress is visible. The Friends tab
+ * lists the mini ducks: up to two come out with your duck, each adding its points bonus.
  */
 export function Bag({
   t,
   loadout,
-  friendLoadout,
   owned,
   onEquip,
 }: {
   t: Translator
   loadout: Loadout
-  friendLoadout?: Loadout
   owned: ReadonlySet<string>
-  onEquip: (slot: Slot, id: string | null, who: Dressing) => void
+  onEquip: (slot: Slot, id: string | null) => void
 }) {
   const [slot, setSlot] = useState<ItemSlot>('skin')
-  const [who, setWho] = useState<Dressing>('duck')
-  const [friendOut, setFriendOut] = useState<boolean | undefined>()
+  const [friends, setFriends] = useState<CompanionsView | undefined>()
+  const [full, setFull] = useState(false)
   useEffect(() => {
-    window.buddy.panel.settings.get().then(
-      (view) => setFriendOut(view.friendDuck),
-      () => setFriendOut(undefined),
-    )
+    window.buddy.panel.companions().then(setFriends, () => setFriends(undefined))
   }, [])
-  const friendOwned = owned.has(FRIEND_ITEM)
-  const dressing = who === 'friend' && friendOwned && friendLoadout ? 'friend' : 'duck'
-  const target = dressing === 'friend' && friendLoadout ? friendLoadout : loadout
+  const target = loadout
   const items = itemsForSlot(catalog, slot)
   const found = items.filter((item) => owned.has(item.id)).length
-  const toggleFriend = () => {
-    const next = !friendOut
-    window.buddy.panel.settings
-      .set({ friendDuck: next })
-      .then((view) => setFriendOut(view.friendDuck))
+  const toggleFriend = (id: string) => {
+    if (friends && !friends.out.includes(id) && friends.out.length >= friends.max) {
+      setFull(true) // both spots taken: call one home first
+      return
+    }
+    setFull(false)
+    window.buddy.panel
+      .toggleCompanion(id)
+      .then(setFriends)
       .catch((error) => console.error('Friend failed', error))
   }
+  const anyMini = catalog.items.some((item) => item.slot === 'friend' && owned.has(item.id))
   return (
     <section class="bag">
       <SmokeMeter t={t} />
-      {friendOwned && friendLoadout && slot !== 'friend' && (
-        <fieldset class="row dress">
-          <legend class="muted">{t('bag.dress')}</legend>
-          {(['duck', 'friend'] as const).map((w) => (
-            <button key={w} type="button" aria-pressed={dressing === w} onClick={() => setWho(w)}>
-              {t(w === 'duck' ? 'bag.dressDuck' : 'bag.dressFriend')}
-            </button>
-          ))}
-        </fieldset>
-      )}
       <div class="tabs" role="tablist">
         {TABS.map((tab) => (
           <button
@@ -147,7 +139,7 @@ export function Bag({
             name={t('bag.none')}
             equipped={target[slot] === null}
             locked={false}
-            onEquip={() => onEquip(slot, null, dressing)}
+            onEquip={() => onEquip(slot, null)}
           />
         )}
         {items.map((item) => {
@@ -156,12 +148,13 @@ export function Bag({
               <Tile
                 key={item.id}
                 t={t}
-                preview={friendLoadout ?? wearing(loadout, item)}
+                preview={loadout}
                 name={t(`item.${item.id}`)}
                 item={item}
-                equipped={friendOut === true && owned.has(item.id)}
+                equipped={friends?.out.includes(item.id) === true}
                 locked={!owned.has(item.id)}
-                onEquip={toggleFriend}
+                onEquip={() => toggleFriend(item.id)}
+                mini={{ bonus: friends?.bonus[item.id] ?? 0 }}
               />
             )
           const wearable = item.slot
@@ -174,13 +167,23 @@ export function Bag({
               item={item}
               equipped={target[wearable] === item.id}
               locked={!owned.has(item.id)}
-              onEquip={() => onEquip(wearable, item.id, dressing)}
+              onEquip={() => onEquip(wearable, item.id)}
             />
           )
         })}
       </div>
+      {slot === 'friend' && friends && (
+        <p class="friends-now">
+          {t('bag.friendsNow', {
+            n: friends.out.length,
+            max: friends.max,
+            x: multiplierLabel(friends.multiplier),
+          })}
+        </p>
+      )}
+      {slot === 'friend' && full && <p class="muted note">{t('bag.friendsFull')}</p>}
       {slot === 'friend' && (
-        <p class="muted note">{t(friendOwned ? 'bag.friendHint' : 'bag.friendFind')}</p>
+        <p class="muted note">{t(anyMini ? 'bag.friendHint' : 'bag.friendFind')}</p>
       )}
     </section>
   )

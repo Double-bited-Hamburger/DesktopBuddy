@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
+import type { CatalogItem } from '../src/core/catalog/catalog'
 import { parseCatalog } from '../src/core/catalog/catalog'
 import type { Layer } from '../src/core/sprite/compositor'
 import { composeLayers, mirrorX } from '../src/core/sprite/compositor'
@@ -10,11 +11,12 @@ import type { Frame, RgbaImage } from '../src/core/sprite/types'
 import { STAGE_SIZE } from '../src/core/stage'
 import { breadAt, MEAL_MS } from '../src/core/toys/bread'
 import { SMOKE_MS, smokeAt } from '../src/core/toys/cigar'
+import { wardrobeCaption, wardrobeGroups } from './lib/wardrobe'
 
 /**
  * Renders the README pictures straight from the .pxl sources, so they always match the game:
  *   docs/media/duck-show.svg  an animated loop (idle, walk, quack, pet, eat, smoke, ouch)
- *   docs/media/wardrobe.svg   every skin, dressed in a few hats and glasses
+ *   docs/media/wardrobe.svg   the whole catalog: skins, hats, glasses and mini friends
  * Plain SVG rects + CSS steps: crisp at any size, animates on GitHub, honors reduced motion.
  * Usage: npm run readme-art
  */
@@ -198,49 +200,67 @@ async function main(): Promise<void> {
     ),
   )
 
-  // Wardrobe: every skin, each with a different hat/glasses combo.
+  // Wardrobe: the whole catalog. A row of skins, then every hat and every pair of glasses
+  // (worn by the skins in turn), then the mini friends. Built from catalog.json, so new items
+  // appear by themselves; the caption under it in README.md is checked by a test.
   const catalog = parseCatalog(
     JSON.parse(await readFile(join(root, 'assets', 'economy', 'catalog.json'), 'utf8')),
   )
-  const looks: [string, string | null, string | null][] = [
-    ['classic', null, null],
-    ['rubber', 'cap', null],
-    ['mint', 'beanie', 'nerd-glasses'],
-    ['strawberry', 'party-hat', null],
-    ['midnight', null, 'sunglasses'],
-    ['golden', 'crown', null],
-    ['ghost', 'wizard-hat', null],
-    ['neon', 'viking-helmet', 'cyber-visor'],
-    ['galaxy', 'demon-hunter-helmet', null],
-  ]
-  const layers: Layer[] = []
-  for (const [i, [skinId, hatId, faceId]] of looks.entries()) {
-    const skin = catalog.items.find((item) => item.id === skinId)
-    if (!skin) throw new Error(`no skin ${skinId}`)
+  const groups = wardrobeGroups(catalog)
+  const skinBody = (skin: CatalogItem): Frame => {
     const base = frameOf(duck, 'idle')
-    const body = skin.palette
-      ? recolorFrame(base, buildRecolorMapping(duck.palette, skin.palette))
-      : base
-    const accessories = []
-    if (faceId)
-      accessories.push({ frame: frameOf(await load(`faces/${faceId}`), faceId), slot: 'face' })
-    if (hatId)
-      accessories.push({ frame: frameOf(await load(`hats/${hatId}`), hatId), slot: 'head' })
-    layers.push({
-      frame: asFrame(dressDuck(body, accessories)),
-      offset: { x: i * STAGE_SIZE, y: 0 },
-    })
+    return skin.palette ? recolorFrame(base, buildRecolorMapping(duck.palette, skin.palette)) : base
   }
-  const wardrobe = composeLayers(STAGE_SIZE * looks.length, STAGE_SIZE, layers)
+  const accessory = async (item: CatalogItem) => {
+    const sprite = await load(item.sprite)
+    return sprite.frames[0] ?? frameOf(sprite, item.id)
+  }
+  const cells: Frame[][] = []
+  cells.push(groups.skins.map((skin) => asFrame(dressDuck(skinBody(skin), []))))
+  const wearers = groups.skins
+  const worn = async (items: readonly CatalogItem[], slot: 'head' | 'face', shift: number) => {
+    const row: Frame[] = []
+    for (const [i, item] of items.entries()) {
+      const skin = wearers[(i + shift) % wearers.length]
+      if (!skin) throw new Error('no skins in the catalog')
+      row.push(asFrame(dressDuck(skinBody(skin), [{ frame: await accessory(item), slot }])))
+    }
+    return row
+  }
+  cells.push(await worn(groups.hats, 'head', 0))
+  cells.push(await worn(groups.faces, 'face', 3))
+  const mini = await load('companions/mini-duck')
+  const miniIdle = frameOf(mini, 'idle')
+  cells.push(
+    groups.minis.map((item) => {
+      const frame = item.palette
+        ? recolorFrame(miniIdle, buildRecolorMapping(mini.palette, item.palette))
+        : miniIdle
+      // Where the Bag shows them (MiniPreview): standing on the cell's floor, in the middle.
+      return asFrame(composeLayers(STAGE_SIZE, STAGE_SIZE, [{ frame, offset: { x: 12, y: 22 } }]))
+    }),
+  )
+  const COLS = 10
+  const layers: Layer[] = []
+  let row = 0
+  for (const group of cells) {
+    for (const [i, frame] of group.entries())
+      layers.push({
+        frame,
+        offset: { x: (i % COLS) * STAGE_SIZE, y: (row + Math.floor(i / COLS)) * STAGE_SIZE },
+      })
+    row += Math.max(1, Math.ceil(group.length / COLS))
+  }
+  const wardrobe = composeLayers(STAGE_SIZE * COLS, STAGE_SIZE * row, layers)
+  const caption = wardrobeCaption(catalog)
   await writeFile(
     join(media, 'wardrobe.svg'),
-    flipBook(
-      [{ image: wardrobe, x: 0, ms: 1000 }],
-      wardrobe.width,
-      wardrobe.height,
-      'Nine duck skins wearing hats and glasses',
-    ),
+    flipBook([{ image: wardrobe, x: 0, ms: 1000 }], wardrobe.width, wardrobe.height, caption),
   )
+  const readme = await readFile(join(root, 'README.md'), 'utf8')
+  if (!readme.includes(caption))
+    console.warn(`README.md: put this caption under the wardrobe picture:
+  ${caption}`)
   console.log(`wrote docs/media/duck-show.svg (${shots.length} shots) and docs/media/wardrobe.svg`)
 }
 

@@ -24,11 +24,10 @@ import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
 import { opaqueRects } from '../../core/sprite/shape'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
-import { breadAt, MEAL_MS, msUntilBreadChange } from '../../core/toys/bread'
-import { msUntilSmokeChange, REFUSE_MS, SMOKE_MS, smokeAt } from '../../core/toys/cigar'
+import { breadAt, msUntilBreadChange } from '../../core/toys/bread'
+import { msUntilSmokeChange, REFUSE_MS, smokeAt } from '../../core/toys/cigar'
 import {
   coffeeAt,
-  DRINK_MS,
   ESPRESSO_MS,
   msUntilCoffeeChange,
   msUntilPageTurn,
@@ -36,9 +35,11 @@ import {
   TIRED_MS,
   ZOOM_SPEED,
 } from '../../core/toys/coffee'
-import { CHUG_MS, fizzAt, msUntilQuackChange, quackAt, TURBO_SPEED } from '../../core/toys/quack'
+import { pieceFrame, TREAT_MS, treatElapsed, treatLength } from '../../core/toys/meal'
+import { fizzAt, msUntilQuackChange, quackAt, TURBO_SPEED } from '../../core/toys/quack'
+import { BOOM_STEP_MS } from '../../core/toys/rocket'
 import type { Snack } from '../../core/toys/snacks'
-import type { Loadout, WalkDirection } from '../../shared/ipc'
+import type { Loadout, RocketPhase, WalkDirection } from '../../shared/ipc'
 import { ChipPlayer } from '../shared/chip-player'
 import { drawDressed, loadDressedDuck } from '../shared/outfit'
 import { loadSprite } from '../shared/sprites'
@@ -78,6 +79,19 @@ const DIZZY_STEP_MS = 250
 const ZZZ_SPOT = { x: 27, y: 6 }
 /** Rain or snow: the umbrella's top-left (behind the duck, its handle hidden by the head). */
 const UMBRELLA_SPOT = { x: 12, y: 0 }
+/** Floating down under the open umbrella: centred over the head; it pops open in three steps. */
+const PARASOL_SPOT = { x: 12, y: 0 }
+const PARASOL_STEP_MS = 120
+/**
+ * The Rocket Boost: the rocket hugged in front of the shocked duck (which sits 6 px higher on it),
+ * the burst round its middle, and the glint on its sunglasses.
+ */
+const ROCKET_SPOT = { x: 14, y: 16 }
+const ROCKET_LIFT_PX = 6
+const BOOM_SPOT = { x: 4, y: 6 }
+const FLAME_STEP_MS = 110
+const GLINT_SPOT = { x: 29, y: 13 }
+const GLINT_STEP_MS = 180
 const ZZZ_STEP_MS = 1000
 /** December: flakes behind the duck, a drift in front of its feet. */
 const SNOW_SPOT = { x: 4, y: 0 }
@@ -86,8 +100,7 @@ const SNOW_STEP_MS = 600
 const SIT_DOWN_MS = 400
 /** Looking back: it turns its head after this long, and looks ahead again this long before the end. */
 const LOOK_TURN_MS = 450
-/** How long each snack keeps the duck busy, and the state it is in meanwhile. */
-const TREAT_MS = { bread: MEAL_MS, cigar: SMOKE_MS, coffee: DRINK_MS, quack: CHUG_MS } as const
+/** The state the duck is in while it has each snack (how long: core/toys/meal.ts). */
 const TREAT_STATE = { bread: 'eat', cigar: 'smoke', coffee: 'drink', quack: 'chug' } as const
 
 /** Reading after a coffee: the sofa sits under the duck, the newspaper in front of its chest. */
@@ -191,7 +204,7 @@ const animations: AnimationSet = {
     loop: false,
   },
   // Coffee: the poses come from coffeeAt (core/toys/coffee.ts), with the mug, steam and sparks.
-  drink: { frames: ['idle'], frameMs: DRINK_MS, loop: false },
+  drink: { frames: ['idle'], frameMs: TREAT_MS.coffee, loop: false },
   // On the sofa with the newspaper: reading, with the odd slow blink.
   read: { frames: ['idle', 'idle', 'idle', 'idle', 'idle', 'blink'], frameMs: 600, loop: true },
   zoom: { frames: ['wide-step', 'wide'], frameMs: 90, loop: true }, // wide awake, racing around
@@ -202,7 +215,7 @@ const animations: AnimationSet = {
     loop: false,
   },
   // The QUACK can: the poses come from quackAt (core/toys/quack.ts), then it races off.
-  chug: { frames: ['idle'], frameMs: CHUG_MS, loop: false },
+  chug: { frames: ['idle'], frameMs: TREAT_MS.quack, loop: false },
   turbo: { frames: ['wide-step', 'wide'], frameMs: 70, loop: true },
   // Headphones on, working along with you: a slow blink now and then.
   focus: { frames: ['idle', 'idle', 'idle', 'idle', 'idle', 'blink'], frameMs: 700, loop: true },
@@ -238,6 +251,11 @@ async function main(): Promise<void> {
   const config = await window.buddy.getConfig()
   let dressed = await loadDressedDuck(config.loadout)
   let specs = await loadDressedDuck(withSpecs(config.loadout))
+  /** For the Rocket Boost: the bare skin (the front-facing frame has no hat spot), and shades. */
+  const bareOf = (loadout: Loadout): Loadout => ({ skin: loadout.skin, hat: null, face: null })
+  const shadesOf = (loadout: Loadout): Loadout => ({ ...loadout, face: 'sunglasses' })
+  let bare = await loadDressedDuck(bareOf(config.loadout))
+  let shades = await loadDressedDuck(shadesOf(config.loadout))
   const bubble = (await loadSprite('emotes', 'quack-bubble')).frames[0]
   const heart = (await loadSprite('emotes', 'heart')).frames[0]
   const digits = await loadSprite('ui', 'points-digits')
@@ -265,7 +283,14 @@ async function main(): Promise<void> {
   const dizzyFrames = (await loadSprite('emotes', 'dizzy')).frames // a ring: no mirrored copy needed
   const noSmoke = (await loadSprite('emotes', 'no-smoke')).frames[0]
   const zzzFrames = (await loadSprite('emotes', 'zzz')).frames // letters: drawn after mirroring
-  const umbrella = (await loadSprite('toys', 'umbrella')).frames[0] // symmetric enough to reuse
+  const rocketFrames = (await loadSprite('toys', 'rocket')).frames // symmetric: never mirrored
+  const boomFrames = (await loadSprite('emotes', 'boom')).frames
+  const glintFrames = (await loadSprite('emotes', 'glint')).frames
+  const umbrellaFrames = (await loadSprite('toys', 'umbrella')).frames
+  const umbrella = umbrellaFrames.find((f) => f.name === 'umbrella') // symmetric enough to reuse
+  const parasol = ['open-1', 'open-2', 'open-3'].map((name) =>
+    umbrellaFrames.find((f) => f.name === name),
+  )
   const sofa = (await loadSprite('toys', 'sofa')).frames // symmetric: no mirrored copy needed
   const sofaBack = sofa.find((f) => f.name === 'sofa-back')
   const sofaFront = sofa.find((f) => f.name === 'sofa-front')
@@ -326,12 +351,28 @@ async function main(): Promise<void> {
   let ignoring = true // the main process starts the window click-through
   let dragging = false
   let falling = false
+  /** A fullscreen video on its screen: lying flat, the behavior clock paused (see onLie). */
+  let lying = false
+  /** The Rocket Boost's show, and when its current phase started. */
+  let rocket: { phase: RocketPhase; since: number } | undefined
+  /** Thrown in the rain (or wearing the umbrella hat): floating down since then. */
+  let floatingSince: number | undefined
   let dragQueued = false
   let pressedAt = { x: 0, y: 0 }
   const petting = new PetDetector()
   let popup: { text: string; startedAt: number } | undefined
   /** The snack being eaten or smoked, and when the duck caught it (same time base as `lastTick`). */
-  let treat: { kind: Snack; since: number; heavy: boolean } | undefined
+  let treat: { kind: Snack; since: number; heavy: boolean; offset: number } | undefined
+  /** Where the treat is on its meal's timeline (a half-eaten one skips what was eaten). */
+  const treatAt = (now: number): number =>
+    treat ? treatElapsed(treat.offset, now - treat.since) : 0
+  /** The meal is cut short: tell main, so what is left drops and the duck finishes it later. */
+  function dropTreat(now: number): void {
+    if (!treat) return
+    const elapsed = Math.min(treatAt(now), TREAT_MS[treat.kind] - 1)
+    treat = undefined
+    window.buddy.duck.treatDropped(elapsed)
+  }
   /** The machine's state as of the last tick, and since when (for the newspaper's pages). */
   let shownState: BehaviorState = machine.state
   /** Break time (the break buddy): stare at the user until the break happens. */
@@ -354,11 +395,18 @@ async function main(): Promise<void> {
 
   window.buddy.duck.onLoadout((loadout) => {
     const version = ++outfitVersion
-    Promise.all([loadDressedDuck(loadout), loadDressedDuck(withSpecs(loadout))])
-      .then(([next, nextSpecs]) => {
+    Promise.all([
+      loadDressedDuck(loadout),
+      loadDressedDuck(withSpecs(loadout)),
+      loadDressedDuck(bareOf(loadout)),
+      loadDressedDuck(shadesOf(loadout)),
+    ])
+      .then(([next, nextSpecs, nextBare, nextShades]) => {
         if (version !== outfitVersion) return // a newer equip already won
         dressed = next
         specs = nextSpecs
+        bare = nextBare
+        shades = nextShades
         render()
       })
       .catch((error) => console.error('Could not load the new outfit', error))
@@ -382,20 +430,108 @@ async function main(): Promise<void> {
   }
 
   /** The snack's frame, where it is, and any smoke, `elapsed` ms into the treat (not coffee). */
-  function snackView(kind: 'bread' | 'cigar', elapsed: number) {
+  function snackView(kind: 'bread' | 'cigar', elapsed: number, offset: number) {
     if (kind === 'bread') {
       const view = breadAt(elapsed)
-      return view && { frame: view.frame, onGround: view.onGround, puff: undefined, rise: 0 }
+      // A half-eaten slice picked up again looks half-eaten on the ground too.
+      const frame = view?.onGround && offset ? pieceFrame('bread', offset) : view?.frame
+      return view && { frame, onGround: view.onGround, puff: undefined, rise: 0 }
     }
     const view = smokeAt(elapsed)
     return view && { frame: 'cigar', onGround: view.onGround, puff: view.puff, rise: view.rise }
   }
 
+  /** The Rocket Boost, phase by phase; the window is moved by main. Returns false when not on. */
+  function renderRocket(now: number): boolean {
+    if (!rocket || rocket.phase === 'end') return false
+    const { phase } = rocket
+    const elapsed = now - rocket.since
+    const facing = machine.direction
+    let image: RgbaImage | undefined
+    const layers: { frame: Frame; offset: { x: number; y: number } }[] = []
+    let key: string = phase
+    if (phase === 'shock' || phase === 'lift') {
+      // Facing you, eyes popping, hugging the rocket (no hat: the front frame has no hat spot).
+      image = drawDressed(bare, 'shock')
+      const fire = phase === 'lift' ? (Math.floor(elapsed / FLAME_STEP_MS) % 2 === 0 ? 1 : 2) : 0
+      const frame = rocketFrames[fire]
+      if (image)
+        layers.push({
+          frame: { name: 'duck', anchors: {}, ...image },
+          offset: { x: 0, y: -ROCKET_LIFT_PX },
+        })
+      if (frame) layers.push({ frame, offset: ROCKET_SPOT })
+      key += fire
+    } else if (phase === 'boom') {
+      image = drawDressed(dressed, 'ouch') // singed, behind the fireball and the smoke
+      const step = Math.floor(elapsed / BOOM_STEP_MS)
+      const frame = boomFrames[step]
+      if (image) {
+        if (facing === -1) image = mirrorX(image)
+        layers.push({ frame: { name: 'duck', anchors: {}, ...image }, offset: { x: 0, y: 0 } })
+      }
+      if (frame) layers.push({ frame, offset: BOOM_SPOT })
+      key += step
+    } else {
+      // Cool: sunglasses on, a glint, floating down.
+      image = drawDressed(shades, 'idle')
+      const step = Math.floor(elapsed / GLINT_STEP_MS)
+      const glint = step < 4 ? glintFrames[step % glintFrames.length] : undefined
+      if (image) {
+        if (facing === -1) image = mirrorX(image)
+        layers.push({ frame: { name: 'duck', anchors: {}, ...image }, offset: { x: 0, y: 0 } })
+      }
+      if (glint) {
+        const x = facing === 1 ? GLINT_SPOT.x : STAGE_SIZE - GLINT_SPOT.x - glint.width
+        layers.push({ frame: glint, offset: { x, y: GLINT_SPOT.y } })
+      }
+      key += `${glint?.name}:${facing}`
+    }
+    key = `rocket:${outfitVersion}:${key}`
+    if (key === lastKey) return true
+    lastKey = key
+    const out = composeLayers(STAGE_SIZE, STAGE_SIZE, layers)
+    rendered = out
+    sendShape()
+    ctx?.putImageData(
+      new ImageData(out.data as Uint8ClampedArray<ArrayBuffer>, out.width, out.height),
+      0,
+      0,
+    )
+    return true
+  }
+
+  /** Flat on the taskbar during a fullscreen video: one still frame, no ticks. */
+  function renderLying(): void {
+    const facing = machine.direction
+    const key = `lie:${outfitVersion}:${facing}`
+    if (key === lastKey) return
+    lastKey = key
+    let image = drawDressed(dressed, 'lie')
+    if (!image) return
+    if (facing === -1) image = mirrorX(image)
+    const out = composeLayers(STAGE_SIZE, STAGE_SIZE, [
+      { frame: { name: 'duck', anchors: {}, ...image }, offset: { x: 0, y: 0 } },
+    ])
+    rendered = out
+    sendShape()
+    ctx?.putImageData(
+      new ImageData(out.data as Uint8ClampedArray<ArrayBuffer>, out.width, out.height),
+      0,
+      0,
+    )
+  }
+
   function render(): void {
+    if (renderRocket(performance.now())) return
+    if (lying) {
+      renderLying()
+      return
+    }
     const calm = !dragging && !falling
     const now = performance.now()
-    const elapsed = treat ? now - treat.since : 0
-    const cup =
+    const elapsed = treatAt(now)
+    const drinking =
       !calm || !treat
         ? undefined
         : treat.kind === 'coffee'
@@ -403,13 +539,27 @@ async function main(): Promise<void> {
           : treat.kind === 'quack'
             ? quackAt(elapsed)
             : undefined
+    // A half-drunk mug picked up again shows what is left in it while it is pecked up.
+    const cup =
+      drinking?.at === 'ground' && treat?.offset
+        ? { ...drinking, mug: pieceFrame(treat.kind, treat.offset) as typeof drinking.mug }
+        : drinking
     const talk =
       calm && listening && machine.state === 'listen' ? listenAt(now, listening) : undefined
+    const floating = falling && floatingSince !== undefined
+    // Under the open umbrella only in the rain; the umbrella hat is its own parachute.
+    const opening = floating && needsUmbrella(weather) ? now - (floatingSince ?? now) : -1
+    const canopy =
+      opening >= 0
+        ? parasol[Math.min(parasol.length - 1, Math.floor(opening / PARASOL_STEP_MS))]
+        : undefined
     const base = dragging
       ? HELD_POSE
-      : falling
-        ? AIRBORNE_POSE
-        : (cup?.pose ?? (talk?.pose ? NOD_POSE : clock.frameName))
+      : floating
+        ? 'idle' // drifting down: all calm now
+        : falling
+          ? AIRBORNE_POSE
+          : (cup?.pose ?? (talk?.pose ? NOD_POSE : clock.frameName))
     const pose = (tired && TIRED_POSES[base]) || base
     const lookingBack =
       calm &&
@@ -436,14 +586,14 @@ async function main(): Promise<void> {
     const rise = popupStep(now)
     const snack =
       calm && treat && treat.kind !== 'coffee' && treat.kind !== 'quack'
-        ? snackView(treat.kind, elapsed)
+        ? snackView(treat.kind, elapsed, treat.offset)
         : undefined
     const fizz = calm && machine.state === 'turbo' ? fizzAt(now - stateSince) : undefined
     const sipping = calm && machine.state === 'espresso'
     const wired = calm && machine.state === 'focus'
     const snowy = december && calm && !page && !talk
     const flake = snowy ? snowFrames[Math.floor(now / SNOW_STEP_MS) % snowFrames.length] : undefined
-    const key = `${outfitVersion}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}`
+    const key = `${outfitVersion}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${page}:${JSON.stringify(cup)}:${talk?.notebook}:${canopy?.name}`
     if (key === lastKey) return // nothing changed: skip the redraw
     let image = drawDressed(talk ? specs : dressed, pose)
     if (!image) return
@@ -457,6 +607,10 @@ async function main(): Promise<void> {
     if (sheltered && umbrella) {
       const x = facing === 1 ? UMBRELLA_SPOT.x : STAGE_SIZE - UMBRELLA_SPOT.x - umbrella.width
       layers.unshift({ frame: umbrella, offset: { x, y: UMBRELLA_SPOT.y } })
+    }
+    if (canopy) {
+      const x = facing === 1 ? PARASOL_SPOT.x : STAGE_SIZE - PARASOL_SPOT.x - canopy.width
+      layers.unshift({ frame: canopy, offset: { x, y: PARASOL_SPOT.y } })
     }
     if (flake) layers.unshift({ frame: flake, offset: SNOW_SPOT })
     if (snowy && drift) layers.push({ frame: drift, offset: DRIFT_SPOT })
@@ -584,7 +738,7 @@ async function main(): Promise<void> {
   let walkingStride = 1
 
   /** Held or falling: main/the user moves the duck and the behavior clock is paused. */
-  const busy = (): boolean => dragging || falling
+  const busy = (): boolean => dragging || falling || lying
 
   function schedule(): void {
     if (busy()) return // ticking resumes on pointerup / landing
@@ -592,7 +746,7 @@ async function main(): Promise<void> {
     if (popup)
       wait = Math.min(wait, POPUP_STEP_MS - ((performance.now() - popup.startedAt) % POPUP_STEP_MS))
     if (treat) {
-      const elapsed = performance.now() - treat.since
+      const elapsed = treatAt(performance.now())
       const change = {
         bread: msUntilBreadChange,
         cigar: msUntilSmokeChange,
@@ -669,7 +823,7 @@ async function main(): Promise<void> {
       window.buddy.duck.sleeping(asleep)
     }
     if (treat) {
-      if (now - treat.since >= TREAT_MS[treat.kind] - 1) {
+      if (now - treat.since >= treatLength(treat.kind, treat.offset) - 1) {
         const { kind, heavy } = treat
         treat = undefined
         window.buddy.duck.ate() // main pays only for a snack the duck actually caught
@@ -679,7 +833,7 @@ async function main(): Promise<void> {
           sound.play('cough')
         }
       } else if (machine.state !== TREAT_STATE[treat.kind]) {
-        treat = undefined // interrupted (clicked, petted): the snack is dropped
+        dropTreat(now) // interrupted (clicked, petted): what is left drops, to be finished later
       }
     }
     syncWalk()
@@ -715,8 +869,12 @@ async function main(): Promise<void> {
     render()
   })
 
-  window.buddy.duck.onFed((kind, heavy) => {
-    if (busy()) return // held or flying: it can't eat now
+  window.buddy.duck.onFed((kind, heavy, offset) => {
+    if (busy()) {
+      // Held or flying: it can't eat now. The piece goes back on the floor for later.
+      window.buddy.duck.treatDropped(offset)
+      return
+    }
     wake() // catch up first so the treat starts now
     if (kind === 'bread') {
       machine.eat()
@@ -729,7 +887,8 @@ async function main(): Promise<void> {
       sound.play('fizz')
     } else machine.smoke()
     clock.play(machine.state, true) // a second snack starts the animation over
-    treat = { kind, since: lastTick, heavy }
+    machine.shorten(treatLength(kind, offset)) // a half-eaten piece: only what is left of it
+    treat = { kind, since: lastTick, heavy, offset }
     wake()
   })
 
@@ -820,7 +979,57 @@ async function main(): Promise<void> {
     else wake()
   })
 
+  // The Rocket Boost (main moves the window; this only draws). A few one-shot timers per phase
+  // for the flame, the burst and the glint; nothing runs once it has landed.
+  let rocketTimers: ReturnType<typeof setTimeout>[] = []
+  const redrawAt = (ms: number) => rocketTimers.push(setTimeout(render, ms + 5))
+  window.buddy.duck.onRocket((phase) => {
+    for (const timer of rocketTimers) clearTimeout(timer)
+    rocketTimers = []
+    if (phase === 'end') {
+      rocket = undefined
+      render()
+      return
+    }
+    rocket = { phase, since: performance.now() }
+    if (phase === 'shock') sound.play('quack')
+    if (phase === 'lift') {
+      sound.play('whoosh')
+      for (let t = FLAME_STEP_MS; t < 1500; t += FLAME_STEP_MS) redrawAt(t)
+    }
+    if (phase === 'boom') sound.play('boom')
+    if (phase === 'boom')
+      for (let step = 1; step <= boomFrames.length; step++) redrawAt(step * BOOM_STEP_MS)
+    if (phase === 'cool') {
+      sound.play('chirp')
+      for (let step = 1; step <= 4; step++) redrawAt(step * GLINT_STEP_MS)
+    }
+    render()
+  })
+
+  // A fullscreen video on this screen: lie flat and still until it's over, then carry on.
+  window.buddy.duck.onLie((flat) => {
+    if (flat === lying) return
+    lying = flat
+    if (lying) {
+      clearTimeout(timer)
+      timer = undefined
+      syncWalk()
+      render()
+    } else wake()
+  })
+
   window.buddy.duck.onFall((event) => {
+    if (event === 'float') {
+      // The umbrella pops open: three quick frames, then it holds (no timers after that).
+      floatingSince = performance.now()
+      render()
+      for (let step = 1; step < parasol.length; step++)
+        setTimeout(() => falling && render(), step * PARASOL_STEP_MS + 5)
+      return
+    }
+    floatingSince = undefined
+    if (event !== 'start') rocket = undefined // landed: the show is over
     falling = event === 'start'
     if (falling) {
       walkingAs = 0 // main paused the walk; syncWalk resumes it after landing
@@ -876,7 +1085,7 @@ async function main(): Promise<void> {
     dragging = true
     petting.reset()
     if (treat) {
-      treat = undefined // grabbed mid-treat: the snack is dropped
+      dropTreat(performance.now()) // grabbed mid-treat: what is left falls from its beak
       machine.enter('idle')
     }
     pressedAt = { x: e.screenX, y: e.screenY }

@@ -1,0 +1,25 @@
+# A floppy Christmas hat: the tip droops back to a pompom, a fluffy white brim. Anchor: top of the head.
+name: santa-hat
+size: 18x12
+anchor: head 10 8
+palette:
+  K #2a1f2d
+  R #d23a3a
+  r #8e2a2a
+  L #f0776a
+  P #fffaf0
+  w #d8d0c8
+
+@frame santa-hat
+.........KKKK.....
+.......KKRRLLK....
+.....KKRRRRRLK....
+...KKRRRRRRRRLK...
+..KrRRRRRRRRRRK...
+.KPKrRRRRRRRRRRK..
+KPPPKrRRRRRRRRRK..
+KPwPKKrRRRRRRRRRK.
+.KwKKPPPPPPPPPPPPK
+..KKPPPPPPPPPPPPwK
+...KPwPPwPPwPPwwK.
+....KKKKKKKKKKKK..

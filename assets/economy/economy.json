@@ -11,16 +11,44 @@
       "cooldownMs": 700,
       "dailyCap": 240
     },
-    "play": {
-      "points": 3,
-      "cooldownMs": 1500,
-      "dailyCap": 450
-    },
     "snack": {
       "points": 3,
       "cooldownMs": 500,
       "dailyCap": 300
+    },
+    "ball": {
+      "points": 2,
+      "cooldownMs": 800,
+      "dailyCap": 300
+    },
+    "bounce": {
+      "points": 3,
+      "cooldownMs": 0,
+      "dailyCap": 450
     }
+  },
+  "throws": {
+    "maxHitsPerThrow": 10
+  },
+  "boosts": {
+    "rocket": {
+      "price": 200,
+      "pointsPerHit": 3,
+      "maxHits": 60,
+      "speed": [2.2, 3.8]
+    }
+  },
+  "companions": {
+    "max": 2,
+    "bonus": {
+      "common": 0.5,
+      "uncommon": 0.75,
+      "rare": 1,
+      "epic": 1.5,
+      "legendary": 2,
+      "exotic": 3
+    },
+    "boosted": ["click", "pet", "snack", "ball", "bounce"]
   },
   "starter": ["classic"],
   "boxes": [
@@ -71,6 +99,13 @@
     "box": "paper",
     "duplicatePoints": 20
   },
+  "seasonal": [
+    {
+      "id": "christmas",
+      "item": "christmas",
+      "month": 12
+    }
+  ],
   "duplicateRefund": 0.5,
   "prices": {
     "common": 60,

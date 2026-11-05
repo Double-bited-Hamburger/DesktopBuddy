@@ -684,6 +684,57 @@ share a snack and nap side by side. Each duck can wear its own outfit.
 - This is also the dress rehearsal for Phase 9: a visiting duck from a friend reuses the same
   pair behaviours
 
+## 0.8.0 — Feedback from two new testers (built 2026-11-05)
+
+Two testers (the owner's systems professors) tried 0.7.1. What changed:
+
+- **Fixes:** the duck froze after a few bread pieces plus the ball or coffee (the break sign took
+  the duck while it chased a snack and the chase was lost; a snack served while it was busy was
+  dropped). Grabbing the duck mid-meal now drops the piece as far as it got (bread in 25% bites,
+  coffee sips, cigar puffs, QUACK gulps), the duck goes back and finishes it, and the points are
+  paid once at the real end (`core/toys/meal.ts`). The ball has its own source and cap (`ball`).
+- **Throws pay per edge hit:** +3 for every wall, ceiling or floor bounce (`bounce`, at most 10 a
+  throw), summed: right wall + floor = +6.
+- **Weather:** light rain no longer shows as "cloudy" (measured precipitation beats the model's
+  overcast code); a **rain/snow alert bubble** ("It'll rain in about 5 hours ☂️" [OK]) once per
+  rainy spell; a new **Home** tab (first, the panel opens there) with today and a **7-day
+  forecast**. Same one request an hour.
+- **Umbrella:** thrown while it rains (or wearing the new rainbow **umbrella hat**, rare) the duck
+  pops its umbrella open in three puffs and floats down, landing on its feet.
+- **Mini friends** replace the full-size friend duck: 16×16 minis in their own small windows,
+  eight looks (pebble, sandy, peach, lilac, frost = the old friend duck, ember, **ghost** that
+  flies round your duck, comet). Each adds a points bonus by rarity, up to two out, bonuses add up.
+  Old `friend-duck` owners keep it (now the frost mini) and it comes out as before.
+- **Gift opening:** a strip of items spins past and stops on the prize (odds unchanged; click to
+  skip), with tick and ta-da chip sounds.
+- **Rocket Boost** (Store → Boost, 200): the duck turns to you in shock, rides a rocket up,
+  explodes (8-frame burst, the window shakes), bounces round the screen at a random speed (+3 per
+  hit, at most 60), then puts on sunglasses that glint and floats down.
+- **Christmas:** a Christmas skin (epic) and Christmas hat (rare), in boxes all year; in December
+  the Store gives the skin free to anyone who doesn't own it.
+- **Fullscreen:** over a fullscreen video (browser or player) on its screen the duck lies flat as a
+  pancake with one eye rolled up; for a game or other fullscreen app it leaves the screen with its
+  minis, snacks and ball, and comes back after. Both are settings (Settings → Fullscreen).
+- **Updates:** the duck asks once whether to check for updates at startup, and when a new version
+  is found it says so in your language with [Download] [Later], then [Restart] [Later].
+- **README art** is built from the catalog (every skin, hat, glasses and mini); a test fails if
+  the caption in README.md is out of date.
+
+Verified in dev on a throwaway folder: the Home tab with a real forecast, minis out and the ghost
+flying, the Bag Friends tab, the gift strip, the Boost card, a full rocket run (shock, lift,
+burst, 17–60 hits paid, sunglasses and glint, landing), the lying duck under a fullscreen Edge
+window and the duck leaving with "Go away", then coming back, and the question bubble's
+Italian text fitting.
+
+**Not verified:** real-mouse throws and the float's feel, any sound heard, the December offer on
+a real December date (tested with dates in unit tests), a real fullscreen game (classification is
+unit-tested; only Edge was tried), the rain alert and update bubbles popping up by themselves
+(they wait until someone is at the PC, and nobody was), the update flow end to end (needs a
+release newer than the installed one), CPU with minis out, Linux.
+
+RAM with two minis out: 127–132 MB (one duck alone 92–93 MB). That was over the old 120 MB
+budget, so the owner raised it to < 140 MB with minis out (2026-11-05).
+
 ## Phase 9 — Friends (opt-in, last)
 
 Self-hostable relay, invite codes, visiting ducks, chat bubbles. Separate design + security

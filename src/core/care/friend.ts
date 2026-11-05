@@ -64,10 +64,36 @@ const FROM_IDLE: readonly (readonly [FriendState, number])[] = [
   ['meet', 0.1],
 ]
 
-/** Close enough to dance: this many logical px between the two ducks' middles. */
-export const MEET_DISTANCE = 26
+/**
+ * Close enough to dance: this many logical px between the two ducks' middles (a mini is half the
+ * size of your duck, so they touch at about 16 + 8).
+ */
+export const MEET_DISTANCE = 18
 /** Napping side by side: this many logical px between the two ducks' middles. */
-export const NAP_GAP = 22
+export const NAP_GAP = 16
+/** A mini friend's window, in logical px (its sprite is 16×16, half of your duck's 32×32). */
+export const MINI_STAGE = 20
+
+/** How far a ghost floats from your duck, and how high over the floor line (logical px). */
+const ORBIT_RADIUS = 28
+const ORBIT_HEIGHT = 16
+const ORBIT_BOB = 4
+
+/**
+ * Where a flying mini (the ghost) is `t` seconds into its float: swinging slowly from one side
+ * of your duck to the other, bobbing up and down, facing the way it goes. `laneY` is the window y
+ * that would stand it on the floor; `x` is its middle.
+ */
+export function orbitAt(
+  t: number,
+  duckMiddle: number,
+  laneY: number,
+  scale: number,
+): { x: number; y: number; direction: 1 | -1 } {
+  const x = duckMiddle + Math.cos(t * 0.5) * ORBIT_RADIUS * scale
+  const y = laneY - (ORBIT_HEIGHT + Math.sin(t * 1.3) * ORBIT_BOB) * scale
+  return { x, y, direction: Math.sin(t * 0.5) > 0 ? -1 : 1 }
+}
 /** How often it goes over to nap next to a sleeping duck (otherwise it does its own thing). */
 const SNUGGLE_CHANCE = 0.6
 

@@ -121,3 +121,55 @@ describe('releaseVelocity', () => {
     expect(releaseVelocity([])).toEqual({ vx: 0, vy: 0 })
   })
 })
+
+describe('edge hits', () => {
+  it('counts a side wall, the top and a hard floor hit', () => {
+    expect(flightStep({ x: 990, y: 500, vx: 2, vy: 0 }, 10, box).hits).toBe(1)
+    expect(flightStep({ x: 500, y: 5, vx: 0, vy: -2 }, 10, box).hits).toBe(1)
+    expect(flightStep({ x: 500, y: 990, vx: 0, vy: 2 }, 10, box).hits).toBe(1)
+    expect(flightStep({ x: 500, y: 500, vx: 1, vy: 0 }, 10, box).hits).toBe(0)
+  })
+
+  it('does not count a soft touch', () => {
+    expect(flightStep({ x: 999.9, y: 500, vx: 0.1, vy: 0 }, 10, box).hits).toBe(0)
+    expect(flightStep({ x: 500, y: 999.9, vx: 0, vy: 0.1 }, 1, box).hits).toBe(0)
+  })
+
+  it('a throw into the right wall then down to the floor hits twice or more', () => {
+    const { steps } = flyUntilLanded({ x: 800, y: 800, vx: 3, vy: -0.5 })
+    const hits = steps.reduce((sum, step) => sum + step.hits, 0)
+    expect(hits).toBeGreaterThanOrEqual(2)
+  })
+
+  it('falls gently with a low gravity and a top speed', () => {
+    const feel = { bounce: 0, grip: 1, friction: 0.004, gravity: 0.0005, maxFall: 0.2 }
+    let state: Flight = { x: 500, y: 0, vx: 0, vy: 0 }
+    for (let i = 0; i < 100; i++) state = flightStep(state, 33, box, feel)
+    expect(state.vy).toBeLessThanOrEqual(0.2)
+    expect(state.y).toBeLessThan(1000)
+  })
+})
+
+describe('the umbrella', () => {
+  it('opens once a thrown duck starts to come down', async () => {
+    const { opensUmbrella } = await import('../../src/core/flight')
+    expect(opensUmbrella({ x: 0, y: 0, vx: 1, vy: -1 }, true)).toBe(false)
+    expect(opensUmbrella({ x: 0, y: 0, vx: 1, vy: 0.1 }, true)).toBe(true)
+    expect(opensUmbrella({ x: 0, y: 0, vx: 1, vy: 0.1 }, false)).toBe(false)
+  })
+
+  it('floats down slowly and lands without a bounce', async () => {
+    const { FLOAT_FEEL } = await import('../../src/core/flight')
+    let state: Flight = { x: 500, y: 0, vx: 0, vy: 0 }
+    let steps = 0
+    let hardest = 0
+    for (; steps < 2000; steps++) {
+      const next = flightStep(state, 33, box, FLOAT_FEEL)
+      hardest = Math.max(hardest, next.impact)
+      state = next
+      if (next.landed) break
+    }
+    expect(steps * 33).toBeGreaterThan(4000) // a 1000 DIP drop takes seconds, not half of one
+    expect(hardest).toBeLessThan(HURT_SPEED)
+  })
+})

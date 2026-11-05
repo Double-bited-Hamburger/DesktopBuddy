@@ -8,8 +8,9 @@ import { createTranslator } from '../../core/i18n/i18n'
 import type { Theme } from '../../core/settings/settings'
 import type { Snack } from '../../core/toys/snacks'
 import { SNACKS } from '../../core/toys/snacks'
-import type { Dressing, Loadout, SettingsView, StoreView } from '../../shared/ipc'
+import type { Loadout, SettingsView, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
+import { Home } from './home'
 import { Quests } from './quests'
 import { Settings } from './settings'
 import { Stats } from './stats'
@@ -18,7 +19,7 @@ import { Today } from './today'
 
 const dictionaries = { en, it }
 
-const SCREENS = ['bag', 'store', 'quests', 'today', 'stats', 'settings'] as const
+const SCREENS = ['home', 'bag', 'store', 'quests', 'today', 'stats', 'settings'] as const
 type Screen = (typeof SCREENS)[number]
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -91,10 +92,9 @@ function App() {
   const [loadout, setLoadout] = useState<Loadout | undefined>()
   const [points, setPoints] = useState<number | undefined>()
   const [language, setLanguage] = useState('en')
-  const [screen, setScreen] = useState<Screen>('bag')
+  const [screen, setScreen] = useState<Screen>('home')
   const [store, setStore] = useState<StoreView | undefined>()
   const [theme, setTheme] = useState<Theme>('system')
-  const [friendLoadout, setFriendLoadout] = useState<Loadout | undefined>()
   useTheme(theme)
 
   useEffect(() => {
@@ -103,7 +103,6 @@ function App() {
       setLanguage(config.language)
       setTheme(config.theme)
       setLoadout(config.loadout)
-      setFriendLoadout(config.friendLoadout)
       setPoints((shown) => shown ?? config.points)
     })
     window.buddy.panel
@@ -124,16 +123,19 @@ function App() {
     window.buddy.panel.setPinned(next)
   }
 
-  const equip = (slot: Slot, id: string | null, who: Dressing = 'duck') => {
+  const equip = (slot: Slot, id: string | null) => {
     window.buddy.panel
-      .equip(slot, id, who)
-      .then(who === 'friend' ? setFriendLoadout : setLoadout)
+      .equip(slot, id)
+      .then(setLoadout)
       .catch((error) => console.error('Equip failed', error))
   }
-  /** The friend duck from the Store: "let it out" switches it on (main checks it is owned). */
-  const letFriendOut = () =>
-    window.buddy.panel.settings
-      .set({ friendDuck: true })
+  /** A mini from the Store: "let it out" (main checks it is owned and there is room). */
+  const letFriendOut = (id: string) =>
+    window.buddy.panel
+      .companions()
+      .then((view) => {
+        if (!view.out.includes(id)) return window.buddy.panel.toggleCompanion(id)
+      })
       .catch((error) => console.error('Friend failed', error))
 
   /** Language and theme apply to the whole panel as soon as Settings saves them. */
@@ -181,14 +183,11 @@ function App() {
           </button>
         ))}
       </nav>
+      {loadout && screen === 'home' && (
+        <Home t={t} language={language} loadout={loadout} onGo={setScreen} />
+      )}
       {loadout && store && screen === 'bag' && (
-        <Bag
-          t={t}
-          loadout={loadout}
-          friendLoadout={friendLoadout}
-          owned={new Set(store.owned)}
-          onEquip={equip}
-        />
+        <Bag t={t} loadout={loadout} owned={new Set(store.owned)} onEquip={equip} />
       )}
       {loadout && store && screen === 'store' && (
         <Store
@@ -196,7 +195,9 @@ function App() {
           view={store}
           points={points ?? 0}
           loadout={loadout}
-          onWear={(item) => (item.slot === 'friend' ? letFriendOut() : equip(item.slot, item.id))}
+          onWear={(item) =>
+            item.slot === 'friend' ? letFriendOut(item.id) : equip(item.slot, item.id)
+          }
         />
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}

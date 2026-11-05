@@ -6,16 +6,24 @@ as each feature lands.
 ## Today (Phase 6)
 
 - **No telemetry**, analytics or crash reporting. The only network access is **checking for
-  updates**: when you press "Check for updates" (Settings → Updates), or once a day if you turn
-  on "Check once a day" (off by default), the app asks GitHub for the newest release's
+  updates**: when you press "Check for updates" (Settings → Updates), or at startup and once a
+  day if you turn on "Check for updates at startup and once a day" (off by default; since 0.8.0
+  the duck asks you once, in a bubble, whether to turn it on: "No thanks" keeps it off and it
+  never asks again), the app asks GitHub for the newest release's
   `latest.yml` (a version number and a file hash). Downloading the update only happens when you
   click Download. GitHub sees an ordinary web request (your IP address and the app's user agent);
   nothing about you or your duck is sent.
 - **Weather is off by default.** Only if you type a city in Settings → Weather, the app asks
   Open-Meteo (open-meteo.com, free, no account) where that city is, once, and then the current
-  weather for its position rounded to about 1 km, once an hour. Open-Meteo sees the city name,
+  weather for its position rounded to about 1 km, once an hour (since 0.8.0 the same single
+  request also brings the next 12 hours and 7 days, for the Home forecast and the rain alerts:
+  still one request an hour). Open-Meteo sees the city name,
   that rough position, your IP address and the app's user agent; nothing else. Clearing the
   field stops the requests and forgets the place.
+- **Fullscreen check** (0.8.0, Windows): every 2 s the app asks Windows whether a fullscreen app
+  is up (`SHQueryUserNotificationState`), and only then reads that window's rectangle and its
+  **process name** (`chrome`, a game's exe name…) to decide whether the duck lies flat (a video)
+  or leaves the screen (a game). Nothing is stored or sent; window titles are never read.
 - **Talk to the duck** (rubber-duck mode) saves and sends nothing: what you type stays in that
   little window and is gone when it closes. The rest of the app only hears that a key was pressed
   or a line finished, so the duck can scribble and nod.
@@ -71,8 +79,8 @@ as each feature lands.
 
 | Key                   | Contents                                                             | Since   |
 | --------------------- | -------------------------------------------------------------------- | ------- |
-| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter/fidget), loadout (skin/hat/face), `names` (the duck's name and yours, both optional, empty by default), `welcomeBack`, `weatherCity` (empty = weather off); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
-| `weather`             | the city typed, where it is (name, country, position rounded to ~1 km), the last weather kind and when it was checked; emptied when the city is cleared | 7c |
+| `settings`            | scale, language, volume, points-pill toggle, theme, duck switches (wander/naps/chatter/fidget), loadout (skin/hat/face), `names` (the duck's name and yours, both optional, empty by default), `welcomeBack`, `weatherCity` (empty = weather off), `weatherAlerts`, `fullscreen` (video/games choice), `companions` (the minis out), `updates` (`autoCheck`, `asked`, `announced`: the last version the duck told you about); `tracking`: enabled, ignore list (lowercase process names), the user's app categories | Phase 0 / 6 / 7 |
+| `weather`             | the city typed, where it is (name, country, position rounded to ~1 km), the last weather kind and when it was checked, the latest forecast (12 hours, 7 days) and when the duck last warned about rain; emptied when the city is cleared | 7c / 0.8.0 |
 | `smoke-bar`           | how full the cigar smoke bar is and when it last changed              | 7c      |
 | `ledger`              | points history `{ts, source, delta}`                                 | Phase 4 |
 | `inventory`           | owned item ids, opens-without-a-hit per gift box, last free-gift time | Phase 5 |

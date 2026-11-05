@@ -17,7 +17,7 @@ import type {
   TodayView,
   UpdateView,
 } from '../shared/ipc'
-import { CARE_EVENTS, FALL_EVENTS, IPC, WEATHER_KINDS } from '../shared/ipc'
+import { CARE_EVENTS, FALL_EVENTS, IPC, ROCKET_PHASES, WEATHER_KINDS } from '../shared/ipc'
 
 const idOrNull = (value: unknown) => value === null || typeof value === 'string'
 
@@ -61,6 +61,21 @@ const api: BuddyApi = {
       ipcRenderer.on(IPC.fall, handler)
       return () => ipcRenderer.off(IPC.fall, handler)
     },
+    onRocket: (listener) => {
+      const handler = (_event: unknown, what: unknown) => {
+        const known = ROCKET_PHASES.find((p) => p === what)
+        if (known) listener(known)
+      }
+      ipcRenderer.on(IPC.rocket, handler)
+      return () => ipcRenderer.off(IPC.rocket, handler)
+    },
+    onLie: (listener) => {
+      const handler = (_event: unknown, lying: unknown) => {
+        if (typeof lying === 'boolean') listener(lying)
+      }
+      ipcRenderer.on(IPC.lie, handler)
+      return () => ipcRenderer.off(IPC.lie, handler)
+    },
     onPrefs: (listener) => {
       const handler = (_event: unknown, prefs: DuckLivePrefs) =>
         listener({ scale: prefs.scale, volume: prefs.volume, duck: prefs.duck })
@@ -96,8 +111,8 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.chase, handler)
     },
     onFed: (listener) => {
-      const handler = (_event: unknown, snack: unknown, heavy: unknown) => {
-        if (isSnack(snack)) listener(snack, heavy === true)
+      const handler = (_event: unknown, snack: unknown, heavy: unknown, offset: unknown) => {
+        if (isSnack(snack)) listener(snack, heavy === true, typeof offset === 'number' ? offset : 0)
       }
       ipcRenderer.on(IPC.fed, handler)
       return () => ipcRenderer.off(IPC.fed, handler)
@@ -108,13 +123,16 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.refused, handler)
     },
     ate: () => ipcRenderer.send(IPC.ate),
+    treatDropped: (elapsed) => ipcRenderer.send(IPC.treatDropped, elapsed),
     sleeping: (asleep) => ipcRenderer.send(IPC.duckSleep, asleep === true),
     openPanel: () => ipcRenderer.send(IPC.openPanel),
   },
   panel: {
     close: () => ipcRenderer.send(IPC.panelClose),
     setPinned: (pinned) => ipcRenderer.send(IPC.panelSetPinned, pinned),
-    equip: (slot, id, who): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id, who),
+    equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
+    companions: () => ipcRenderer.invoke(IPC.companions),
+    toggleCompanion: (id) => ipcRenderer.invoke(IPC.toggleCompanion, id),
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
     feedHandful: () => ipcRenderer.send(IPC.feedHandful),
     throwBall: () => ipcRenderer.send(IPC.throwBall),
@@ -128,6 +146,8 @@ const api: BuddyApi = {
     },
     openGift: (box): Promise<GiftResult> => ipcRenderer.invoke(IPC.openGift, box),
     buyFeatured: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.buyFeatured),
+    claimSeasonal: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.claimSeasonal),
+    buyBoost: (id) => ipcRenderer.invoke(IPC.buyBoost, id),
     claimQuest: (id): Promise<number> => ipcRenderer.invoke(IPC.claimQuest, id),
     activity: {
       today: (): Promise<TodayView> => ipcRenderer.invoke(IPC.activityToday),
@@ -172,6 +192,9 @@ const api: BuddyApi = {
   sign: {
     answer: (choice) => ipcRenderer.send(IPC.signAnswer, choice),
   },
+  bubble: {
+    answer: (choice) => ipcRenderer.send(IPC.bubbleAnswer, choice),
+  },
   talk: {
     typed: () => ipcRenderer.send(IPC.talkTyped),
     line: () => ipcRenderer.send(IPC.talkLine),
@@ -185,13 +208,6 @@ const api: BuddyApi = {
       }
       ipcRenderer.on(IPC.friendState, handler)
       return () => ipcRenderer.off(IPC.friendState, handler)
-    },
-    onLoadout: (listener) => {
-      const handler = (_event: unknown, loadout: unknown) => {
-        if (isLoadout(loadout)) listener(loadout)
-      }
-      ipcRenderer.on(IPC.friendLoadout, handler)
-      return () => ipcRenderer.off(IPC.friendLoadout, handler)
     },
   },
   snack: {

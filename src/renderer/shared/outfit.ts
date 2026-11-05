@@ -19,8 +19,10 @@ export interface DressedDuck {
 
 const skins = new Map<string, Promise<Sprite>>()
 
-/** A skin is its base sprite recolored with the item's palette; cached per skin id. */
-function loadSkin(item: CatalogItem): Promise<Sprite> {
+/**
+ * A skin (or a mini friend) is its base sprite recolored with the item's palette; cached per id.
+ */
+export function loadSkin(item: CatalogItem): Promise<Sprite> {
   let sprite = skins.get(item.id)
   if (!sprite) {
     sprite = loadSpriteRef(item.sprite).then(({ sprite: base, palette }) =>

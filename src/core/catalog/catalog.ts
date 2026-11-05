@@ -6,12 +6,18 @@ export type Rarity = (typeof RARITIES)[number]
 /** What the duck can wear. */
 export const SLOTS = ['skin', 'hat', 'face'] as const
 export type Slot = (typeof SLOTS)[number]
-/** Every kind of item: the wearables, plus the friend duck (found like any item, never worn). */
+/**
+ * Every kind of item: the wearables, plus the mini friend ducks (slot `friend`: found like any
+ * item, never worn; up to two come out as companions and boost the points, see
+ * core/economy/companions.ts).
+ */
 export const ITEM_SLOTS = [...SLOTS, 'friend'] as const
 export type ItemSlot = (typeof ITEM_SLOTS)[number]
 
-/** The friend duck's item: owning it lets the second duck out on the taskbar. */
+/** The first mini friend duck (it was a full-size friend before 0.8.0: owners keep it). */
 export const FRIEND_ITEM = 'friend-duck'
+/** Wearing this hat, a thrown duck floats down under it (like an umbrella in the rain). */
+export const UMBRELLA_HAT = 'umbrella-hat'
 
 const HexColor = z.string().regex(/^#[0-9a-f]{6}$/i)
 
@@ -22,8 +28,10 @@ export const CatalogItemSchema = z.object({
   rarity: z.enum(RARITIES),
   /** Baked sprite as `<category>/<name>`, e.g. `hats/beanie`. */
   sprite: z.string().regex(/^[a-z0-9-]+\/[a-z0-9-]+$/),
-  /** Skins only: palette overrides (base palette key -> color). Duck types are recolors. */
+  /** Skins and minis: palette overrides (base palette key -> color). Duck types are recolors. */
   palette: z.record(z.string(), HexColor).optional(),
+  /** Minis only: a ghost flies round your duck instead of walking. */
+  motion: z.enum(['walk', 'fly']).optional(),
 })
 
 export const CatalogSchema = z.object({

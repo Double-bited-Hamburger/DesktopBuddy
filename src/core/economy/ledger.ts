@@ -42,6 +42,8 @@ export class PointsLedger {
   private total = 0
   private readonly lastBySource = new Map<string, number>()
   private readonly dailyBySource = new Map<string, { day: number; total: number }>()
+  /** The fraction of a point a multiplier left over, per source (1 × 1.5 pays 1, 2, 1, 2…). */
+  private readonly carry = new Map<string, number>()
 
   constructor(rules: SourceRules, clock: Clock, entries: readonly LedgerEntry[] = []) {
     this.rules = rules
@@ -62,7 +64,11 @@ export class PointsLedger {
     return record && record.day === localDayKey(this.clock()) ? record.total : 0
   }
 
-  earn(source: string): EarnResult {
+  /**
+   * Pays a source, applying its cooldown and daily cap. `multiplier` (companions, ≥ 1) multiplies
+   * both the points and the cap; fractions carry over to the next earn.
+   */
+  earn(source: string, multiplier = 1): EarnResult {
     const rule = this.rules[source]
     if (!rule) return { granted: 0, reason: 'unknown-source' }
 
@@ -71,10 +77,14 @@ export class PointsLedger {
     if (last !== undefined && now - last < rule.cooldownMs)
       return { granted: 0, reason: 'cooldown' }
 
-    const remaining = rule.dailyCap - this.earnedToday(source)
+    const boost = Number.isFinite(multiplier) ? Math.max(1, multiplier) : 1
+    const remaining = Math.floor(rule.dailyCap * boost) - this.earnedToday(source)
     if (remaining <= 0) return { granted: 0, reason: 'daily-cap' }
 
-    const granted = Math.min(rule.points, remaining)
+    const exact = rule.points * boost + (this.carry.get(source) ?? 0)
+    const whole = Math.floor(exact + 1e-9)
+    this.carry.set(source, Math.max(0, exact - whole))
+    const granted = Math.min(whole, remaining)
     this.append({ ts: now, source, delta: granted })
     return { granted }
   }

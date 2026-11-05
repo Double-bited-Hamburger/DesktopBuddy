@@ -1,4 +1,7 @@
 import { net } from 'electron'
+import { localDate } from '../core/care/day'
+import type { RainAlert } from '../core/care/forecast'
+import { daysFrom, parseForecast, rainAlert } from '../core/care/forecast'
 import type { Place, WeatherKind, WeatherSave } from '../core/care/weather'
 import {
   currentKind,
@@ -6,7 +9,6 @@ import {
   geocodeLanguages,
   geocodeUrl,
   loadWeather,
-  parseCurrentWeather,
   pickPlace,
   saveWeather,
   WEATHER_EVERY_MS,
@@ -24,6 +26,11 @@ interface WeatherDeps {
   readonly language: () => string
   /** The duck's weather changed (undefined: none known, or off). */
   readonly onKind: (kind: WeatherKind | undefined) => void
+  /**
+   * Rain or snow is coming in the next hours (and it's dry now). Return true once the duck has
+   * said so, so the same spell isn't announced again.
+   */
+  readonly onAlert: (alert: RainAlert) => boolean
 }
 
 /**
@@ -61,7 +68,37 @@ export class WeatherService {
       place: place && (place.country ? `${place.name}, ${place.country}` : place.name),
       kind: this.kind,
       checkedAt: city && this.save?.city === city ? this.save.at : undefined,
+      days: city && this.save?.city === city ? this.days() : undefined,
+      next: city ? this.alert() : undefined,
     }
+  }
+
+  /** The days of the saved forecast from today on (an old answer's past days are dropped). */
+  private days() {
+    const days = this.save?.forecast?.days
+    return days ? daysFrom(days, localDate(new Date())) : undefined
+  }
+
+  /** Rain or snow in the next hours, from the saved forecast (ignoring earlier alerts). */
+  private alert(): RainAlert | undefined {
+    const hours = this.save?.forecast?.hours
+    return hours ? rainAlert(hours, Date.now(), this.kind, undefined) : undefined
+  }
+
+  /** Tells the duck once about rain or snow on its way. */
+  private async maybeAlert(): Promise<void> {
+    const save = this.save
+    if (!save?.forecast) return
+    const now = Date.now()
+    const alert = rainAlert(save.forecast.hours, now, this.kind, save.alertedAt)
+    if (!alert || !this.deps.onAlert(alert)) return
+    this.save = { ...save, alertedAt: now }
+    await saveWeather(this.deps.storage, this.save).catch(() => undefined)
+  }
+
+  /** Checks again whether to warn about rain (the duck was busy before, say). */
+  retryAlert(): void {
+    void this.maybeAlert()
   }
 
   /** The city changed (or the app started, or woke up): check now if needed, then hourly. */
@@ -119,12 +156,24 @@ export class WeatherService {
           return
         }
       }
-      const kind = parseCurrentWeather(await getJson(forecastUrl(place)))
+      const answer = parseForecast(await getJson(forecastUrl(place)), Date.now())
       if (this.deps.city() !== city) return
-      if (!kind) throw new Error('Odd forecast answer')
-      this.save = { version: 1, city, place, kind, at: Date.now() }
+      if (!answer) throw new Error('Odd forecast answer')
+      const { kind } = answer
+      const forecast = { hours: [...answer.forecast.hours], days: [...answer.forecast.days] }
+      const alertedAt = this.save?.alertedAt
+      const save: WeatherSave = {
+        version: 1,
+        city,
+        place,
+        kind,
+        at: Date.now(),
+        forecast,
+        alertedAt,
+      }
+      this.save = save
       this.state = 'ok'
-      await saveWeather(this.deps.storage, this.save).catch((error) =>
+      await saveWeather(this.deps.storage, save).catch((error) =>
         console.error('Could not save the weather', error),
       )
     } catch (error) {
@@ -134,6 +183,7 @@ export class WeatherService {
       if (this.deps.city() === city) {
         this.publish()
         if (this.state !== 'notFound') this.schedule(WEATHER_EVERY_MS)
+        if (this.state === 'ok') void this.maybeAlert()
       }
     }
   }

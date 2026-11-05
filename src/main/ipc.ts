@@ -6,8 +6,9 @@ import type { Snack } from '../core/toys/snacks'
 import { isSnack } from '../core/toys/snacks'
 import type {
   AppConfig,
+  BoostResult,
   BuyResult,
-  Dressing,
+  CompanionsView,
   EarnSource,
   GiftResult,
   Loadout,
@@ -22,6 +23,7 @@ import { EARN_SOURCES, IPC } from '../shared/ipc'
 import type { ActivityControls } from './activity-controls'
 import type { BallPlay } from './ball-play'
 import type { BreakBuddy } from './break-buddy'
+import type { BubbleWindow } from './bubble-window'
 import type { DuckWindow } from './duck-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
@@ -35,7 +37,12 @@ interface IpcDeps {
   /** The current config (the loadout changes when items are equipped). */
   readonly config: () => AppConfig
   /** Validates and applies an equip request; undefined when it is invalid. */
-  readonly equip: (slot: unknown, id: unknown, who: Dressing) => Promise<Loadout | undefined>
+  readonly equip: (slot: unknown, id: unknown) => Promise<Loadout | undefined>
+  /** The minis out with the duck, and letting one out or calling it home (checked in main). */
+  readonly companions: () => CompanionsView
+  readonly toggleCompanion: (id: unknown) => Promise<CompanionsView>
+  /** Pays for the Rocket Boost and sets it off, if the duck can go now. */
+  readonly buyRocket: () => BoostResult
   /** Earns for a click or pet, subject to economy.json cooldowns and caps. */
   readonly earn: (source: EarnSource) => void
   /** Hands the user a snack (from the panel), paid for once the duck has finished it. */
@@ -45,6 +52,8 @@ interface IpcDeps {
   /** How full the smoke bar is, for the Bag. */
   readonly smokeBar: () => SmokeBarView
   readonly ate: () => void
+  /** A meal was cut short `elapsed` ms in: the piece drops and is finished later. */
+  readonly treatDropped: (elapsed: number) => void
   /** The duck page says it fell asleep or woke up. */
   readonly duckSleeping: (asleep: boolean) => void
   readonly duck: DuckWindow
@@ -66,6 +75,8 @@ interface IpcDeps {
   readonly talk: TalkWindow
   /** Check for updates, download, install. */
   readonly updates: UpdateService
+  /** The duck's speech bubble (it may ask a question with buttons). */
+  readonly bubble: BubbleWindow
 }
 
 /**
@@ -75,12 +86,16 @@ interface IpcDeps {
 export function registerIpc({
   config,
   equip,
+  companions,
+  toggleCompanion,
+  buyRocket,
   earn,
   feed,
   feedHandful,
   throwBall,
   smokeBar,
   ate,
+  treatDropped,
   duckSleeping,
   duck,
   panel,
@@ -93,6 +108,7 @@ export function registerIpc({
   breaks,
   talk,
   updates,
+  bubble,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -149,6 +165,12 @@ export function registerIpc({
     if (fromDuck(event.sender)) ate()
   })
 
+  ipcMain.on(IPC.treatDropped, (event, elapsed: unknown) => {
+    if (!fromDuck(event.sender)) return
+    if (typeof elapsed === 'number' && Number.isFinite(elapsed) && elapsed >= 0)
+      treatDropped(elapsed)
+  })
+
   ipcMain.on(IPC.duckSleep, (event, asleep: unknown) => {
     if (fromDuck(event.sender) && typeof asleep === 'boolean') duckSleeping(asleep)
   })
@@ -174,6 +196,21 @@ export function registerIpc({
     if (!fromSnack(event.sender)) return
     if (ball.owns(event.sender)) ball.click()
     else snacks.click(event.sender)
+  })
+
+  ipcMain.handle(IPC.companions, (event): CompanionsView => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return companions()
+  })
+
+  ipcMain.handle(IPC.toggleCompanion, (event, id: unknown): Promise<CompanionsView> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return toggleCompanion(id)
+  })
+
+  // Only the bubble that is asking may answer, and only with a button index (checked there).
+  ipcMain.on(IPC.bubbleAnswer, (event, choice: unknown) => {
+    if (event.sender === bubble.askingContents) bubble.answered(choice)
   })
 
   ipcMain.on(IPC.signAnswer, (event, choice: unknown) => {
@@ -205,17 +242,12 @@ export function registerIpc({
     if (fromPanel(event.sender) && typeof pinned === 'boolean') panel.setPinned(pinned)
   })
 
-  ipcMain.handle(
-    IPC.equip,
-    async (event, slot: unknown, id: unknown, who: unknown): Promise<Loadout> => {
-      if (!fromPanel(event.sender)) throw new Error('Unknown sender')
-      if (who !== undefined && who !== 'duck' && who !== 'friend')
-        throw new Error('Invalid equip request')
-      const next = await equip(slot, id, who ?? 'duck')
-      if (!next) throw new Error('Invalid equip request')
-      return next
-    },
-  )
+  ipcMain.handle(IPC.equip, async (event, slot: unknown, id: unknown): Promise<Loadout> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const next = await equip(slot, id)
+    if (!next) throw new Error('Invalid equip request')
+    return next
+  })
 
   ipcMain.handle(IPC.store, (event): StoreView => {
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
@@ -229,9 +261,20 @@ export function registerIpc({
     return result
   })
 
+  ipcMain.handle(IPC.buyBoost, (event, id: unknown): BoostResult => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    if (id !== 'rocket') throw new Error('Unknown boost')
+    return buyRocket()
+  })
+
   ipcMain.handle(IPC.buyFeatured, (event): BuyResult => {
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
     return progress.buyFeatured()
+  })
+
+  ipcMain.handle(IPC.claimSeasonal, (event): BuyResult => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return progress.claimSeasonal()
   })
 
   ipcMain.handle(IPC.claimQuest, (event, id: unknown): number => {

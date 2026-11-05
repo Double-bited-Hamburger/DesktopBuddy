@@ -14,6 +14,9 @@ export const WEATHER_EVERY_MS = 60 * 60_000
 export const WEATHER_STALE_MS = 3 * 60 * 60_000
 /** The longest city name accepted. */
 export const CITY_MAX = 60
+/** How many hours and days of forecast are asked for and kept (see core/care/forecast.ts). */
+export const FORECAST_HOURS = 12
+export const FORECAST_DAYS = 7
 
 /** WMO weather codes (the ones Open-Meteo uses) → a kind. Unknown codes count as cloudy. */
 export function weatherKind(code: number): WeatherKind {
@@ -95,16 +98,6 @@ export function pickPlace(answers: readonly unknown[], city: string): Place | un
   }
 }
 
-const ForecastSchema = z.object({
-  current: z.object({ weather_code: z.number().int().min(0).max(99) }),
-})
-
-/** The kind of weather in a forecast answer, or undefined if it is odd. */
-export function parseCurrentWeather(json: unknown): WeatherKind | undefined {
-  const parsed = ForecastSchema.safeParse(json)
-  return parsed.success ? weatherKind(parsed.data.current.weather_code) : undefined
-}
-
 /** A query string (core has no URLSearchParams). */
 function query(params: Readonly<Record<string, string>>): string {
   return Object.entries(params)
@@ -122,11 +115,41 @@ export function forecastUrl(place: Place): string {
   const q = query({
     latitude: String(place.latitude),
     longitude: String(place.longitude),
-    current: 'weather_code',
+    // Measured rain and snow too: the code alone often says "overcast" during a light rain.
+    current: 'weather_code,precipitation,rain,showers,snowfall',
+    hourly: 'weather_code,precipitation_probability,precipitation',
+    daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
+    forecast_hours: String(FORECAST_HOURS),
+    forecast_days: String(FORECAST_DAYS),
     timezone: 'auto',
   })
   return `https://api.open-meteo.com/v1/forecast?${q}`
 }
+
+/** Saved with the weather (optional, so older saves read fine). */
+export const ForecastSaveSchema = z.object({
+  hours: z
+    .array(
+      z.object({
+        at: z.number().int().nonnegative(),
+        kind: z.enum(['clear', 'cloudy', 'fog', 'rain', 'snow', 'storm']),
+        chance: z.number().min(0).max(100),
+        mm: z.number().min(0).max(1000),
+      }),
+    )
+    .max(48),
+  days: z
+    .array(
+      z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        kind: z.enum(['clear', 'cloudy', 'fog', 'rain', 'snow', 'storm']),
+        max: z.number().min(-100).max(100),
+        min: z.number().min(-100).max(100),
+        chance: z.number().min(0).max(100),
+      }),
+    )
+    .max(16),
+})
 
 /** Saved as `weather`: where the city is (so it's looked up once) and the last answer. */
 export const WeatherSaveSchema = z.object({
@@ -142,6 +165,10 @@ export const WeatherSaveSchema = z.object({
     .optional(),
   kind: z.enum(['clear', 'cloudy', 'fog', 'rain', 'snow', 'storm']).optional(),
   at: z.number().int().nonnegative().optional(),
+  /** The next hours and days, from the same answer (added in 0.8.0: older saves have none). */
+  forecast: ForecastSaveSchema.optional(),
+  /** When the duck last said rain or snow was coming (so a spell is announced once). */
+  alertedAt: z.number().int().nonnegative().optional(),
 })
 export type WeatherSave = z.infer<typeof WeatherSaveSchema>
 

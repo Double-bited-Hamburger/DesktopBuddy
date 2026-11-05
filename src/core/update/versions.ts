@@ -10,6 +10,29 @@ import type { StorageAdapter } from '../storage/storage'
 export const UPDATE_CHECK_EVERY_MS = 24 * 60 * 60_000
 /** The first daily check waits a little after start, so starting stays quick. */
 export const FIRST_CHECK_DELAY_MS = 30_000
+/** A found update the duck may announce: a new version it hasn't announced yet. */
+export function toAnnounce(
+  view: { readonly state: string; readonly version?: string | undefined },
+  announced: string,
+): string | undefined {
+  if (view.state !== 'available' || !view.version) return undefined
+  return view.version === announced ? undefined : view.version
+}
+
+/**
+ * Whether the duck should ask "check for updates when I start?": only where it can update, only
+ * while the check is off, and only until it has an answer (asked once, never nagging).
+ */
+export function shouldAskAutoCheck(
+  updates: { readonly autoCheck: boolean; readonly asked: boolean },
+  supported: boolean,
+): boolean {
+  return supported && !updates.autoCheck && !updates.asked
+}
+
+/** How many times an unanswered announcement (the bubble timed out) is tried per run. */
+export const ANNOUNCE_TRIES = 2
+
 /** How many save backups are kept (the oldest go first). */
 export const KEEP_BACKUPS = 3
 

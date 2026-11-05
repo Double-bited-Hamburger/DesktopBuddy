@@ -19,6 +19,12 @@ export function isDecember(now: Date): boolean {
   return now.getMonth() === 11
 }
 
+/** The local date as "2026-11-05" (sortable; the forecast's days use the same form). */
+export function localDate(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
 export function partOfDay(hour: number): PartOfDay {
   let part: PartOfDay = 'night'
   for (const [name, start] of STARTS) if (hour >= start) part = name

@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import type { Tray } from 'electron'
-import { app, powerMonitor } from 'electron'
+import { app, powerMonitor, screen } from 'electron'
 import catalogJson from '../../assets/economy/catalog.json'
 import economyJson from '../../assets/economy/economy.json'
 import en from '../../assets/i18n/en.json'
@@ -8,6 +8,8 @@ import it from '../../assets/i18n/it.json'
 import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
 import { partOfDay } from '../core/care/day'
+import type { FullscreenMode } from '../core/care/fullscreen'
+import { coversScreen, fullscreenMode } from '../core/care/fullscreen'
 import {
   EMPTY_HUNGER,
   fedAt,
@@ -18,9 +20,22 @@ import {
   saveHunger,
   shouldSayHungry,
 } from '../core/care/hunger'
+import { needsUmbrella } from '../core/care/weather'
 import { shouldWelcome, welcomeLine } from '../core/care/welcome'
-import { equipItem, FRIEND_ITEM, parseCatalog } from '../core/catalog/catalog'
+import {
+  equipItem,
+  FRIEND_ITEM,
+  findItemById,
+  parseCatalog,
+  UMBRELLA_HAT,
+} from '../core/catalog/catalog'
 import { activeTimePointsDue } from '../core/economy/active-time'
+import {
+  companionBonus,
+  companionMultiplier,
+  toggleCompanion,
+  validCompanions,
+} from '../core/economy/companions'
 import { checkEconomy } from '../core/economy/config'
 import { localDayKey } from '../core/economy/ledger'
 import { parseEconomy } from '../core/economy/save'
@@ -29,6 +44,8 @@ import type { Settings } from '../core/settings/settings'
 import { loadSettings, saveSettings } from '../core/settings/settings'
 import { FLOOR_INSET, STAGE_SIZE } from '../core/stage'
 import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
+import { dropOffset } from '../core/toys/meal'
+import { rocketBurst } from '../core/toys/rocket'
 import {
   heavyCough,
   levelAt,
@@ -40,13 +57,21 @@ import {
 } from '../core/toys/smoke-bar'
 import type { Snack } from '../core/toys/snacks'
 import { focusReward } from '../core/tracker/focus'
-import type { AppConfig, CareEvent, Dressing, DuckLivePrefs, PointsEvent } from '../shared/ipc'
+import { ANNOUNCE_TRIES, shouldAskAutoCheck, toAnnounce } from '../core/update/versions'
+import type {
+  AppConfig,
+  BoostResult,
+  CareEvent,
+  CompanionsView,
+  DuckLivePrefs,
+  PointsEvent,
+} from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
 import { BallPlay } from './ball-play'
 import { BreakBuddy } from './break-buddy'
 import { BubbleWindow } from './bubble-window'
-import { windowsBusy } from './busy-windows'
+import { windowsBusy, windowsFullscreen } from './busy-windows'
 import { DuckWindow, SHAPED } from './duck-window'
 import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
@@ -102,6 +127,10 @@ function pinStateFromEnv(): BehaviorState | undefined {
 
 /** How often to ask whether the duck is hungry; it only speaks to someone who's there. */
 const HUNGER_CHECK_MS = 15 * 60_000
+/** How often main looks for a fullscreen app on the duck's screen (a few Win32 calls). */
+const FULLSCREEN_CHECK_MS = 2000
+/** The one-time "check for updates at startup?" question waits this long after start. */
+const ASK_UPDATES_DELAY_MS = 45_000
 const HUNGER_IDLE_SECONDS = 60
 
 /** `BUDDY_HUNGER_SECONDS` checks sooner, in dev builds only. */
@@ -136,6 +165,10 @@ async function start(): Promise<void> {
     (!app.isPackaged && process.env.BUDDY_TIRED === '1')
   // Cigars fill the smoke bar, which drains over hours (core/toys/smoke-bar.ts).
   let smokeBar = await loadSmokeBar(storage)
+  // The duck's speech bubble: welcome back, hunger, focus, and questions with buttons.
+  const bubble = new BubbleWindow()
+  /** Set once everything below exists: until then the duck says nothing by itself. */
+  let started = false
   // Opt-in weather (main/weather.ts): nothing is sent until a city is typed in Settings.
   let duckReady = false
   const weather = new WeatherService({
@@ -145,13 +178,25 @@ async function start(): Promise<void> {
     onKind: (kind) => {
       if (duckReady) duck.window.webContents.send(IPC.weather, kind)
     },
+    // "It'll rain in about 5 hours ☂️" [OK], once per rainy spell, when it is a good moment.
+    onAlert: (alert) => {
+      if (!started || !settings.weatherAlerts || !canTalk()) return false
+      const key = `weather.alert.${alert.snow ? 'snow' : 'rain'}${alert.inHours === 1 ? '.one' : ''}`
+      bubble.ask(
+        t(key, { n: alert.inHours }),
+        settings.names.duck,
+        duck.window.getBounds(),
+        settings.scale,
+        [t('bubble.ok')],
+        () => undefined,
+      )
+      return true
+    },
   })
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
     loadout: settings.loadout,
-    friendLoadout: settings.friendLoadout,
-    friendOwned: progress.ownedSet.has(FRIEND_ITEM),
     points: points.balance,
     volume: settings.volume,
     duck: settings.duck,
@@ -198,29 +243,52 @@ async function start(): Promise<void> {
   progress.onChange = () => panel.webContents?.send(IPC.storeChanged, progress.view())
   // Data safety: anyone who switched the friend on before it became an item keeps it.
   if (settings.friendDuck) progress.grantOwned(FRIEND_ITEM)
-  const ownsFriend = () => progress.ownedSet.has(FRIEND_ITEM)
-  /** Dresses your duck, or the friend duck, in an item the player owns. */
-  const equip = async (slot: unknown, id: unknown, who: Dressing = 'duck') => {
-    const before = who === 'friend' ? settings.friendLoadout : settings.loadout
+  // 0.8.0: the full-size friend became the first mini; one that was out comes out as a mini.
+  if (settings.friendDuck && settings.companions.length === 0) {
+    settings = { ...settings, companions: [FRIEND_ITEM], friendDuck: false }
+    await saveSettings(storage, settings)
+  }
+  /** The minis out now: owned, no repeats, at most `companions.max`. */
+  const companionsOut = () =>
+    validCompanions(catalog, economy.companions, settings.companions, progress.ownedSet)
+  const companionsView = (): CompanionsView => ({
+    out: companionsOut(),
+    max: economy.companions.max,
+    multiplier: companionMultiplier(catalog, economy.companions, companionsOut()),
+    bonus: Object.fromEntries(
+      catalog.items
+        .filter((item) => item.slot === 'friend')
+        .map((item) => [item.id, companionBonus(catalog, economy.companions, item.id)]),
+    ),
+  })
+  /** Dresses your duck in an item the player owns. */
+  const equip = async (slot: unknown, id: unknown) => {
+    const before = settings.loadout
     const loadout = equipItem(catalog, before, slot, id, progress.ownedSet)
     if (!loadout) return undefined
     const changed = JSON.stringify(loadout) !== JSON.stringify(before)
-    settings = who === 'friend' ? { ...settings, friendLoadout: loadout } : { ...settings, loadout }
+    settings = { ...settings, loadout }
     await saveSettings(storage, settings)
-    if (who === 'friend') friend.setLoadout(loadout)
-    else duck.window.webContents.send(IPC.loadout, loadout)
+    duck.window.webContents.send(IPC.loadout, loadout)
     if (changed) progress.record('equip')
     return loadout
   }
+  /** Minis multiply what playing with the duck pays (core/economy/companions.ts). */
+  const boosted = new Set(economy.companions.boosted)
   const earn = (source: string) => {
     if (source === 'click' || source === 'pet') progress.record(source)
-    const granted = points.earn(source)
+    const multiplier = boosted.has(source)
+      ? companionMultiplier(catalog, economy.companions, companionsOut())
+      : 1
+    const granted = points.earn(source, multiplier)
     if (granted > 0) announce(source, granted)
   }
-  duck.onThrown = () => {
-    progress.record('throw')
-    earn('play')
-  }
+  duck.onThrown = () => progress.record('throw')
+  // A throw pays for each screen edge the duck hits (economy.json `bounce`, `throws`).
+  duck.maxHits = economy.throws.maxHitsPerThrow
+  duck.onHit = () => earn('bounce')
+  // Rain, or the umbrella hat: a thrown duck opens its umbrella and floats down.
+  duck.canFloat = () => needsUmbrella(weather.kind) || settings.loadout.hat === UMBRELLA_HAT
 
   // Feeding: the user carries a snack (bread or a cigar) and drops or throws it, or tosses a
   // handful; the duck runs or jumps to the nearest piece, eats it, then goes for the next. Each
@@ -244,23 +312,61 @@ async function start(): Promise<void> {
   const snacks = new SnackPile(settings.scale, () => duck.middleX)
   let snackCaught: Snack | undefined
   snacks.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
-  // The ball: the duck chases and headbutts it for a few kicks; each kick pays like a throw.
+  snacks.onEatTimeout = () => ate()
+  // The ball: the duck chases and headbutts it for a few kicks; each kick pays from its own source.
   const ball = new BallPlay(settings.scale, () => duck.middleX)
   ball.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
   ball.onKick = () => {
-    earn('play')
+    earn('ball')
     duck.window.webContents.send(IPC.care, 'ball-kick' satisfies CareEvent)
   }
   duck.onCaught = () => {
     if (ball.caught()) return
-    const kind = snacks.caught()
-    if (!kind) return
+    const caught = snacks.caught()
+    if (!caught) return
+    const { kind, offset } = caught
     snackCaught = kind
     duck.window.webContents.send(
       IPC.fed,
       kind,
       kind === 'cigar' && heavyCough(smokeBar, Date.now()),
+      offset,
     )
+  }
+  // Grabbed, petted or clicked mid-meal (or handed the snack while in the air): what is left
+  // drops from its beak, and the duck comes back to finish it. It is paid once, when finished.
+  const treatDropped = (elapsed: number) => {
+    const kind = snackCaught
+    if (!kind) return
+    const offset = dropOffset(kind, elapsed)
+    if (offset === 'eaten') {
+      ate() // only the happy end was left
+      return
+    }
+    snackCaught = undefined
+    const at = duck.bounds
+    snacks.dropped(
+      kind,
+      offset,
+      { x: at.x + at.width / 2, y: at.y + at.height / 2 },
+      Math.random() < 0.5 ? 1 : -1,
+    )
+  }
+  // The Rocket Boost: paid for only once the duck can really go; every edge hit after the burst
+  // pays a little back (never the whole price: economy.json `boosts.rocket`).
+  const buyRocket = (): BoostResult => {
+    const rocket = economy.boosts.rocket
+    if (!duck.canLaunch) return { ok: false, reason: 'busy' }
+    if (!points.spend('rocket', rocket.price)) return { ok: false, reason: 'short' }
+    announce('rocket', -rocket.price)
+    panel.closeUnlessPinned() // out of the way of the show
+    snacks.clear()
+    ball.takeAway()
+    duck.launchRocket(rocketBurst(rocket, Math.random), rocket.maxHits, () => {
+      points.grant('rocket', rocket.pointsPerHit)
+      announce('rocket', rocket.pointsPerHit)
+    })
+    return { ok: true }
   }
   const feed = (kind: Snack) => {
     panel.closeUnlessPinned() // out of the way, so the snack can go anywhere
@@ -378,26 +484,90 @@ async function start(): Promise<void> {
   })
   tracker.sync()
   powerMonitor.on('lock-screen', () => void tracker.pause())
-  // The friend duck: only exists while it's switched on, and naps through anything serious.
+  // The mini friends (companions): one small window each while out, none otherwise. They nap
+  // through anything serious.
   let duckAsleep = false
-  const friend = new FriendWindow({
+  const friendDeps = {
     scale: () => settings.scale,
     floor: () => duck.floorNow,
     duckMiddle: () => duck.middleX,
     quiet: () => tracker.focusing || breaks.busy || talk.isOpen || busyNow(),
-    onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance'),
-    loadout: () => settings.friendLoadout,
+    onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance' satisfies CareEvent),
     duckAsleep: () => duckAsleep,
-  })
-  // The duck page says when it naps: the friend may come and nap next to it.
+  }
+  let friends: FriendWindow[] = []
+  /** Lets out the minis that should be out and sends the rest home. */
+  const syncFriends = () => {
+    const wanted = companionsOut()
+    // Dev only: BUDDY_FRIEND=mini-ghost,mini-comet lets those out without owning them.
+    if (!app.isPackaged && process.env.BUDDY_FRIEND && wanted.length === 0)
+      wanted.push(
+        ...process.env.BUDDY_FRIEND.split(',').map((id) => (id === '1' ? FRIEND_ITEM : id)),
+      )
+    for (const friend of friends) if (!wanted.includes(friend.item.id)) friend.setEnabled(false)
+    friends = friends.filter((friend) => wanted.includes(friend.item.id))
+    wanted.forEach((id, nth) => {
+      if (friends.some((friend) => friend.item.id === id)) return
+      const item = findItemById(catalog, id)
+      if (item?.slot !== 'friend') return
+      const friend = new FriendWindow(friendDeps, item)
+      friend.setEnabled(true, nth)
+      friends.push(friend)
+    })
+  }
+  // Fullscreen apps on the duck's screen (core/care/fullscreen.ts): over a video the duck lies
+  // flat out of the way (its minis go in); a game sends it, its minis, snacks and ball off the
+  // screen until it's over. What happens is a setting; nothing is ever lost.
+  const lookFullscreen = windowsFullscreen()
+  let fullscreen: FullscreenMode = 'normal'
+  const setFullscreen = (mode: FullscreenMode) => {
+    if (mode === fullscreen) return
+    const was = fullscreen
+    fullscreen = mode
+    if (was === 'hide') {
+      if (!breaks.busy) duck.show() // on the break sign it comes back with the sign
+      snacks.setHidden(false)
+      ball.setHidden(false)
+    }
+    duck.setLying(mode === 'lie')
+    for (const friend of friends) friend.setHidden(mode !== 'normal')
+    if (mode === 'hide') {
+      bubble.close()
+      duck.hide()
+      snacks.setHidden(true)
+      ball.setHidden(true)
+    }
+  }
+  const checkFullscreen = () => {
+    if (!lookFullscreen) return
+    const look = lookFullscreen()
+    let onDuckScreen = false
+    if (look.rect) {
+      const window = screen.screenToDipRect(null, look.rect)
+      const duckAt = duck.window.getBounds()
+      const display = screen.getDisplayNearestPoint({
+        x: duckAt.x + Math.round(duckAt.width / 2),
+        y: duckAt.y + Math.round(duckAt.height / 2),
+      })
+      onDuckScreen = coversScreen(window, display.bounds)
+    }
+    const sample = { state: look.state, process: look.process, onDuckScreen }
+    setFullscreen(fullscreenMode(sample, settings.fullscreen))
+  }
+  const fullscreenTimer = lookFullscreen
+    ? setInterval(checkFullscreen, FULLSCREEN_CHECK_MS)
+    : undefined
+
+  // The duck page says when it naps: the minis may come and nap next to it.
   const duckSleeping = (asleep: boolean) => {
     duckAsleep = asleep
-    friend.duckSleeping(asleep)
+    for (const friend of friends) friend.duckSleeping(asleep)
   }
-  // Sharing a snack: when pieces lie around (a handful), the friend walks over and eats one on
+  // Sharing a snack: when pieces lie around (a handful), a walking mini goes over and eats one on
   // its floor, never the only piece and never the one your duck is going for. It pays the same.
   snacks.onRest = () => {
-    if (!friend.out) return
+    const friend = friends.find((f) => f.out && f.walks)
+    if (!friend) return
     const scale = settings.scale
     const size = STAGE_SIZE * scale
     const floor = duck.floorNow
@@ -420,19 +590,26 @@ async function start(): Promise<void> {
     })
     if (!sent) snacks.friendGaveUp()
   }
-  // It comes out only once the player has found it (or in dev with BUDDY_FRIEND=1).
-  const friendWanted = () =>
-    (settings.friendDuck && ownsFriend()) || (!app.isPackaged && process.env.BUDDY_FRIEND === '1')
-  friend.setEnabled(friendWanted())
-  // Found in a gift or bought: the friend arrives right away (the Settings switch says it's on).
+  syncFriends()
+  /** The Bag lets a mini out or calls it home (main checks it is an owned mini). */
+  const toggleFriend = async (id: unknown): Promise<CompanionsView> => {
+    const out = companionsOut()
+    const next = toggleCompanion(catalog, economy.companions, out, id, progress.ownedSet)
+    if (next) {
+      settings = { ...settings, companions: next }
+      await saveSettings(storage, settings)
+      syncFriends()
+    }
+    return companionsView()
+  }
+  // A mini found in a gift or bought comes out right away, if there is room next to the duck.
   progress.onOwned = (id) => {
-    if (id !== FRIEND_ITEM) return
-    if (settings.friendDuck) friend.setEnabled(friendWanted())
-    else void applySettings({ ...settings, friendDuck: true })
+    if (findItemById(catalog, id)?.slot !== 'friend') return
+    const out = companionsOut()
+    if (out.length < economy.companions.max && !out.includes(id)) void toggleFriend(id)
   }
   powerMonitor.on('suspend', () => void tracker.pause())
   // Welcome back (core/care/welcome.ts): away = locked or asleep; the duck cheers on the way back.
-  const bubble = new BubbleWindow()
   powerMonitor.on('resume', () => void weather.sync()) // an hour may have gone by asleep
   let awaySince: number | undefined
   let lastWelcome = 0
@@ -461,8 +638,22 @@ async function start(): Promise<void> {
       duck.window.webContents.send(IPC.care, 'welcome')
     }, WELCOME_DELAY_MS)
   }
+  /** A good moment for the duck to say something by itself: someone is there, nothing going on. */
+  const canTalk = () =>
+    awaySince === undefined &&
+    fullscreen === 'normal' &&
+    !busyNow() &&
+    !breaks.busy &&
+    !talk.isOpen &&
+    !bubble.asking &&
+    !tracker.focusing &&
+    duck.window.isVisible() &&
+    powerMonitor.getSystemIdleTime() < HUNGER_IDLE_SECONDS
   // Hunger (core/care/hunger.ts): only while the user is at the PC and nothing else is going on.
   setInterval(() => {
+    weather.retryAlert() // rain coming, and the duck couldn't say so earlier
+    announceUpdate() // a new version it couldn't announce yet
+    askAutoCheck()
     const now = Date.now()
     if (!settings.hungerTalk || powerMonitor.getSystemIdleTime() >= HUNGER_IDLE_SECONDS) return
     if (awaySince !== undefined || busyNow() || breaks.busy || talk.isOpen) return
@@ -501,9 +692,74 @@ async function start(): Promise<void> {
     onChange: (view) => {
       panel.webContents?.send(IPC.updateChanged, view)
       if (view.state === 'available' || view.state === 'ready') buildTray()
+      if (view.state === 'available') announceUpdate()
+      if (view.state === 'ready' && downloadAsked) askRestart()
     },
   })
   updates.sync()
+  // The duck says it out loud, in the current language: "Version 0.8.1 is out! [Download]
+  // [Later]", then "Ready: restart? [Restart] [Later]". Once per version, at a good moment.
+  let downloadAsked = false
+  let announceTries = 0
+  const markAnnounced = (version: string) =>
+    applySettings({ ...settings, updates: { ...settings.updates, announced: version } }).catch(
+      (error) => console.error('Could not save the announced version', error),
+    )
+  const announceUpdate = () => {
+    const version = toAnnounce(updates.current, settings.updates.announced)
+    if (!version || !started || !canTalk() || announceTries >= ANNOUNCE_TRIES) return
+    announceTries++
+    bubble.ask(
+      t('update.bubble.available', { version }),
+      settings.names.duck,
+      duck.window.getBounds(),
+      settings.scale,
+      [t('update.bubble.download'), t('update.bubble.later')],
+      (answer) => {
+        // No answer (it timed out): try again later, a couple of times this run.
+        if (answer === undefined && announceTries < ANNOUNCE_TRIES) return
+        void markAnnounced(version)
+        if (answer !== 0) return
+        downloadAsked = true
+        void updates.download()
+      },
+    )
+  }
+  const askRestart = () => {
+    const version = updates.current.version
+    downloadAsked = false
+    if (!version || !canTalk()) return // the tray and Settings still offer the restart
+    bubble.ask(
+      t('update.bubble.ready', { version }),
+      settings.names.duck,
+      duck.window.getBounds(),
+      settings.scale,
+      [t('update.bubble.restart'), t('update.bubble.later')],
+      (answer) => {
+        if (answer === 0) void updates.install()
+      },
+    )
+  }
+  // Asked once: may the duck look for new versions when it starts? Off until the user says yes
+  // (no network unless asked).
+  const askAutoCheck = () => {
+    if (!started || !shouldAskAutoCheck(settings.updates, updates.current.supported)) return
+    if (!canTalk()) return
+    bubble.ask(
+      t('update.bubble.askCheck'),
+      settings.names.duck,
+      duck.window.getBounds(),
+      settings.scale,
+      [t('update.bubble.yes'), t('update.bubble.no')],
+      (answer) => {
+        if (answer === undefined) return // asked again next time
+        applySettings({
+          ...settings,
+          updates: { ...settings.updates, asked: true, autoCheck: answer === 0 },
+        }).catch((error) => console.error('Could not save the update answer', error))
+      },
+    )
+  }
   const trayUpdate = () => {
     const view = updates.current
     if (view.state === 'available' && view.version)
@@ -549,11 +805,11 @@ async function start(): Promise<void> {
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
       ball.setScale(next.scale)
-      friend.setScale()
+      for (const friend of friends) friend.setScale()
     }
-    if (next.friendDuck !== before.friendDuck) friend.setEnabled(friendWanted())
     if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
     if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
+    if (JSON.stringify(next.fullscreen) !== JSON.stringify(before.fullscreen)) checkFullscreen()
     if (next.weatherCity !== before.weatherCity) await weather.sync() // so the view has the result
     if (
       next.scale !== before.scale ||
@@ -575,11 +831,13 @@ async function start(): Promise<void> {
     },
     eraseBackups: () => eraseBackups(app.getPath('userData')),
     weather: () => weather.view(),
-    friendOwned: ownsFriend,
   })
   registerIpc({
     config,
     equip,
+    companions: companionsView,
+    toggleCompanion: toggleFriend,
+    buyRocket,
     earn,
     feed,
     feedHandful,
@@ -593,6 +851,7 @@ async function start(): Promise<void> {
       }
     },
     ate,
+    treatDropped,
     duckSleeping,
     duck,
     panel,
@@ -605,18 +864,23 @@ async function start(): Promise<void> {
     breaks,
     talk,
     updates,
+    bubble,
   })
 
   buildTray()
+  started = true
+  // A little after start (not in the middle of the welcome): the one-time update question.
+  setTimeout(askAutoCheck, ASK_UPDATES_DELAY_MS)
   // Dev only: open the talk box at start, for probes (the tray can't be clicked from a script).
   if (!app.isPackaged && process.env.BUDDY_OPEN_TALK === '1')
     setTimeout(() => talk.open(duck.window.getBounds(), settings.names.duck), 3000)
   app.on('second-instance', () => panel.open())
   app.on('before-quit', () => {
+    clearInterval(fullscreenTimer)
     tray?.destroy()
     bubble.close()
     talk.close()
-    friend.setEnabled(false)
+    for (const friend of friends) friend.setEnabled(false)
     ball.takeAway()
     weather.stop()
   })

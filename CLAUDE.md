@@ -6,7 +6,7 @@ points when you pet and play with it or finish quests, and spends them in a stor
 focus tracking (Today/Stats), Settings with chip sounds, and a Windows installer. Friends comes
 last. It must stay **cheap on CPU and RAM**.
 
-Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.7.1**.
+Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.8.0**.
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user asks (Check for updates, the opt-in daily check, or later Friends), no dark
@@ -28,7 +28,8 @@ patterns (pressure timers, hidden odds).
 | 7c | Livelier duck: feed a handful, coffee (+ sofa & newspaper), cigar cough + addiction bar, better walk, yawns, time of day, QUACK can, December snow | ✅ |
 | 7d | Care: break buddy with the wooden sign, rubber-duck mode, focus companion, welcome back, names, hunger | ✅ |
 | 8 | Release: icon + one-click installer ✅, v0.2.0 published ✅, Check for updates ✅ (in 0.3.0), v0.5.0 (first Linux packages) and v0.7.1 published ✅; CONTRIBUTING, licenses, CREDITS, signing, Linux | in progress |
-| 8b | A local friend duck on the same PC (play, dance, tag) | ✅ built 2026-11-04: rare item, own outfit, shares a handful, naps beside your duck |
+| 8b | A local friend duck on the same PC (play, dance, tag) | ✅ built 2026-11-04; in 0.8.0 replaced by 16×16 **mini friends** (8 looks, a points bonus each, up to 2 out) |
+| 8c | 0.8.0 tester feedback: meal/chase fixes, wall-hit points, forecast + rain alerts + Home tab, umbrella float, gift reel, Rocket Boost, Christmas skin, fullscreen modes, update bubble | ✅ built 2026-11-05 (two minis = ~130 MB RAM: owner raised the budget to 140 MB with minis out) |
 | 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
@@ -54,7 +55,7 @@ unverified unplugged; fixes would be forcing the low-power GPU or `disableHardwa
    nearest-neighbor), light from the top-left. Rules are enforced by `npm run bake` — see
    [docs/ART_BIBLE.md](docs/ART_BIBLE.md).
 3. **Performance budget** (measure, don't assume — numbers live in
-   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)): idle CPU < 1%, walking ≤ 3% (raised from 1% by the owner, 2026-10-30), RAM < 120 MB; resting app =
+   [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)): idle CPU < 1%, walking ≤ 3% (raised from 1% by the owner, 2026-10-30), RAM < 120 MB for the duck alone, < 140 MB with mini friends out (raised by the owner, 2026-11-05); resting app =
    **one small window**; ≤ 12 fps tick (≤ 2 fps asleep); no free-running `requestAnimationFrame`;
    no timers while hidden; skip redraws when nothing changed; the panel window is **created on
    demand and destroyed on close**; the AudioContext closes when quiet.
@@ -80,7 +81,7 @@ unverified unplugged; fixes would be forcing the low-power GPU or `disableHardwa
 | `npm run build`                                  | Bake + production bundles into `out/`                                                                           |
 | `npm run preview`                                | Run the production build                                                                                        |
 | `npm run bake`                                   | `assets/src/**/*.pxl` → `assets/baked/**` (validates art rules)                                                 |
-| `npm run readme-art`                             | Regenerates the animated README pictures in `docs/media/` from the `.pxl` art                                   |
+| `npm run readme-art`                             | Regenerates the README pictures in `docs/media/` (the wardrobe shows the whole catalog) — run after adding items |
 | `npm run smoke`                                  | End-to-end check of a running dev app (`npx electron-vite dev --remoteDebuggingPort 9222` first; stop it after). Set `BUDDY_DATA_DIR` to a temp folder for probes that spend points |
 | `npm run perf`                                   | CPU/RAM per duck state on the built app (`npm run build` first; close other Electron apps; ~1 min per state × run; `--tracking` turns tracking on). Each run uses its own throwaway data folder |
 | `npm run icon`                                   | Redraws `build/icon.ico` + `icon.png` from the duck's idle frame                                                |
@@ -124,6 +125,9 @@ electron-builder.yml   installer config (per-user NSIS, koffi unpacked from asar
   semicolons, 100 cols) and lints — `npm run format` fixes most things.
 - Small files, one responsibility. Match the style of the file you're editing.
 - Every `src/core` change ships with a test in `tests/core`. Bug fix → failing test first.
+- **New or changed item or sprite → `npm run readme-art`.** The README wardrobe picture is built
+  from `catalog.json` (every skin, hat, glasses and mini); commit `docs/media/` and the caption it
+  prints under the picture in README.md. `tests/tools/readme-art.test.ts` fails until you do.
 - Asset names are `kebab-case`; manifests and save files are versioned (`schema`/`version`) and
   every read from disk is validated with zod. Invalid files fall back to defaults, never crash.
 - UI strings go through `t()` with keys in **both** `assets/i18n/en.json` and `it.json`

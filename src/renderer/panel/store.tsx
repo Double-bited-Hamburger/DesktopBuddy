@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { CatalogItem } from '../../core/catalog/catalog'
+import { buildReel, REEL_MS, REEL_PRIZE_AT, reelTicks } from '../../core/economy/reel'
 import type { Translator } from '../../core/i18n/i18n'
 import type { BoxView, GiftResult, Loadout, StoreView } from '../../shared/ipc'
+import { ChipPlayer } from '../shared/chip-player'
 import { catalog } from '../shared/outfit'
-import { DuckPreview, RarityLabel, SpriteIcon, wearing } from './widgets'
+import { ItemPreview, RarityLabel, SpriteIcon } from './widgets'
 
 const itemById = (id: string): CatalogItem | undefined => catalog.items.find((i) => i.id === id)
 
@@ -38,6 +40,68 @@ function Odds({ t, box }: { t: Translator; box: BoxView }) {
   )
 }
 
+/** One reel tile, in px, gap included (CSS: .reel-tile). */
+const TILE_PX = 68
+
+/**
+ * Opening a box: a strip of items rolls past the marker and slows down onto the prize, ticking as
+ * each one goes by. The prize was already rolled by the real odds; a click skips to it. One CSS
+ * transition and a handful of one-shot timers, then nothing runs.
+ */
+function Reel({
+  t,
+  odds,
+  prize,
+  loadout,
+  volume,
+  onDone,
+}: {
+  t: Translator
+  odds: BoxView['odds']
+  prize: string
+  loadout: Loadout
+  volume: number
+  onDone: () => void
+}) {
+  const strip = useRef<HTMLDivElement>(null)
+  const ids = useMemo(() => buildReel(catalog, odds, prize, Math.random), [odds, prize])
+  useEffect(() => {
+    const el = strip.current
+    const box = el?.parentElement
+    if (!el || !box) return
+    const player = new ChipPlayer(volume)
+    // Lands somewhere inside the prize tile, not always dead centre.
+    const jitter = (Math.random() - 0.5) * (TILE_PX - 16)
+    const offset = REEL_PRIZE_AT * TILE_PX + TILE_PX / 2 - box.clientWidth / 2 + jitter
+    const timers = [
+      setTimeout(() => {
+        el.style.transform = `translateX(${-offset}px)`
+      }, 30),
+      ...reelTicks().map((ms) => setTimeout(() => player.play('tick'), ms + 30)),
+      setTimeout(() => player.play('tada'), REEL_MS + 60),
+      setTimeout(onDone, REEL_MS + 700),
+    ]
+    return () => {
+      for (const timer of timers) clearTimeout(timer)
+    }
+  }, [ids, onDone, volume])
+  return (
+    <button type="button" class="reel" onClick={onDone} title={t('store.skip')}>
+      <div class="reel-strip" ref={strip}>
+        {ids.map((id, i) => {
+          const item = itemById(id)
+          return item ? (
+            <div key={i} class={`reel-tile rarity-edge-${item.rarity}`}>
+              <ItemPreview item={item} loadout={loadout} class="small" />
+            </div>
+          ) : null
+        })}
+      </div>
+      <div class="reel-marker" />
+    </button>
+  )
+}
+
 function Reveal({
   t,
   result,
@@ -55,7 +119,7 @@ function Reveal({
   if (!item) return null
   return (
     <div class="reveal" role="dialog" aria-label={t(`item.${item.id}`)}>
-      <DuckPreview loadout={wearing(loadout, item)} class="big" />
+      <ItemPreview item={item} loadout={loadout} class="big" />
       <strong>{t(`item.${item.id}`)}</strong>
       <RarityLabel t={t} item={item} />
       <p>
@@ -89,20 +153,52 @@ export function Store({
   onWear: (item: CatalogItem) => void
 }) {
   const now = useNow()
+  const stopRolling = useMemo(() => () => setRolling(undefined), [])
   const [result, setResult] = useState<Extract<GiftResult, { ok: true }> | undefined>()
+  /** The box being opened (its odds fill the reel) until the reel has stopped. */
+  const [rolling, setRolling] = useState<BoxView['odds'] | undefined>()
+  const [volume, setVolume] = useState(0.5)
   const [busy, setBusy] = useState(false)
+  /** Why the last Boost didn't start ('short' / 'busy'), shown under its card. */
+  const [boostNote, setBoostNote] = useState<'short' | 'busy' | undefined>()
+  useEffect(() => {
+    window.buddy.panel.settings.get().then(
+      (settings) => setVolume(settings.volume),
+      () => undefined,
+    )
+  }, [])
   const owned = new Set(view.owned)
   const featured = view.featured && itemById(view.featured.id)
+  const seasonal = view.seasonal && itemById(view.seasonal.item)
   const freeIn = view.freeGift.readyAt - now
 
   const open = (box: string) => {
     setBusy(true)
+    const odds = view.boxes.find((b) => b.id === (box === 'free' ? view.freeGift.box : box))?.odds
     window.buddy.panel
       .openGift(box)
-      .then((r) => r.ok && setResult(r))
+      .then((r) => {
+        if (!r.ok) return
+        setResult(r)
+        setRolling(odds)
+      })
       .catch((error) => console.error('Gift failed', error))
       .finally(() => setBusy(false))
   }
+
+  if (result && rolling)
+    return (
+      <section class="store">
+        <Reel
+          t={t}
+          odds={rolling}
+          prize={result.item}
+          loadout={loadout}
+          volume={volume}
+          onDone={stopRolling}
+        />
+      </section>
+    )
 
   if (result)
     return (
@@ -133,9 +229,36 @@ export function Store({
         </button>
       </div>
 
+      {view.seasonal && seasonal && (
+        <div class="card featured seasonal">
+          <ItemPreview item={seasonal} loadout={loadout} class="small" />
+          <div class="grow">
+            <span class="muted">{t(`store.seasonal.${view.seasonal.id}`)}</span>
+            <strong>{t(`item.${seasonal.id}`)}</strong>
+            <RarityLabel t={t} item={seasonal} />
+          </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true)
+              window.buddy.panel
+                .claimSeasonal()
+                .then((r) => {
+                  if (r.ok) onWear(seasonal)
+                })
+                .catch((error) => console.error('Claim failed', error))
+                .finally(() => setBusy(false))
+            }}
+          >
+            {t('store.claim')}
+          </button>
+        </div>
+      )}
+
       {view.featured && featured && (
         <div class="card featured">
-          <DuckPreview loadout={wearing(loadout, featured)} class="small" />
+          <ItemPreview item={featured} loadout={loadout} class="small" />
           <div class="grow">
             <span class="muted">{t('store.featured')}</span>
             <strong>{t(`item.${featured.id}`)}</strong>
@@ -183,6 +306,32 @@ export function Store({
           </button>
         </div>
       ))}
+      <h3 class="store-head">{t('store.boost')}</h3>
+      <div class="card boost">
+        <SpriteIcon sprite="toys/rocket" frame="rocket-fire-2" size={24} height={48} />
+        <div class="grow">
+          <strong>{t('store.rocket')}</strong>
+          <span class="muted">
+            {t('store.rocketHint', { n: view.rocket.pointsPerHit, max: view.rocket.maxHits })}
+          </span>
+          {boostNote && <span class="muted warn">{t(`store.boost.${boostNote}`)}</span>}
+        </div>
+        <button
+          type="button"
+          disabled={busy || points < view.rocket.price}
+          title={points < view.rocket.price ? t('store.short') : undefined}
+          onClick={() => {
+            setBusy(true)
+            window.buddy.panel
+              .buyBoost('rocket')
+              .then((r) => setBoostNote(r.ok ? undefined : r.reason))
+              .catch((error) => console.error('Boost failed', error))
+              .finally(() => setBusy(false))
+          }}
+        >
+          {t('store.buy', { n: view.rocket.price })}
+        </button>
+      </div>
       <p class="muted note">{t('store.note')}</p>
     </section>
   )

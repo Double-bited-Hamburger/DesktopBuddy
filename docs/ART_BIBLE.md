@@ -57,6 +57,20 @@ A duck needs at least: `idle`, `blink`, `step` (walk). Planned: `sleep`, `quack`
 `ruffle`, `happy`, plus emote overlays (wave, thumbs-up, peace — pixel hands are on the roadmap).
 Animation timing lives in code (`AnimationSet`), not in the art files.
 
+Special duck frames (0.8.0): `shock` faces **the viewer** (wide eyes, wings stiff; no hat or
+glasses are drawn on it: its anchors are for the side view), and `lie` is the duck flat on the
+taskbar for fullscreen videos (one bulging eye rolled up). Effects that go with them:
+`toys/rocket` (12×24, flame frames), `emotes/boom` (32×32, 8 frames: flash, fireball, rocket bits,
+smoke), `emotes/glint` (5×5, on the sunglasses), `toys/umbrella` `open-1..3` (the umbrella puffing
+open above a floating duck).
+
+**Mini friends** (`companions/mini-duck`, 16×16 = exactly half the duck at every scale): one shape,
+recolored per item like skins, with palettes that differ from the duck skins. Frames: `idle`,
+`blink`, `step`, `quack`, `sit`, `hop`.
+
+After adding or changing any item or sprite, run `npm run readme-art` (the README wardrobe is
+built from the catalog; a test checks its caption).
+
 ## Duck types (skins) and rarity
 
 - Skins are entries in `assets/economy/catalog.json` with a `palette` of overrides. Recolor is an

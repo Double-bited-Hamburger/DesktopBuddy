@@ -7,6 +7,8 @@ import {
   loadLastRun,
   RUN_RECORD_KEY,
   saveLastRun,
+  shouldAskAutoCheck,
+  toAnnounce,
 } from '../../src/core/update/versions'
 
 describe('backups', () => {
@@ -44,5 +46,22 @@ describe('backups', () => {
     expect(await loadLastRun(storage)).toBe('0.3.0')
     await storage.write(RUN_RECORD_KEY, { version: 9, lastRun: 3 })
     expect(await loadLastRun(storage)).toBeUndefined()
+  })
+})
+
+describe('the duck announcing updates', () => {
+  it('announces a found version once', () => {
+    expect(toAnnounce({ state: 'available', version: '0.8.1' }, '')).toBe('0.8.1')
+    expect(toAnnounce({ state: 'available', version: '0.8.1' }, '0.8.1')).toBeUndefined()
+    expect(toAnnounce({ state: 'available', version: '0.9.0' }, '0.8.1')).toBe('0.9.0')
+    expect(toAnnounce({ state: 'latest' }, '')).toBeUndefined()
+    expect(toAnnounce({ state: 'ready', version: '0.8.1' }, '')).toBeUndefined()
+  })
+
+  it('asks about the startup check once, and only where it can update', () => {
+    expect(shouldAskAutoCheck({ autoCheck: false, asked: false }, true)).toBe(true)
+    expect(shouldAskAutoCheck({ autoCheck: false, asked: true }, true)).toBe(false)
+    expect(shouldAskAutoCheck({ autoCheck: true, asked: false }, true)).toBe(false)
+    expect(shouldAskAutoCheck({ autoCheck: false, asked: false }, false)).toBe(false)
   })
 })
