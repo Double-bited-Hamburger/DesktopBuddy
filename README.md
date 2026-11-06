@@ -42,7 +42,7 @@ throw it, dress it up. Free and open source, with no paywalls.
 | **feed** it bread or a cigar 🚬        | runs/flies to where you drop it, pecks it up, eats or smokes it |     **+3** |
 | throw it the **ball** 🏐             | chases it and headbutts it along the taskbar | **+2** a kick |
 | buy a **Rocket Boost** 🚀 (Store)      | stares at you in shock, blasts off, explodes, bounces round the screen, then floats down in sunglasses | spend 200, **+3** per hit |
-| let out **mini friends** (up to 2)     | tiny ducks that walk (or fly, the ghost) beside yours | playing pays **×1.5…×7** |
+| let out **mini friends** (up to 2)     | tiny ducks that walk (or fly, the ghost) beside yours | playing pays **×1.5…×6** |
 | finish **quests** (3 a day + weekly)   | —                                          | **+30…600** |
 | open **gifts** in the Store            | new skins, hats, glasses (odds shown, pity) | spend 80–700 |
 | open the **Bag** (right-click)         | wears what you've found, live              |          — |

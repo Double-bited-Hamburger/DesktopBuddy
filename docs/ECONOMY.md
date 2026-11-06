@@ -36,7 +36,8 @@ Everything is free and earnable; there is no real money and no locked "premium" 
 **Mini friends** multiply what playing pays: `click`, `pet`, `snack`, `ball` and `bounce` (the
 `companions.boosted` list) pay ×(1 + the bonuses of the minis that are out), and their daily caps
 grow by the same factor. Up to two minis out at once; bonuses by rarity: common +0.5 · uncommon
-+0.75 · rare +1 · epic +1.5 · legendary +2 · exotic +3 (two exotics out: ×7). Fractions are carried
++0.75 · rare +1 · epic +1.5 · legendary +2 · exotic +3 (the best pair, the exotic and the
+legendary mini: ×6). Fractions are carried
 per source (×1.5 on a 1-point click pays 1, 2, 1, 2…). Quests, focus, active time, gifts and
 refunds are never multiplied.
 
