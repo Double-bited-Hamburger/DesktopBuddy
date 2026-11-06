@@ -37,6 +37,7 @@ import {
   validCompanions,
 } from '../core/economy/companions'
 import { checkEconomy } from '../core/economy/config'
+import { capBars, EarnLog, earnedOn, pointsPerDay } from '../core/economy/earn-log'
 import { localDayKey } from '../core/economy/ledger'
 import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
@@ -63,6 +64,7 @@ import type {
   BoostResult,
   CareEvent,
   CompanionsView,
+  DashboardView,
   DuckLivePrefs,
   PointsEvent,
 } from '../shared/ipc'
@@ -215,8 +217,11 @@ async function start(): Promise<void> {
   const pill = new PillWindow()
   pill.setVisible(settings.showPointsPill)
   /** Tells every open page about a balance change (`granted` < 0 for spending). */
-  const announce = (source: string, granted: number) => {
-    const event: PointsEvent = { source, granted, balance: points.balance }
+  // The last few earns, for Home (memory only: the ledger is the record).
+  const earnLog = new EarnLog()
+  const announce = (source: string, granted: number, capped = false) => {
+    if (granted > 0) earnLog.add(Date.now(), source, granted, 'paid')
+    const event: PointsEvent = { source, granted, balance: points.balance, capped }
     duck.window.webContents.send(IPC.points, event)
     panel.webContents?.send(IPC.points, event)
     pill.webContents?.send(IPC.points, event)
@@ -275,18 +280,30 @@ async function start(): Promise<void> {
   }
   /** Minis multiply what playing with the duck pays (core/economy/companions.ts). */
   const boosted = new Set(economy.companions.boosted)
+  const multiplierFor = (source: string) =>
+    boosted.has(source) ? companionMultiplier(catalog, economy.companions, companionsOut()) : 1
   const earn = (source: string) => {
     if (source === 'click' || source === 'pet') progress.record(source)
-    const multiplier = boosted.has(source)
-      ? companionMultiplier(catalog, economy.companions, companionsOut())
-      : 1
-    const granted = points.earn(source, multiplier)
-    if (granted > 0) announce(source, granted)
+    const multiplier = multiplierFor(source)
+    const result = points.earn(source, multiplier)
+    if (result.reason === 'cooldown' || result.reason === 'daily-cap')
+      earnLog.add(Date.now(), source, 0, result.reason)
+    if (result.granted <= 0) return
+    // Filled today's limit with this one: the duck says MAX (once, since the next pays nothing).
+    const rule = economy.sources[source]
+    const cap = rule
+      ? Math.floor(rule.dailyCap * Math.max(1, multiplier))
+      : Number.POSITIVE_INFINITY
+    announce(source, result.granted, points.earnedToday(source) >= cap)
   }
   duck.onThrown = () => progress.record('throw')
   // A throw pays for each screen edge the duck hits (economy.json `bounce`, `throws`).
   duck.maxHits = economy.throws.maxHitsPerThrow
-  duck.onHit = () => earn('bounce')
+  duck.onHit = () => {
+    progress.record('bounce')
+    earn('bounce')
+  }
+  duck.onFloat = () => progress.record('float')
   // Rain, or the umbrella hat: a thrown duck opens its umbrella and floats down.
   duck.canFloat = () => needsUmbrella(weather.kind) || settings.loadout.hat === UMBRELLA_HAT
 
@@ -317,6 +334,7 @@ async function start(): Promise<void> {
   const ball = new BallPlay(settings.scale, () => duck.middleX)
   ball.onTarget = (spot) => (spot ? duck.chase(spot) : duck.stopChase())
   ball.onKick = () => {
+    progress.record('kick')
     earn('ball')
     duck.window.webContents.send(IPC.care, 'ball-kick' satisfies CareEvent)
   }
@@ -362,10 +380,21 @@ async function start(): Promise<void> {
     panel.closeUnlessPinned() // out of the way of the show
     snacks.clear()
     ball.takeAway()
+    let paid = 0
     duck.launchRocket(rocketBurst(rocket, Math.random), rocket.maxHits, () => {
+      paid += rocket.pointsPerHit
       points.grant('rocket', rocket.pointsPerHit)
       announce('rocket', rocket.pointsPerHit)
     })
+    // Cut short by a fullscreen game or a display change: what it hadn't paid back comes back.
+    duck.onRocketCut = () => {
+      duck.onRocketCut = () => undefined
+      const back = Math.max(0, rocket.price - paid)
+      if (back === 0) return
+      points.grant('rocket-refund', back)
+      announce('rocket-refund', back)
+    }
+    progress.record('rocket')
     return { ok: true }
   }
   const feed = (kind: Snack) => {
@@ -494,6 +523,7 @@ async function start(): Promise<void> {
     quiet: () => tracker.focusing || breaks.busy || talk.isOpen || busyNow(),
     onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance' satisfies CareEvent),
     duckAsleep: () => duckAsleep,
+    grabbable: !SHAPED,
   }
   let friends: FriendWindow[] = []
   /** Lets out the minis that should be out and sends the rest home. */
@@ -596,6 +626,8 @@ async function start(): Promise<void> {
     const out = companionsOut()
     const next = toggleCompanion(catalog, economy.companions, out, id, progress.ownedSet)
     if (next) {
+      // Letting one out (not calling it home) counts for the quest.
+      if (next.length > out.length) progress.record('friend')
       settings = { ...settings, companions: next }
       await saveSettings(storage, settings)
       syncFriends()
@@ -680,6 +712,7 @@ async function start(): Promise<void> {
       settings = { ...settings, tracking }
       await saveSettings(storage, settings)
     },
+    () => pointsPerDay(points.entries, Date.now(), 14),
   )
   const flushAll = async () => {
     await Promise.all([points.flush(), progress.flush(), tracker.pause()])
@@ -832,7 +865,29 @@ async function start(): Promise<void> {
     eraseBackups: () => eraseBackups(app.getPath('userData')),
     weather: () => weather.view(),
   })
+  const dashboard = (): DashboardView => {
+    const now = Date.now()
+    const earned = earnedOn(points.entries, now)
+    const bars = capBars(economy.sources, earned, multiplierFor)
+    const other = Object.fromEntries(
+      Object.entries(earned).filter(([source]) => !(source in economy.sources)),
+    )
+    const level = hungerAt(new Date(now), hunger.lastFedAt, economy.hunger)
+    return {
+      bars,
+      multiplier: companionMultiplier(catalog, economy.companions, companionsOut()),
+      other,
+      total: Object.values(earned).reduce((sum, n) => sum + n, 0),
+      log: earnLog.recent,
+      minis: companionsOut(),
+      maxMinis: economy.companions.max,
+      untilBreak: breaks.untilBreak,
+      mood: duckAsleep ? 'sleepy' : level === 'fine' ? 'happy' : level,
+    }
+  }
   registerIpc({
+    dashboard,
+    friendOf: (sender) => friends.find((friend) => friend.owns(sender)),
     config,
     equip,
     companions: companionsView,

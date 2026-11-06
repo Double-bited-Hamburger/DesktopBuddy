@@ -3,6 +3,7 @@ import type { DayForecast, RainAlert } from '../core/care/forecast'
 import type { FriendState } from '../core/care/friend'
 import type { WeatherKind } from '../core/care/weather'
 import type { Rarity, Slot } from '../core/catalog/catalog'
+import type { CapBar, EarnLogEntry } from '../core/economy/earn-log'
 import type { RarityChance } from '../core/economy/gifts'
 import type { QuestView } from '../core/economy/quests'
 import type {
@@ -16,6 +17,7 @@ import type {
 import type { Snack } from '../core/toys/snacks'
 import type { AppHistory, ScreenTimeDay } from '../core/tracker/screen-time'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
+import type { WeekTotals } from '../core/tracker/week-stats'
 import type { Rect } from '../core/types'
 
 /** Channel names shared by main, preload and renderers. */
@@ -75,7 +77,11 @@ export const IPC = {
   care: 'duck:care',
   weather: 'duck:weather',
   friendState: 'friend:state',
+  friendHover: 'friend:hover',
+  friendGrab: 'friend:grab',
+  friendDrop: 'friend:drop',
   companions: 'panel:companions',
+  dashboard: 'panel:dashboard',
   toggleCompanion: 'panel:toggle-companion',
   smokeBar: 'panel:smoke-bar',
   signAnswer: 'sign:answer',
@@ -135,11 +141,34 @@ export interface CompanionsView {
 export type EarnSource = 'click' | 'pet'
 export const EARN_SOURCES: readonly EarnSource[] = ['click', 'pet']
 
+/**
+ * Home's points corner: what each capped source paid today against its limit (raised by the
+ * minis), what came from elsewhere, and the last few earns with why some paid nothing.
+ */
+export interface DashboardView {
+  readonly bars: readonly CapBar[]
+  /** What the minis out multiply play by (1 = none). */
+  readonly multiplier: number
+  /** Today's points from the sources without a daily limit (quests, focus, active time…). */
+  readonly other: Readonly<Record<string, number>>
+  /** Everything earned today. */
+  readonly total: number
+  readonly log: readonly EarnLogEntry[]
+  /** The minis out now (item ids), and how many may be. */
+  readonly minis: readonly string[]
+  readonly maxMinis: number
+  /** Time at the PC before the next break sign (ms); absent when breaks are off. */
+  readonly untilBreak?: number
+  readonly mood: 'happy' | 'sleepy' | 'peckish' | 'hungry'
+}
+
 /** Points news: `granted` points just came from `source`; `balance` is the new total. */
 export interface PointsEvent {
   readonly source: string
   readonly granted: number
   readonly balance: number
+  /** This earn just filled today's limit for the source (the duck shows MAX once). */
+  readonly capped?: boolean
 }
 
 /** A gift box as the Store shows it: price, the real odds, and how far off the guarantee is. */
@@ -239,7 +268,18 @@ export interface StatsView {
     readonly minutes: number
     readonly category: Category
   }[]
+  /** The 7 days before these, summed (week against week). */
+  readonly lastWeek: WeekTotals
+  /** Focus minutes by weekday (Monday first) and hour, over the last 4 weeks. */
+  readonly heat: readonly (readonly number[])[]
+  /** Tracking is on (with it off, Stats shows a short card instead of empty charts). */
+  readonly enabled: boolean
+  /** Points earned per day, the last 14 days, oldest first (from the points history). */
+  readonly points: readonly { readonly day: number; readonly points: number }[]
 }
+
+/** What the tracker itself knows for Stats (the rest is added by ActivityControls). */
+export type TrackerStats = Omit<StatsView, 'enabled' | 'points'>
 
 /** The Screen time tab: one day. */
 export interface ScreenTimeView extends ScreenTimeDay {
@@ -341,6 +381,8 @@ export interface WeatherView {
   readonly days?: readonly DayForecast[]
   /** Rain or snow due in the next hours, while it's dry now. */
   readonly next?: RainAlert
+  /** While it rains or snows now: when it stops (epoch ms), if the forecast reaches that far. */
+  readonly raining?: { readonly stopsAt?: number; readonly snow: boolean }
 }
 
 export const WEATHER_KINDS: readonly WeatherKind[] = [
@@ -478,6 +520,8 @@ export interface BuddyApi {
     equip(slot: Slot, id: string | null): Promise<Loadout>
     /** The mini friends out now and the points bonus they give. */
     companions(): Promise<CompanionsView>
+    /** Today's points by source, limits, and the last earns (Home). */
+    dashboard(): Promise<DashboardView>
     /** Lets a mini out, or calls it home (at most `max` out). Main checks it is owned. */
     toggleCompanion(id: string): Promise<CompanionsView>
     /** Puts a snack in the user's hand, to drop or throw for the duck. */
@@ -563,9 +607,14 @@ export interface BuddyApi {
     /** "Thanks, duck": close the box. */
     done(): void
   }
-  /** A mini friend's page only draws: it hears what to show and asks for nothing. */
+  /** A mini friend's page draws what it hears, and says when the mouse picks it up. */
   friend: {
     onState(listener: (state: FriendState, direction: 1 | -1) => void): () => void
+    /** The cursor is over the mini's own pixels (true) or left them: only then it takes clicks. */
+    hover(over: boolean): void
+    /** Picked up with the mouse, and let go (main moves the window and drops it on a floor). */
+    grab(): void
+    drop(): void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

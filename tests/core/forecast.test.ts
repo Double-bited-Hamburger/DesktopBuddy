@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { localDate } from '../../src/core/care/day'
-import { ALERT_GAP_MS, daysFrom, parseForecast, rainAlert } from '../../src/core/care/forecast'
+import {
+  ALERT_GAP_MS,
+  daysFrom,
+  parseForecast,
+  rainAlert,
+  rainStops,
+} from '../../src/core/care/forecast'
 import { loadWeather, saveWeather } from '../../src/core/care/weather'
 import { MemoryStorage } from '../../src/core/storage/storage'
 
@@ -107,5 +113,26 @@ describe('forecast days', () => {
     expect((await loadWeather(storage))?.forecast?.days).toHaveLength(3)
     await storage.write('weather', { version: 1, city: 'Roma', kind: 'rain', at: NOON })
     expect((await loadWeather(storage))?.forecast).toBeUndefined()
+  })
+})
+
+describe('rainStops', () => {
+  const hours = (wet: number[]) => parseForecast(answer({}, wet), NOON)?.forecast.hours ?? []
+
+  it('says when the rain stops: the first dry hour after now', () => {
+    expect(rainStops(hours([0, 1, 2, 3]), NOON + 10 * 60_000, 'rain')).toEqual({
+      stopsAt: NOON + 4 * HOUR,
+      snow: false,
+    })
+  })
+
+  it('goes on for the whole forecast when no dry hour comes', () => {
+    const all = Array.from({ length: 12 }, (_, i) => i)
+    expect(rainStops(hours(all), NOON, 'snow')).toEqual({ snow: true })
+  })
+
+  it('says nothing while it is dry (Home shows the coming rain instead)', () => {
+    expect(rainStops(hours([3]), NOON, 'cloudy')).toBeUndefined()
+    expect(rainStops(hours([3]), NOON, undefined)).toBeUndefined()
   })
 })

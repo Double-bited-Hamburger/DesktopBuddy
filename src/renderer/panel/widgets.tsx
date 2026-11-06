@@ -39,16 +39,39 @@ export function DuckPreview({ loadout, class: className }: { loadout: Loadout; c
   )
 }
 
+const rgb = (hex: string) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16))
+
+/** A copy of RGBA pixels with one opaque color replaced by another. */
+function swapColor(
+  data: Uint8ClampedArray | Uint8Array,
+  from: string,
+  to: string,
+): Uint8ClampedArray {
+  const [fr, fg, fb] = rgb(from)
+  const [tr = 0, tg = 0, tb = 0] = rgb(to)
+  const out = new Uint8ClampedArray(data)
+  for (let i = 0; i < out.length; i += 4) {
+    if (out[i + 3] === 0 || out[i] !== fr || out[i + 1] !== fg || out[i + 2] !== fb) continue
+    out[i] = tr
+    out[i + 1] = tg
+    out[i + 2] = tb
+  }
+  return out
+}
+
 /** One frame of a baked sprite, e.g. a gift box, scaled up with CSS. */
 export function SpriteIcon({
   sprite,
   frame,
   size,
   height = size,
+  swap,
 }: {
   sprite: string
   frame: string
   size: number
+  /** Paints every pixel of one color (#rrggbb) in another, e.g. a dark outline on the dark panel. */
+  swap?: readonly [from: string, to: string]
   /** For a sprite that isn't square (keep both an integer multiple of its pixels). */
   height?: number
 }) {
@@ -62,8 +85,9 @@ export function SpriteIcon({
         if (!live || !image || !ctx || !canvas.current) return
         canvas.current.width = image.width
         canvas.current.height = image.height
+        const data = swap ? swapColor(image.data, swap[0], swap[1]) : image.data
         ctx.putImageData(
-          new ImageData(image.data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height),
+          new ImageData(data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height),
           0,
           0,
         )
@@ -72,7 +96,7 @@ export function SpriteIcon({
     return () => {
       live = false
     }
-  }, [sprite, frame])
+  }, [sprite, frame, swap?.[0], swap?.[1]])
   return <canvas ref={canvas} class="icon" style={{ width: `${size}px`, height: `${height}px` }} />
 }
 

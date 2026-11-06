@@ -1,4 +1,7 @@
-import type { Rng } from '../types'
+import { floorAt } from '../floor'
+import type { FloorBounds } from '../stage'
+import { STAGE_SIZE } from '../stage'
+import type { Rect, Rng } from '../types'
 
 /**
  * A friend duck on the same PC: it wanders on the taskbar by itself, naps, and now and then runs
@@ -94,6 +97,34 @@ export function orbitAt(
   const y = laneY - (ORBIT_HEIGHT + Math.sin(t * 1.3) * ORBIT_BOB) * scale
   return { x, y, direction: Math.sin(t * 0.5) > 0 ? -1 : 1 }
 }
+/** Turns a floor for your duck's window into the same floor for a mini's smaller window. */
+export function miniLaneOf(floor: FloorBounds, scale: number): FloorBounds {
+  const extra = (STAGE_SIZE - MINI_STAGE) * scale
+  return { minX: floor.minX, maxX: floor.maxX + extra, y: floor.y + extra }
+}
+
+/**
+ * The floor under a mini itself (window x of its middle, window y now), not under your duck: on
+ * two screens of different heights each one stands on the screen it is on. Undefined when no
+ * screen is under it (the shell falls back to your duck's floor).
+ */
+export function miniLane(
+  areas: readonly Rect[],
+  middle: number,
+  y: number,
+  scale: number,
+): FloorBounds | undefined {
+  const extra = (STAGE_SIZE - MINI_STAGE) * scale
+  const floor = floorAt(areas, middle, scale, y - extra)
+  return floor && miniLaneOf(floor, scale)
+}
+
+/** One step from `from` towards `to`, at most `max` long (a ghost let go drifts back to its loop). */
+export function glide(from: number, to: number, max: number): number {
+  const gap = to - from
+  return Math.abs(gap) <= max ? to : from + Math.sign(gap) * max
+}
+
 /** How often it goes over to nap next to a sleeping duck (otherwise it does its own thing). */
 const SNUGGLE_CHANCE = 0.6
 

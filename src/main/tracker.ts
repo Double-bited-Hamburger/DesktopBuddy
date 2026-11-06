@@ -28,7 +28,8 @@ import type { AppHistory } from '../core/tracker/screen-time'
 import { activeMinutesOf, appHistory, screenTimeOfDay } from '../core/tracker/screen-time'
 import type { Categories, DaySummary } from '../core/tracker/summary'
 import { meetsStreak, streakOf, summarizeDay, topApps } from '../core/tracker/summary'
-import type { ScreenTimeView, StatsView, TodayView } from '../shared/ipc'
+import { focusHeatmap, weekTotals } from '../core/tracker/week-stats'
+import type { ScreenTimeView, TodayView, TrackerStats } from '../shared/ipc'
 import type { ForegroundSource } from './foreground'
 
 /** One sample every 5 s while tracking is on: 12 per minute bucket. */
@@ -38,6 +39,8 @@ const IDLE_AFTER_SECONDS = 60
 /** Day files are written at most this often (and on pause/quit). */
 const SAVE_DELAY_MS = 30_000
 const STATS_DAYS = 7
+/** The focus-hours map looks this far back (4 of each weekday). */
+const HEAT_DAYS = 28
 /** The running focus session or Pomodoro cycle, so a restart picks it up again. */
 const FOCUS_STATE_KEY = 'focus-state'
 /** After a Pomodoro break: how often to look whether the user is back at the PC. */
@@ -244,13 +247,13 @@ export class TrackerService {
     }
   }
 
-  async statsView(): Promise<StatsView> {
+  async statsView(): Promise<TrackerStats> {
     const today = localDayKey(Date.now())
-    const week = await Promise.all(
-      Array.from({ length: STATS_DAYS }, (_, i) =>
-        this.summary(addDays(today, i - STATS_DAYS + 1)),
-      ),
+    // Four weeks, oldest first: this week is the last 7, the one before it the 7 before that.
+    const days = await Promise.all(
+      Array.from({ length: HEAT_DAYS }, (_, i) => this.summary(addDays(today, i - HEAT_DAYS + 1))),
     )
+    const week = days.slice(-STATS_DAYS)
     // Streaks look at every stored day (a few KB each, read only while Stats is open).
     const met = new Set<number>()
     for (const key of await this.storage.list()) {
@@ -267,6 +270,8 @@ export class TrackerService {
       })),
       streak: streakOf(met, today),
       topApps: topApps(week, 5),
+      lastWeek: weekTotals(days.slice(-2 * STATS_DAYS, -STATS_DAYS)),
+      heat: focusHeatmap(days),
     }
   }
 

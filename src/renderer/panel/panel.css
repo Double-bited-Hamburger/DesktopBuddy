@@ -30,14 +30,17 @@ body {
   padding: 12px;
 }
 
+/* Buttons on top, the section's name on its own line under them (the duck names are long). */
 .panel header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
 .panel h1 {
-  flex: 1;
+  order: 1;
+  flex-basis: 100%;
   margin: 0;
   font-size: 16px;
 }
@@ -51,6 +54,11 @@ body {
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Pushes the buttons after it to the right of the header. */
+.panel header .points {
+  margin-right: auto;
 }
 
 .panel button {
@@ -440,6 +448,12 @@ body {
   padding: 6px 8px;
 }
 
+/* "🔥 19 giorni" on one line in a third of the panel. */
+.tile-stat strong {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .timeline {
   position: relative;
   height: 18px;
@@ -635,6 +649,100 @@ body {
 .panel button:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* --- hamburger drawer ----------------------------------------------------------------- */
+.panel {
+  position: relative;
+}
+
+.panel .burger,
+.panel .icon-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  line-height: 0;
+}
+
+.icon {
+  image-rendering: pixelated;
+}
+
+/* A red dot: something is waiting (a quest to claim, the free gift). */
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d9413a;
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+.burger .dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+}
+
+/* Over the whole window, however short the screen under it is. */
+.drawer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+}
+
+.panel .drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: rgb(0 0 0 / 25%);
+}
+
+.drawer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(250px, 82%);
+  height: 100%;
+  padding: 12px;
+  overflow-y: auto;
+  background: var(--paper);
+  border-right: 3px solid var(--edge);
+}
+
+.panel .drawer button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.drawer-name {
+  flex: 1;
+}
+
+.panel .drawer button[aria-current="page"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.fact {
+  margin-top: auto;
+  padding: 8px;
+  border: 2px dashed var(--edge);
+  font-size: 12px;
+}
+
+.fact p {
+  margin: 4px 0 0;
+  line-height: 1.35;
 }
 
 /* --- dark panel (Settings > Panel colors) --------------------------------------------------- */
@@ -836,8 +944,8 @@ body {
 }
 
 .home-duck .preview.big {
-  width: 120px;
-  height: 120px;
+  width: 96px;
+  height: 96px;
 }
 
 .home-now {
@@ -884,6 +992,15 @@ body {
 .week .day {
   font-weight: 700;
   text-transform: capitalize;
+}
+
+/* Max over min, on two lines for every day, so a long pair never wraps on its own. */
+.week .temp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+  white-space: nowrap;
 }
 
 /* A mini friend's points bonus under its name, and how many are out. */
@@ -979,4 +1096,338 @@ body {
 }
 .card .warn {
   color: var(--accent, #c0603a);
+}
+
+/* --- Home: today's points ------------------------------------------------------------------ */
+.home-total {
+  color: var(--accent);
+}
+
+.home-bonus {
+  margin: 0;
+  font-size: 12px;
+}
+
+.cap-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.cap-bars li {
+  display: grid;
+  grid-template-columns: 8.5em 1fr auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.bar {
+  height: 10px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: #6fbf73;
+}
+
+.cap-bars .full .bar-fill {
+  background: var(--accent);
+}
+
+.bar-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-note {
+  grid-column: 2 / -1;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.home-other {
+  margin: 0;
+  font-size: 12px;
+}
+
+.earn-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.earn-log li {
+  display: grid;
+  grid-template-columns: 1fr auto 5.5em;
+  gap: 6px;
+  padding: 2px 0;
+  border-bottom: 1px dashed var(--edge);
+}
+
+.earn-log .log-points {
+  font-weight: bold;
+}
+
+.earn-log .refused .log-points {
+  color: var(--accent);
+  font-weight: normal;
+}
+
+.earn-log .log-when {
+  text-align: right;
+}
+
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.panel .home-tiles button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.home-tiles b {
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* --- Stats: week against week, focus hours, points per day ----------------------------------- */
+.versus {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.versus li {
+  display: grid;
+  grid-template-columns: 1fr auto 4.5em;
+  gap: 8px;
+  align-items: center;
+}
+
+.trend {
+  text-align: right;
+  font-weight: bold;
+}
+
+.trend.up {
+  color: #4f9a5a;
+}
+
+.trend.down {
+  color: #d9564b;
+}
+
+.heat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.heat-row {
+  display: grid;
+  grid-template-columns: 2.6em repeat(24, 1fr);
+  gap: 1px;
+  align-items: center;
+}
+
+.heat-day {
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.heat-cell {
+  height: 11px;
+  border-radius: 2px;
+  background: var(--paper);
+  outline: 1px solid var(--edge);
+}
+
+.heat-cell.l1 {
+  background: #cfe6c8;
+}
+
+.heat-cell.l2 {
+  background: #9fcd94;
+}
+
+.heat-cell.l3 {
+  background: #6fb064;
+}
+
+.heat-cell.l4 {
+  background: #3f8a3a;
+}
+
+.heat-hours {
+  font-size: 9px;
+}
+
+.heat-hour {
+  text-align: left;
+}
+
+.points-chart {
+  display: flex;
+  gap: 3px;
+  height: 90px;
+  align-items: flex-end;
+}
+
+.pt-col {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+}
+
+.pt-bar {
+  width: 100%;
+  min-height: 2px;
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  background: #f7d84a;
+}
+
+.pt-col.best .pt-bar {
+  background: var(--accent);
+}
+
+.pt-star {
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.pt-day {
+  font-size: 9px;
+}
+
+.top-apps .app-name {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--paper);
+}
+
+.top-apps .app-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.empty-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.empty-stats p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* --- Settings: folding groups and search ------------------------------------------------------ */
+.settings-search {
+  flex-shrink: 0;
+  width: 100%;
+  padding: 5px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+
+.group {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 2px dashed var(--edge);
+  padding-bottom: 6px;
+}
+
+.panel .group-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 2px 0;
+  text-align: left;
+}
+
+.panel .group-head:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Open: no orange button fill, just the title in the accent color. */
+.panel .group-head[aria-expanded="true"] {
+  background: transparent;
+  color: var(--accent);
+}
+
+.group-title {
+  font-size: 13px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.group-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.group-caret {
+  margin-left: auto;
+}
+
+.group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }

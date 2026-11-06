@@ -424,7 +424,9 @@ async function main(): Promise<void> {
   /** "+12" as layers of digit frames, left edge at x. */
   function popupLayers(text: string, x: number, y: number) {
     return [...text].flatMap((char, i) => {
-      const frame = digits.frames.find((f) => f.name === (char === '+' ? 'plus' : char))
+      const frame = digits.frames.find(
+        (f) => f.name === (char === '+' ? 'plus' : char.toLowerCase()),
+      )
       return frame ? [{ frame, offset: { x: x + i * DIGIT_ADVANCE, y } }] : []
     })
   }
@@ -971,9 +973,10 @@ async function main(): Promise<void> {
     wake()
   })
 
-  window.buddy.onPoints(({ granted }) => {
+  window.buddy.onPoints(({ granted, capped }) => {
     if (granted <= 0) return // spent in the store: no popup
-    popup = { text: `+${granted}`, startedAt: performance.now() }
+    // Today's limit for this source just filled up: MAX, once (the next ones pay nothing).
+    popup = { text: capped ? `+${granted} MAX` : `+${granted}`, startedAt: performance.now() }
     if (busy())
       render() // shown now; it rises once the duck is back on its feet
     else wake()

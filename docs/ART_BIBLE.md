@@ -101,3 +101,13 @@ built from the catalog; a test checks its caption).
 - [ ] Looks good at 1× and at the default 3×, on a light and a dark desktop background
 - [ ] Original; not derivative of any existing character or product
 - [ ] Listed: file names, frame names, anchors
+
+## UI sprites added in 0.9.0
+
+- `ui/menu-icons` (12×12): `menu` (hamburger), one per section (`nest`, `bag`, `market`,
+  `flag`, `sun`, `steps`, `feather`) and `bread` (the feed button). Drawn 2× in the panel.
+  The dark outline `#2a1f2d` is the only color swapped at runtime (to the panel's light ink on
+  the dark theme), so the art stays one source.
+- `ui/tray-head` (16×16): the duck's head only, big eye, so it reads in the tray. The shell adds
+  2× and 3× copies by repeating pixels (never a smooth resize).
+- `ui/points-digits` gained `m`, `a`, `x` in orange for **MAX** (same 5×7 cell and outline).

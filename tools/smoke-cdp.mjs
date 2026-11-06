@@ -119,7 +119,8 @@ await duck.evaluate('window.buddy.duck.openPanel()')
 const panel = await attach(await waitForPage('/panel/', 8000))
 await sleep(800)
 const text = await panel.evaluate('document.body.innerText')
-check('panel renders translated text', text.includes('Bag') || text.includes('Zaino'))
+// The panel opens on Home, titled with its duck name (the sections are in the hamburger drawer).
+check('panel renders translated text', text.includes('The Nest') || text.includes('Il Nido'))
 
 const pin = `document.querySelector('header button[aria-pressed]')`
 check(

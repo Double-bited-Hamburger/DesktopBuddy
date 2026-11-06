@@ -45,6 +45,15 @@ refunds are never multiplied.
 or `daily-cap`; at the cap it pays out only what is left. `grant` is for rewards limited by other
 means (quests, gifts). `spend` never overdraws.
 
+**Why didn't that pay? (Home, 0.9.0)** Home shows one bar per capped source: what it paid today
+against today's cap (×the minis' bonus). A full bar turns orange and says it starts again at
+midnight. Under it, the last few earns (`core/economy/earn-log.ts`, memory only, nothing saved),
+with 0 and the reason for refused ones: "today's limit" or "too fast" (the cooldown). A burst of
+the same thing is one row. The earn that fills a cap shows **+N MAX** over the duck, once.
+Dropping the duck (lifted and let go without a throw) no longer pays edge hits (0.9.0 fix), and a
+rocket cut short by a fullscreen game or a display change pays back what it hadn't paid yet
+(`rocket-refund`).
+
 ## Sinks (spending)
 
 Gift boxes roll a rarity by the weights below, then an item of that rarity, every item equally
@@ -95,6 +104,18 @@ Old days and weeks simply stop counting; nothing claimable is lost before its pe
 | Open gifts           | weekly |      5 |    600 |
 | Finish a focus session | daily  |    1 |     60 |
 | Finish a focus session | weekly |    5 |    450 |
+| Kick the ball (0.9.0)          | daily  |   10 |     60 |
+| Hit the walls with a throw     | daily  |   20 |     60 |
+| Let a mini friend out          | daily  |    1 |     30 |
+| Float down with the umbrella   | daily  |    1 |     45 |
+| Launch a Rocket Boost          | weekly |    1 |    150 |
+| Kick the ball                  | weekly |   60 |    300 |
+| Hit the walls with a throw     | weekly |  150 |    450 |
+
+Events (`QUEST_EVENTS`): `kick` is each headbutt of the ball, `bounce` each paid edge hit of a
+thrown duck (not rocket hits, not drops), `friend` letting a mini out (not calling it home),
+`float` a thrown duck opening its umbrella, `rocket` a Rocket Boost that went off. The rocket
+quest pays back less than the rocket costs (150 against 200), so it never makes buying one free.
 
 ## Items
 

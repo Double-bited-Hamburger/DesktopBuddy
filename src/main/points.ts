@@ -1,4 +1,5 @@
 import type { EconomyConfig } from '../core/economy/config'
+import type { EarnResult, LedgerEntry } from '../core/economy/ledger'
 import { PointsLedger } from '../core/economy/ledger'
 import { loadLedgerEntries, saveLedger } from '../core/economy/save'
 import type { StorageAdapter } from '../core/storage/storage'
@@ -31,13 +32,18 @@ export class PointsService {
   }
 
   /**
-   * Returns the points granted (0 when on cooldown or capped for today). `multiplier`: what the
-   * mini friends out add (core/economy/companions.ts).
+   * Returns the points granted (0 when on cooldown or capped for today, with the reason).
+   * `multiplier`: what the mini friends out add (core/economy/companions.ts).
    */
-  earn(source: string, multiplier = 1): number {
-    const { granted } = this.ledger.earn(source, multiplier)
-    if (granted > 0) this.scheduleSave()
-    return granted
+  earn(source: string, multiplier = 1): EarnResult {
+    const result = this.ledger.earn(source, multiplier)
+    if (result.granted > 0) this.scheduleSave()
+    return result
+  }
+
+  /** The whole history (for Home's today and Stats' days). */
+  get entries(): readonly LedgerEntry[] {
+    return this.ledger.entries
   }
 
   earnedToday(source: string): number {

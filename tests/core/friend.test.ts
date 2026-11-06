@@ -4,9 +4,13 @@ import {
   FRIEND_SPEED,
   FRIEND_STATES,
   friendDuration,
+  glide,
   hasReached,
   isFriendState,
   MEET_DISTANCE,
+  MINI_STAGE,
+  miniLane,
+  miniLaneOf,
   NAP_GAP,
   nextFriendState,
   towards,
@@ -105,5 +109,44 @@ describe('the ghost mini', () => {
       if (Math.abs(ahead.x - spot.x) > 0.01)
         expect(Math.sign(ahead.x - spot.x)).toBe(spot.direction)
     }
+  })
+})
+
+describe('miniLane', () => {
+  // A laptop (taskbar at 1032) with a taller monitor on its right (taskbar at 1392).
+  const laptop = { x: 0, y: 0, width: 1920, height: 1032 }
+  const monitor = { x: 1920, y: 0, width: 2560, height: 1392 }
+  const scale = 3
+
+  it('stands on the floor of the screen under the mini, not under your duck', () => {
+    const onLaptop = miniLane([laptop, monitor], 500, 900, scale)
+    const onMonitor = miniLane([laptop, monitor], 2500, 900, scale)
+    expect(onLaptop && onMonitor).toBeTruthy()
+    expect((onMonitor?.y ?? 0) - (onLaptop?.y ?? 0)).toBe(1392 - 1032)
+  })
+
+  it('puts the bottom of the mini window where the bottom of a duck window would be', () => {
+    const lane = miniLane([laptop], 500, 900, scale)
+    const floor = miniLaneOf({ minX: 0, maxX: 100, y: 912 }, scale)
+    expect(floor.y + MINI_STAGE * scale).toBe(912 + 40 * scale)
+    expect(lane?.y).toBeLessThan(1032)
+  })
+
+  it('walks across joined screens', () => {
+    const lane = miniLane([laptop, monitor], 500, 900, scale)
+    expect(lane?.minX).toBeLessThan(10)
+    expect(lane?.maxX).toBeGreaterThan(1920 + 2000)
+  })
+
+  it('is undefined off every screen', () => {
+    expect(miniLane([laptop], -500, 900, scale)).toBeUndefined()
+  })
+})
+
+describe('glide', () => {
+  it('moves at most max towards the goal and stops on it', () => {
+    expect(glide(0, 100, 10)).toBe(10)
+    expect(glide(100, 0, 10)).toBe(90)
+    expect(glide(95, 100, 10)).toBe(100)
   })
 })

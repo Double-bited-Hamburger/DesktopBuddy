@@ -73,3 +73,40 @@ describe('QuestBook', () => {
     expect(Object.keys(new QuestBook(config, () => now, save).toSave().progress)).toEqual([])
   })
 })
+
+describe('the 0.9 quests', () => {
+  it('count ball kicks, wall hits, minis let out, umbrella floats and rockets', () => {
+    const play: QuestConfig = {
+      dailyCount: 4,
+      pool: [
+        { id: 'kick-10', period: 'daily', event: 'kick', target: 10, reward: 60 },
+        { id: 'bounce-20', period: 'daily', event: 'bounce', target: 20, reward: 60 },
+        { id: 'friend-1', period: 'daily', event: 'friend', target: 1, reward: 30 },
+        { id: 'float-1', period: 'daily', event: 'float', target: 1, reward: 45 },
+        { id: 'rocket-1', period: 'weekly', event: 'rocket', target: 1, reward: 150 },
+      ],
+    }
+    const book = new QuestBook(play, () => monday)
+    for (let i = 0; i < 10; i++) book.record('kick')
+    for (let i = 0; i < 20; i++) book.record('bounce')
+    for (const event of ['friend', 'float', 'rocket'] as const) book.record(event)
+    expect(book.quests.every((q) => q.count === q.target)).toBe(true)
+    expect(book.claim('rocket-1')).toBe(150)
+  })
+
+  it('are in the shipped quest pool, as approved', async () => {
+    const economy = (await import('../../assets/economy/economy.json')).default
+    const ids = economy.quests.pool.map((q) => `${q.period}:${q.id}:${q.target}:${q.reward}`)
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'daily:kick-10:10:60',
+        'daily:bounce-20:20:60',
+        'daily:friend-1:1:30',
+        'daily:float-1:1:45',
+        'weekly:rocket-1:1:150',
+        'weekly:kick-60:60:300',
+        'weekly:bounce-150:150:450',
+      ]),
+    )
+  })
+})

@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'preact/hooks'
 import type { DayForecast } from '../../core/care/forecast'
 import type { Translator } from '../../core/i18n/i18n'
-import type { Loadout, SettingsView, WeatherView } from '../../shared/ipc'
+import type { Loadout, SettingsView, StoreView, WeatherView } from '../../shared/ipc'
+import { HomePoints, useDashboard } from './home-points'
+import type { Screen } from './menu'
 import { DuckPreview, SpriteIcon } from './widgets'
 
 interface HomeProps {
   t: Translator
   language: string
   loadout: Loadout
-  /** Opens another screen (Settings, to type a city). */
-  onGo(screen: 'settings'): void
+  /** Quests ready and the free gift, for the tiles. */
+  store: StoreView | undefined
+  /** Opens another screen (a tile, or Settings to type a city). */
+  onGo(screen: Screen): void
 }
 
 /** "Mon", "lun", or "Today" for the first day. */
@@ -19,16 +23,35 @@ function dayName(t: Translator, language: string, day: DayForecast, i: number): 
 }
 
 /** Today's weather and what comes next: the rain alert line, or that it stays dry. */
-function NowLine({ t, weather }: { t: Translator; weather: WeatherView }) {
+function NowLine({
+  t,
+  language,
+  weather,
+}: {
+  t: Translator
+  language: string
+  weather: WeatherView
+}) {
   if (weather.state === 'checking') return <p class="muted">{t('settings.weather.checking')}</p>
   if (weather.state === 'notFound') return <p class="muted">{t('settings.weather.notFound')}</p>
   if (!weather.kind) return <p class="muted">{t('settings.weather.offline')}</p>
   const next = weather.next
-  const soon = next
-    ? t(`home.next.${next.snow ? 'snow' : 'rain'}${next.inHours === 1 ? '.one' : ''}`, {
-        n: next.inHours,
-      })
-    : t('home.next.none')
+  const raining = weather.raining
+  const kind = raining?.snow ? 'snow' : 'rain'
+  const soon = raining
+    ? raining.stopsAt
+      ? t(`home.stops.${kind}`, {
+          time: new Date(raining.stopsAt).toLocaleTimeString(language, {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        })
+      : t(`home.stops.${kind}.later`)
+    : next
+      ? t(`home.next.${next.snow ? 'snow' : 'rain'}${next.inHours === 1 ? '.one' : ''}`, {
+          n: next.inHours,
+        })
+      : t('home.next.none')
   return (
     <div class="home-now">
       <SpriteIcon sprite="ui/weather" frame={weather.kind} size={36} />
@@ -43,10 +66,12 @@ function NowLine({ t, weather }: { t: Translator; weather: WeatherView }) {
 }
 
 /**
- * Home: the duck, today's weather, and the next 7 days (opt-in weather: without a city there is
- * a short card pointing at Settings instead, and nothing is sent anywhere).
+ * Home: the duck and its mood, where today's points came from (and why some stopped), what's
+ * waiting, today's weather and the next 7 days (opt-in weather: without a city there is a short
+ * card pointing at Settings instead, and nothing is sent anywhere).
  */
-export function Home({ t, language, loadout, onGo }: HomeProps) {
+export function Home({ t, language, loadout, store, onGo }: HomeProps) {
+  const dashboard = useDashboard()
   const [view, setView] = useState<SettingsView | undefined>()
   useEffect(() => {
     window.buddy.panel.settings
@@ -62,9 +87,17 @@ export function Home({ t, language, loadout, onGo }: HomeProps) {
       <div class="home-duck">
         <DuckPreview loadout={loadout} class="big" />
         {view?.names.duck && <strong>{view.names.duck}</strong>}
+        {dashboard && (
+          <span class="muted">
+            {t(`home.mood.${dashboard.mood}`, { name: view?.names.duck || t('talk.duck') })}
+          </span>
+        )}
       </div>
+      {dashboard && (
+        <HomePoints t={t} language={language} view={dashboard} store={store} onGo={onGo} />
+      )}
       <h2>{t('settings.weather')}</h2>
-      {!weather || !weather.city ? (
+      {!weather?.city ? (
         <div class="card">
           <p>{t('home.noCity')}</p>
           <button type="button" onClick={() => onGo('settings')}>
@@ -73,7 +106,7 @@ export function Home({ t, language, loadout, onGo }: HomeProps) {
         </div>
       ) : (
         <>
-          <NowLine t={t} weather={weather} />
+          <NowLine t={t} language={language} weather={weather} />
           {days.length > 0 && (
             <>
               <h3>{t('home.week')}</h3>
@@ -83,7 +116,8 @@ export function Home({ t, language, loadout, onGo }: HomeProps) {
                     <span class="day">{dayName(t, language, day, i)}</span>
                     <SpriteIcon sprite="ui/weather" frame={day.kind} size={24} />
                     <span class="temp">
-                      {day.max}° <span class="muted">{day.min}°</span>
+                      <span>{day.max}°</span>
+                      <span class="muted">{day.min}°</span>
                     </span>
                     <span class="chance muted">{day.chance}%</span>
                   </li>

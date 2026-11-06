@@ -64,6 +64,11 @@ export class BreakBuddy {
   }
 
   /** A break is being asked for or taken: other care news waits. */
+  /** Time at the PC left before the next sign (ms); undefined when breaks are off. */
+  get untilBreak(): number | undefined {
+    return this.coach?.untilBreak
+  }
+
   get busy(): boolean {
     return this.coach !== undefined && this.coach.phase !== 'working'
   }

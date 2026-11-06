@@ -81,6 +81,10 @@ export class DuckWindow {
   private walkStride = 1
   /** Called when the user throws the duck (released while moving fast): a quest counts it. */
   onThrown: () => void = () => undefined
+  /** A thrown duck opened its umbrella (a quest counts it). */
+  onFloat: () => void = () => undefined
+  /** The Rocket Boost was cut short by something other than the player (main pays back). */
+  onRocketCut: () => void = () => undefined
   /** A duck the user let go hit a screen edge (each one pays, up to `maxHits` per throw). */
   onHit: () => void = () => undefined
   maxHits = 10
@@ -172,7 +176,7 @@ export class DuckWindow {
   }
 
   dragStart(): void {
-    this.endRocket()
+    this.endRocket(false) // grabbed on purpose: the show simply ends
     this.walk(0) // held in the hand: the renderer restarts the walk after the drop
     this.stopRun() // a chase resumes after the drop
     if (this.flightTimer) this.stopFlight('land') // caught in mid-air
@@ -214,7 +218,8 @@ export class DuckWindow {
     this.refreshFloor(bounds)
     const thrown = vx !== 0 || vy !== 0
     if (thrown) this.onThrown()
-    this.hitsLeft = this.maxHits
+    // Only a real throw pays for edges: lifting the duck and letting it fall pays nothing.
+    this.hitsLeft = thrown ? this.maxHits : 0
     if (bounds.y < this.floor.y || thrown) {
       this.fly({ x: bounds.x, y: Math.min(bounds.y, this.floor.y), vx, vy })
       return
@@ -366,6 +371,7 @@ export class DuckWindow {
         feel = FLOAT_FEEL
         state = { ...state, vx: state.vx * 0.6 }
         this.window.webContents.send(IPC.fall, 'float' satisfies FallEvent)
+        this.onFloat()
       }
       const next = flightStep(
         state,
@@ -399,12 +405,14 @@ export class DuckWindow {
   }
 
   /** The rocket show is cut short (grabbed, hidden, resized): it just falls from where it is. */
-  private endRocket(): void {
+  private endRocket(cut = true): void {
     if (!this.rocketing) return
     this.rocketing = false
     clearTimeout(this.rocketTimer)
     this.rocketTimer = undefined
     this.window.webContents.send(IPC.rocket, 'end' satisfies RocketPhase)
+    // Cut short by something the player didn't do (a fullscreen game, the size, a display change).
+    if (cut) this.onRocketCut()
   }
 
   private stopFlight(how: FallEvent): void {

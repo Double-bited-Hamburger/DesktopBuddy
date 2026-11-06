@@ -89,12 +89,12 @@ export class SnackPile {
     this.retarget()
   }
 
-  /** Takes every piece away (the ball was thrown instead). */
   /** Out of sight while a fullscreen game runs (the duck is away too), back afterwards. */
   setHidden(hidden: boolean): void {
     for (const piece of this.pieces) piece.setHidden(hidden)
   }
 
+  /** Takes every piece away (the ball was thrown instead). */
   clear(): void {
     for (const piece of [...this.pieces]) piece.taken()
   }

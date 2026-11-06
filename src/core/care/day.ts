@@ -25,6 +25,16 @@ export function localDate(now: Date): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
+/**
+ * Which of `count` daily items is today's (1-based): the same all day, the next one tomorrow,
+ * round and round. Used for the duck fact in the menu.
+ */
+export function dailyPick(now: Date, count: number): number {
+  if (count <= 0) return 1
+  const day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000)
+  return (day % count) + 1
+}
+
 export function partOfDay(hour: number): PartOfDay {
   let part: PartOfDay = 'night'
   for (const [name, start] of STARTS) if (hour >= start) part = name

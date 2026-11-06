@@ -9,6 +9,7 @@ import type {
   BoostResult,
   BuyResult,
   CompanionsView,
+  DashboardView,
   EarnSource,
   GiftResult,
   Loadout,
@@ -25,6 +26,7 @@ import type { BallPlay } from './ball-play'
 import type { BreakBuddy } from './break-buddy'
 import type { BubbleWindow } from './bubble-window'
 import type { DuckWindow } from './duck-window'
+import type { FriendWindow } from './friend-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
@@ -41,6 +43,8 @@ interface IpcDeps {
   /** The minis out with the duck, and letting one out or calling it home (checked in main). */
   readonly companions: () => CompanionsView
   readonly toggleCompanion: (id: unknown) => Promise<CompanionsView>
+  /** Home's points corner. */
+  readonly dashboard: () => DashboardView
   /** Pays for the Rocket Boost and sets it off, if the duck can go now. */
   readonly buyRocket: () => BoostResult
   /** Earns for a click or pet, subject to economy.json cooldowns and caps. */
@@ -77,6 +81,8 @@ interface IpcDeps {
   readonly updates: UpdateService
   /** The duck's speech bubble (it may ask a question with buttons). */
   readonly bubble: BubbleWindow
+  /** The mini whose page sent a message, if it is one of the minis out. */
+  readonly friendOf: (sender: WebContents) => FriendWindow | undefined
 }
 
 /**
@@ -88,6 +94,7 @@ export function registerIpc({
   equip,
   companions,
   toggleCompanion,
+  dashboard,
   buyRocket,
   earn,
   feed,
@@ -109,6 +116,7 @@ export function registerIpc({
   talk,
   updates,
   bubble,
+  friendOf,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -203,6 +211,11 @@ export function registerIpc({
     return companions()
   })
 
+  ipcMain.handle(IPC.dashboard, (event): DashboardView => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return dashboard()
+  })
+
   ipcMain.handle(IPC.toggleCompanion, (event, id: unknown): Promise<CompanionsView> => {
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
     return toggleCompanion(id)
@@ -216,6 +229,13 @@ export function registerIpc({
   ipcMain.on(IPC.signAnswer, (event, choice: unknown) => {
     if (fromSign(event.sender) && (choice === 'finish' || choice === 'later')) breaks.answer(choice)
   })
+
+  // A mini's page: only that mini moves, and only a boolean is accepted.
+  ipcMain.on(IPC.friendHover, (event, over: unknown) => {
+    if (typeof over === 'boolean') friendOf(event.sender)?.hover(over)
+  })
+  ipcMain.on(IPC.friendGrab, (event) => friendOf(event.sender)?.grab())
+  ipcMain.on(IPC.friendDrop, (event) => friendOf(event.sender)?.drop())
 
   // The talk box says only *that* something was typed; there is no payload to validate.
   ipcMain.on(IPC.talkTyped, (event) => {

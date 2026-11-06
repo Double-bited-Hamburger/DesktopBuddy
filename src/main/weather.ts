@@ -1,7 +1,7 @@
 import { net } from 'electron'
 import { localDate } from '../core/care/day'
 import type { RainAlert } from '../core/care/forecast'
-import { daysFrom, parseForecast, rainAlert } from '../core/care/forecast'
+import { daysFrom, parseForecast, rainAlert, rainStops } from '../core/care/forecast'
 import type { Place, WeatherKind, WeatherSave } from '../core/care/weather'
 import {
   currentKind,
@@ -70,6 +70,7 @@ export class WeatherService {
       checkedAt: city && this.save?.city === city ? this.save.at : undefined,
       days: city && this.save?.city === city ? this.days() : undefined,
       next: city ? this.alert() : undefined,
+      raining: city ? this.stops() : undefined,
     }
   }
 
@@ -83,6 +84,12 @@ export class WeatherService {
   private alert(): RainAlert | undefined {
     const hours = this.save?.forecast?.hours
     return hours ? rainAlert(hours, Date.now(), this.kind, undefined) : undefined
+  }
+
+  /** While it rains now: when it stops, from the saved forecast. */
+  private stops(): WeatherView['raining'] {
+    const hours = this.save?.forecast?.hours
+    return hours ? rainStops(hours, Date.now(), this.kind) : undefined
   }
 
   /** Tells the duck once about rain or snow on its way. */

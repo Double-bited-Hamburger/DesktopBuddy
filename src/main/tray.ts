@@ -1,5 +1,5 @@
 import { Menu, nativeImage, Tray } from 'electron'
-import placeholderSheet from '../../assets/baked/ducks/placeholder-duck/sheet.png?asset'
+import trayHead from '../../assets/baked/ui/tray-head/sheet.png?asset'
 import type { Translator } from '../core/i18n/i18n'
 import type { Snack } from '../core/toys/snacks'
 
@@ -22,12 +22,39 @@ interface TrayActions {
   duckName?: string
 }
 
-/** Tray icon = the first frame of the duck sheet (32x32). */
+/** A bitmap (BGRA) blown up `by` times, every pixel a square block: pixel art stays sharp. */
+function blowUp(bitmap: Buffer, size: number, by: number): Buffer {
+  const out = Buffer.alloc(size * by * size * by * 4)
+  for (let y = 0; y < size * by; y++)
+    for (let x = 0; x < size * by; x++) {
+      const from = (Math.floor(y / by) * size + Math.floor(x / by)) * 4
+      bitmap.copy(out, (y * size * by + x) * 4, from, from + 4)
+    }
+  return out
+}
+
+/**
+ * Tray icon = the duck's head (ui/tray-head, 16x16), so it reads at tray size. 2x and 3x copies
+ * are blown up pixel by pixel for high-DPI screens, so Windows never has to smudge it.
+ */
+function trayIcon() {
+  const base = nativeImage.createFromPath(trayHead)
+  const { width } = base.getSize()
+  const bitmap = base.toBitmap()
+  const icon = nativeImage.createEmpty()
+  icon.addRepresentation({ scaleFactor: 1, buffer: base.toPNG() })
+  for (const by of [2, 3]) {
+    const big = nativeImage.createFromBitmap(blowUp(bitmap, width, by), {
+      width: width * by,
+      height: width * by,
+    })
+    icon.addRepresentation({ scaleFactor: by, buffer: big.toPNG() })
+  }
+  return icon
+}
+
 export function createTray(t: Translator, actions: TrayActions): Tray {
-  const icon = nativeImage
-    .createFromPath(placeholderSheet)
-    .crop({ x: 0, y: 0, width: 32, height: 32 })
-  const tray = new Tray(icon)
+  const tray = new Tray(trayIcon())
   tray.setToolTip(actions.duckName ? `${actions.duckName} · ${t('app.name')}` : t('app.name'))
   tray.setContextMenu(
     Menu.buildFromTemplate([

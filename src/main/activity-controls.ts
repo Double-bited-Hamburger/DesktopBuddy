@@ -37,25 +37,32 @@ export class ActivityControls {
   private readonly focusConfig: FocusConfig
   private readonly tracking: () => Tracking
   private readonly saveTracking: (tracking: Tracking) => Promise<void>
+  private readonly points: () => StatsView['points']
 
   constructor(
     tracker: TrackerService,
     focusConfig: FocusConfig,
     tracking: () => Tracking,
     saveTracking: (tracking: Tracking) => Promise<void>,
+    points: () => StatsView['points'] = () => [],
   ) {
     this.tracker = tracker
     this.focusConfig = focusConfig
     this.tracking = tracking
     this.saveTracking = saveTracking
+    this.points = points
   }
 
   today(): Promise<TodayView> {
     return this.tracker.todayView()
   }
 
-  stats(): Promise<StatsView> {
-    return this.tracker.statsView()
+  async stats(): Promise<StatsView> {
+    return {
+      ...(await this.tracker.statsView()),
+      enabled: this.tracking().enabled,
+      points: this.points(),
+    }
   }
 
   /** A whole-number day key, not in the future (nothing newer exists to read). */

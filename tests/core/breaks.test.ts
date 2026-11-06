@@ -148,3 +148,15 @@ describe('BreakCoach', () => {
     expect(coach.later(0)).toEqual([])
   })
 })
+
+describe('untilBreak', () => {
+  it('counts down the time at the PC left, and is 0 once the sign is due', () => {
+    const coach = new BreakCoach(rules, 0)
+    expect(coach.untilBreak).toBe(50 * MIN)
+    const { now } = run(coach, 0, 20 * MIN)
+    expect(coach.untilBreak).toBe(50 * MIN - coach.active)
+    expect(coach.untilBreak).toBeLessThan(31 * MIN)
+    run(coach, now, 40 * MIN)
+    expect(coach.untilBreak).toBe(0)
+  })
+})

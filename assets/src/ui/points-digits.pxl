@@ -1,9 +1,10 @@
-# Pixel digits for the +N points popup. Cells overlap by one outline column when drawn.
+# Pixel digits for the +N points popup (and MAX, in orange, when a daily limit is reached). Cells overlap by one outline column when drawn.
 name: points-digits
 size: 5x7
 palette:
   K #2a1f2d
   Y #f7d84a
+  O #f2872b
 
 @frame 0
 KKKKK
@@ -103,3 +104,30 @@ KYYYK
 KKYKK
 .KKK.
 .....
+
+@frame m
+KK.KK
+KOKOK
+KOOOK
+KOKOK
+KOKOK
+KOKOK
+KKKKK
+
+@frame a
+.KKK.
+KKOKK
+KOKOK
+KOOOK
+KOKOK
+KOKOK
+KKKKK
+
+@frame x
+KK.KK
+KOKOK
+KKOKK
+.KOK.
+KKOKK
+KOKOK
+KK.KK

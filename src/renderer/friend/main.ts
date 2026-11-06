@@ -1,7 +1,7 @@
 import type { FriendState } from '../../core/care/friend'
 import { MINI_STAGE } from '../../core/care/friend'
 import { findItemById } from '../../core/catalog/catalog'
-import { composeLayers, mirrorX } from '../../core/sprite/compositor'
+import { alphaAt, composeLayers, mirrorX } from '../../core/sprite/compositor'
 import { buildRecolorMapping, recolorSprite } from '../../core/sprite/recolor'
 import type { Frame, RgbaImage, Sprite } from '../../core/sprite/types'
 import { catalog } from '../shared/outfit'
@@ -95,7 +95,8 @@ const SEQUENCES: Readonly<Record<FriendState, readonly Step[]>> = {
 /** Asleep (on its own, or next to your duck): a zzz floats up once it has sat down. */
 const SLEEPY: ReadonlySet<FriendState> = new Set(['sleep', 'nap'])
 
-// Draws what main says: it wakes only when the pose changes, and sends nothing back.
+// Draws what main says: it wakes only when the pose changes. It tells main only when the mouse
+// is over its pixels and when it's picked up or let go (main moves the window).
 /** The mini named in the URL hash, in its own colors (the first mini if the hash is odd). */
 async function loadMini(): Promise<Sprite> {
   const asked = findItemById(catalog, decodeURIComponent(location.hash.slice(1)))
@@ -127,6 +128,8 @@ async function main(): Promise<void> {
   let sleepy = false
   let direction: 1 | -1 = 1
   const zzzFrames = (await loadSprite('emotes', 'zzz')).frames
+  /** What is on the canvas now, for the hit-test. */
+  let shown: RgbaImage | undefined
 
   const draw = (next: string) => {
     pose = next
@@ -143,6 +146,7 @@ async function main(): Promise<void> {
         { frame: zzz, offset: { x, y: ZZZ_SPOT.y } },
       ])
     }
+    shown = image
     ctx.putImageData(
       new ImageData(image.data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height),
       0,
@@ -172,6 +176,42 @@ async function main(): Promise<void> {
     play(SEQUENCES[state], 0)
   })
   play(SEQUENCES.idle, 0)
+
+  // --- picked up with the mouse ---------------------------------------------------------
+  // The window is click-through except on the mini's own pixels (the canvas fills the window).
+  let over = false
+  let holding = false
+  const isOverMini = (e: MouseEvent): boolean => {
+    const scale = window.innerWidth / MINI_STAGE
+    return (
+      shown !== undefined &&
+      alphaAt(shown, Math.floor(e.clientX / scale), Math.floor(e.clientY / scale)) > 0
+    )
+  }
+  const setOver = (next: boolean) => {
+    if (next === over) return
+    over = next
+    window.buddy.friend.hover(next)
+  }
+  document.addEventListener('pointermove', (e) => {
+    if (!holding) setOver(isOverMini(e))
+  })
+  document.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || !isOverMini(e)) return
+    holding = true
+    ;(e.target as Element).setPointerCapture(e.pointerId)
+    window.buddy.friend.grab()
+  })
+  const letGo = () => {
+    if (!holding) return
+    holding = false
+    window.buddy.friend.drop()
+  }
+  document.addEventListener('pointerup', letGo)
+  document.addEventListener('pointercancel', letGo)
+  document.documentElement.addEventListener('pointerleave', () => {
+    if (!holding) setOver(false)
+  })
 }
 
 main().catch((error) => console.error('The mini friend failed to start', error))

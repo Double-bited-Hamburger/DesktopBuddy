@@ -2,6 +2,7 @@ import { render } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import en from '../../../assets/i18n/en.json'
 import it from '../../../assets/i18n/it.json'
+import { dailyPick } from '../../core/care/day'
 import type { Slot } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
 import { createTranslator } from '../../core/i18n/i18n'
@@ -11,6 +12,8 @@ import { SNACKS } from '../../core/toys/snacks'
 import type { Loadout, SettingsView, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
 import { Home } from './home'
+import type { Screen } from './menu'
+import { FACT_COUNT, Menu, MenuIcon } from './menu'
 import { Quests } from './quests'
 import { Settings } from './settings'
 import { Stats } from './stats'
@@ -19,27 +22,27 @@ import { Today } from './today'
 
 const dictionaries = { en, it }
 
-const SCREENS = ['home', 'bag', 'store', 'quests', 'today', 'stats', 'settings'] as const
-type Screen = (typeof SCREENS)[number]
-
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
 /** Colors the panel: `system` follows the OS light/dark setting, also when it changes. */
-function useTheme(theme: Theme): void {
+function useTheme(theme: Theme): boolean {
+  const [dark, setDark] = useState(false)
   useEffect(() => {
     const apply = () => {
-      const dark = theme === 'dark' || (theme === 'system' && darkQuery.matches)
-      document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      const isDark = theme === 'dark' || (theme === 'system' && darkQuery.matches)
+      document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
+      setDark(isDark)
     }
     apply()
     if (theme !== 'system') return
     darkQuery.addEventListener('change', apply)
     return () => darkQuery.removeEventListener('change', apply)
   }, [theme])
+  return dark
 }
 
-/** "Feed" opens a tiny menu: what goes in the user's hand for the duck. */
-function FeedMenu({ t }: { t: Translator }) {
+/** The bread button opens a tiny menu: what goes in the user's hand for the duck. */
+function FeedMenu({ t, dark }: { t: Translator; dark: boolean }) {
   const [open, setOpen] = useState(false)
   const [noCigar, setNoCigar] = useState(false)
   const toggle = () => {
@@ -64,8 +67,15 @@ function FeedMenu({ t }: { t: Translator }) {
   }
   return (
     <div class="feed">
-      <button type="button" aria-expanded={open} onClick={toggle}>
-        {t('panel.feed')}
+      <button
+        type="button"
+        class="icon-button"
+        aria-expanded={open}
+        aria-label={t('panel.feed')}
+        title={t('panel.feed')}
+        onClick={toggle}
+      >
+        <MenuIcon name="bread" dark={dark} />
       </button>
       {open && (
         <div class="feed-menu" role="menu">
@@ -95,7 +105,7 @@ function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [store, setStore] = useState<StoreView | undefined>()
   const [theme, setTheme] = useState<Theme>('system')
-  useTheme(theme)
+  const dark = useTheme(theme)
 
   useEffect(() => {
     window.buddy.getConfig().then((config) => {
@@ -152,13 +162,22 @@ function App() {
   return (
     <main class="panel">
       <header>
+        <Menu
+          t={t}
+          screen={screen}
+          questsReady={ready}
+          freeGiftAt={store?.freeGift.readyAt}
+          fact={dailyPick(new Date(), FACT_COUNT)}
+          dark={dark}
+          onGo={setScreen}
+        />
         <h1>{t(`nav.${screen}`)}</h1>
         {points !== undefined && (
           <output class="points" title={t('points.hint')}>
             {t('points.balance', { n: points.toLocaleString(language) })}
           </output>
         )}
-        <FeedMenu t={t} />
+        <FeedMenu t={t} dark={dark} />
         <button type="button" aria-pressed={pinned} onClick={togglePin}>
           {pinned ? t('panel.unpin') : t('panel.pin')}
         </button>
@@ -170,21 +189,8 @@ function App() {
           ×
         </button>
       </header>
-      <nav class="tabs nav">
-        {SCREENS.map((name) => (
-          <button
-            key={name}
-            type="button"
-            aria-current={name === screen ? 'page' : undefined}
-            onClick={() => setScreen(name)}
-          >
-            {t(`nav.${name}`)}
-            {name === 'quests' && ready > 0 && <span class="badge">{ready}</span>}
-          </button>
-        ))}
-      </nav>
       {loadout && screen === 'home' && (
-        <Home t={t} language={language} loadout={loadout} onGo={setScreen} />
+        <Home t={t} language={language} loadout={loadout} store={store} onGo={setScreen} />
       )}
       {loadout && store && screen === 'bag' && (
         <Bag t={t} loadout={loadout} owned={new Set(store.owned)} onEquip={equip} />
@@ -202,7 +208,7 @@ function App() {
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}
       {screen === 'today' && <Today t={t} />}
-      {screen === 'stats' && <Stats t={t} language={language} />}
+      {screen === 'stats' && <Stats t={t} language={language} onGo={setScreen} />}
       {screen === 'settings' && <Settings t={t} onChange={settingsChanged} />}
     </main>
   )

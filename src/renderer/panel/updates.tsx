@@ -7,6 +7,8 @@ interface UpdatesProps {
   /** The "check once a day" switch (saved with the other settings). */
   autoCheck: boolean
   setAutoCheck(on: boolean): void
+  /** Show the "Updates" heading (Settings puts it in a folding group's head instead). */
+  title?: boolean
 }
 
 const failed = (e: unknown) => console.error('Update failed', e)
@@ -15,7 +17,7 @@ const failed = (e: unknown) => console.error('Update failed', e)
  * Settings → Updates: "Check for updates", then Download, then "Restart and update". Nothing
  * happens without a click; the daily check is opt-in.
  */
-export function Updates({ t, autoCheck, setAutoCheck }: UpdatesProps) {
+export function Updates({ t, autoCheck, setAutoCheck, title = true }: UpdatesProps) {
   const [view, setView] = useState<UpdateView | undefined>()
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export function Updates({ t, autoCheck, setAutoCheck }: UpdatesProps) {
 
   return (
     <>
-      <h2>{t('updates.title')}</h2>
+      {title && <h2>{t('updates.title')}</h2>}
       <div class="row">
         <span>{t('updates.current', { version: view.current })}</span>
         {(state === 'available' || (state === 'error' && view.version)) && (

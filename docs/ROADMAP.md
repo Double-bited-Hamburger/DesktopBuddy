@@ -735,6 +735,49 @@ release newer than the installed one), CPU with minis out, Linux.
 RAM with two minis out: 127–132 MB (one duck alone 92–93 MB). That was over the old 120 MB
 budget, so the owner raised it to < 140 MB with minis out (2026-11-05).
 
+## 0.9.0 — Holes found by playing, a menu and a real Home (built 2026-11-06)
+
+The owner asked for a hunt for holes in the minigames and for ideas. Fixed and added:
+
+- **Fixes:** dropping the duck (lift and let go, no throw) paid edge-hit points; Home said "rain"
+  and "no rain in the next hours" together (while it rains it now says when it stops); the
+  Statistics header overflowed in Italian; Statistics with tracking off showed zeros (now a short
+  card that sends you to Today, with points still shown); minis floated on a second screen whose
+  taskbar sits at another height (each mini now stands on the floor of the screen it is on); a
+  rocket cut short by a fullscreen game lost its points (what it hadn't paid comes back);
+  the 7-day temperatures wrapped.
+- **Minis can be picked up**: grab one with the mouse, drop it anywhere, it falls to that screen's
+  floor (no points). The ghost floats back to its loop. Not on Linux (no forwarded mouse events).
+- **Italian:** "il papero" everywhere (was "la papera"), with the grammar to match; shorter hints.
+- **Hamburger menu:** one button opens a drawer with pixel icons and duck names (Il Nido,
+  Piumaggio, Mercato dello Stagno, Missioni Qua, Remata di oggi, Impronte, Lisciapiume), red dots
+  for a quest to claim or the free gift ready, and a true duck fact of the day. The feed button is
+  a bread icon. On the dark panel the icons' outline turns light.
+- **Tray icon:** the duck's head (`ui/tray-head`, 16×16, with 2× and 3× copies blown up pixel by
+  pixel) instead of a whole duck squeezed into 16 px.
+- **Home dashboard:** today's points per source against each cap (×the minis), the minis'
+  bonus, the last points with the reason when one paid 0, tiles for quests to claim, the free
+  gift, minis out and the next break, the duck's name and mood. **+N MAX** over the duck when a cap
+  fills.
+- **Statistics:** this week against last week (time at the PC, focus, points, ▲/▼), a 7×24 map of
+  when you focus (last 4 weeks) with the best time in words, top apps with bars in their category
+  color, points per day for 14 days with the best day starred, "giorni" in full and a 🔥 streak.
+  All from data already kept on the PC.
+- **Settings fold:** groups with a one-line summary, a search box that opens what matches, and
+  the open groups remembered (browser storage, a convenience only).
+- **New quests:** kick the ball, hit the walls, let a mini out, float with the umbrella, launch a
+  rocket (table in ECONOMY.md).
+
+Verified in dev on throwaway folders: the drawer (dark theme), Home with seeded points (a full
+bar, "too fast" and "today's limit" rows), Stats with four weeks of made-up activity and with
+tracking off, the folding Settings and the search, a mini grabbed and dropped over CDP (the call
+path only: the cursor didn't move), the ghost gliding back.
+
+**Not verified:** dragging a mini with a real mouse (CDP can't move the OS cursor), a mini walking
+from one screen onto a lower or higher one with the eyes (unit-tested lane math only), the tray
+icon at 125/150% scaling, the MAX popup seen on screen, the new quests counting in a real play
+session (unit-tested), the light theme screenshots, Linux.
+
 ## Phase 9 — Friends (opt-in, last)
 
 Self-hostable relay, invite codes, visiting ducks, chat bubbles. Separate design + security

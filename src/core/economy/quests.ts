@@ -14,6 +14,16 @@ export const QUEST_EVENTS = [
   'gift',
   'equip',
   'focus',
+  /** The duck headbutts the ball. */
+  'kick',
+  /** A thrown duck hits a screen edge (one per paid hit). */
+  'bounce',
+  /** A mini friend is let out. */
+  'friend',
+  /** A thrown duck opens its umbrella and floats down. */
+  'float',
+  /** A Rocket Boost goes off. */
+  'rocket',
 ] as const
 export type QuestEvent = (typeof QUEST_EVENTS)[number]
 

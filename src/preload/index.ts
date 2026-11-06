@@ -132,6 +132,7 @@ const api: BuddyApi = {
     setPinned: (pinned) => ipcRenderer.send(IPC.panelSetPinned, pinned),
     equip: (slot, id): Promise<Loadout> => ipcRenderer.invoke(IPC.equip, slot, id),
     companions: () => ipcRenderer.invoke(IPC.companions),
+    dashboard: () => ipcRenderer.invoke(IPC.dashboard),
     toggleCompanion: (id) => ipcRenderer.invoke(IPC.toggleCompanion, id),
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
     feedHandful: () => ipcRenderer.send(IPC.feedHandful),
@@ -209,6 +210,9 @@ const api: BuddyApi = {
       ipcRenderer.on(IPC.friendState, handler)
       return () => ipcRenderer.off(IPC.friendState, handler)
     },
+    hover: (over) => ipcRenderer.send(IPC.friendHover, over),
+    grab: () => ipcRenderer.send(IPC.friendGrab),
+    drop: () => ipcRenderer.send(IPC.friendDrop),
   },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),

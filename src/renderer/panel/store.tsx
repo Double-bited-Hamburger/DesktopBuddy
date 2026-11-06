@@ -10,7 +10,7 @@ import { ItemPreview, RarityLabel, SpriteIcon } from './widgets'
 const itemById = (id: string): CatalogItem | undefined => catalog.items.find((i) => i.id === id)
 
 /** "1 h 12 min", "12 min" or "< 1 min". */
-function wait(t: Translator, ms: number): string {
+export function wait(t: Translator, ms: number): string {
   const minutes = Math.ceil(ms / 60_000)
   if (ms < 60_000) return t('time.lessThanMinute')
   if (minutes < 60) return t('time.minutes', { m: minutes })

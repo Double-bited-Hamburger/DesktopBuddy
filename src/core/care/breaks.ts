@@ -79,6 +79,11 @@ export class BreakCoach {
     return this.activeMs
   }
 
+  /** Time at the PC left before the sign comes out; 0 while a break is due or going on. */
+  get untilBreak(): number {
+    return this.current === 'working' ? Math.max(0, this.rules.workMs - this.activeMs) : 0
+  }
+
   /** When the shell should take the next sample. */
   get checkEveryMs(): number {
     return this.current === 'working' ? CHECK_WORKING_MS : CHECK_WAITING_MS

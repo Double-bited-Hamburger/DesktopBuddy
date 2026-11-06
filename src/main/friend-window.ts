@@ -1,18 +1,25 @@
-import { BrowserWindow } from 'electron'
+import type { WebContents } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import type { FriendState } from '../core/care/friend'
 import {
   besideDuck,
   FRIEND_SPEED,
   friendDuration,
+  glide,
   hasReached,
   MINI_STAGE,
+  miniLane,
+  miniLaneOf,
   nextFriendState,
   orbitAt,
   towards,
 } from '../core/care/friend'
 import type { CatalogItem } from '../core/catalog/catalog'
+import type { Flight } from '../core/flight'
+import { DUCK_FEEL, flightStep } from '../core/flight'
 import type { FloorBounds } from '../core/stage'
 import { clamp, STAGE_SIZE, WALK_SPEED, walkStep } from '../core/stage'
+import type { Rect } from '../core/types'
 import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
 
@@ -22,6 +29,13 @@ const STEP_PX = 2
 const FLY_STEP_MS = 250
 const FLY_MS = 8000
 const HOVER_MS = 6000
+/** Carried: follows the cursor this often; let go after this long, whatever happens. */
+const CARRY_STEP_MS = 1000 / 30
+const CARRY_MAX_MS = 30_000
+/** Falling after a drop, like your duck. */
+const FALL_STEP_MS = 1000 / 30
+/** A ghost let go drifts back to its loop at most this far per float step (logical px). */
+const GLIDE_PX = 8
 
 export interface FriendDeps {
   readonly scale: () => number
@@ -34,6 +48,8 @@ export interface FriendDeps {
   readonly onMeet: () => void
   /** Your duck is napping (the friend may come and nap next to it). */
   readonly duckAsleep: () => boolean
+  /** False on Linux, where forwarded mouse events don't exist: there it can't be picked up. */
+  readonly grabbable: boolean
 }
 
 /** A snack the friend is walking over to: `arrive` eats it (false if it went), or it gives up. */
@@ -45,7 +61,9 @@ export interface FriendFetch {
 /**
  * One mini friend duck (a companion, see core/economy/companions.ts): a 16×16 duck, half the size
  * of yours at every scale, in its own small window. Created when it comes out, destroyed when it
- * goes home, so a duck without companions costs nothing. Never takes clicks. One timer per
+ * goes home, so a duck without companions costs nothing. Clicks go through it except on its own
+ * pixels, where it can be picked up and dropped anywhere (it falls to that screen's floor; no
+ * points for that). It walks on the floor of the screen it is on, not your duck's. One timer per
  * decision, and a step timer only while it moves. Its page only draws what it's told. A walking
  * mini can be sent after a snack (`fetch`) and naps beside your duck; a ghost (`motion: fly`)
  * floats round your duck instead.
@@ -65,6 +83,12 @@ export class FriendWindow {
   private fetching: FriendFetch | undefined
   private readonly flies: boolean
   private flyClock = 0
+  /** Every screen's work area, re-read when it comes out, is dropped or changes state. */
+  private areas: Rect[] = []
+  /** Being carried by the mouse: where the cursor grabbed it, from its top-left. */
+  private held: { readonly dx: number; readonly dy: number } | undefined
+  private hovered = false
+  private falling = false
 
   constructor(deps: FriendDeps, item: CatalogItem) {
     this.deps = deps
@@ -98,7 +122,8 @@ export class FriendWindow {
    */
   fetch(x: number, snack: FriendFetch): boolean {
     const busy = ['meet', 'dance', 'fetch', 'eat'].includes(this.state)
-    if (!this.window || this.flies || busy || this.deps.quiet()) return false
+    if (!this.window || this.flies || busy || this.held || this.falling || this.deps.quiet())
+      return false
     this.fetching = snack
     this.goal = x
     this.enter('fetch')
@@ -107,7 +132,7 @@ export class FriendWindow {
 
   /** Your duck fell asleep or woke up: a friend napping next to it gets up too. */
   duckSleeping(asleep: boolean): void {
-    if (this.flies) return
+    if (this.flies || this.held || this.falling) return
     if (!asleep && (this.state === 'nap' || this.state === 'snuggle')) this.enter('idle')
   }
 
@@ -119,15 +144,28 @@ export class FriendWindow {
     return this.x + this.size / 2
   }
 
-  /** Your duck's floor, for a window this size: its bottom edge on the same line as your duck's. */
+  /** Your duck's floor, for a window this size (a ghost floats round your duck on it). */
+  private duckLane(): FloorBounds {
+    return miniLaneOf(this.deps.floor(), this.deps.scale())
+  }
+
+  /** The floor under the mini itself: two screens of different heights each have their own. */
   private lane(): FloorBounds {
-    const floor = this.deps.floor()
-    const extra = (STAGE_SIZE - MINI_STAGE) * this.deps.scale()
-    return { minX: floor.minX, maxX: floor.maxX + extra, y: floor.y + extra }
+    return miniLane(this.areas, this.middle, this.y, this.deps.scale()) ?? this.duckLane()
+  }
+
+  private readAreas(): void {
+    this.areas = screen.getAllDisplays().map((d) => d.workArea)
+  }
+
+  /** The page belongs to this mini (for the IPC sender checks). */
+  owns(sender: WebContents): boolean {
+    return this.window !== undefined && sender === this.window.webContents
   }
 
   private open(nth: number): void {
-    const lane = this.lane()
+    this.readAreas()
+    const lane = this.duckLane()
     const side = nth % 2 === 0 ? 1 : -1
     this.x = clamp(
       this.deps.duckMiddle() + side * STAGE_SIZE * this.deps.scale(),
@@ -157,7 +195,9 @@ export class FriendWindow {
       webPreferences,
     })
     this.window = window
-    window.setIgnoreMouseEvents(true)
+    this.hovered = false
+    // Click-through, but the page still hears the mouse so it can tell when it's over the mini.
+    window.setIgnoreMouseEvents(true, this.deps.grabbable ? { forward: true } : undefined)
     window.once('ready-to-show', () => {
       window.showInactive()
       if (this.flies) this.fly()
@@ -171,6 +211,7 @@ export class FriendWindow {
   }
 
   private close(): void {
+    this.held = undefined
     this.giveUpFetch()
     this.stopTimers()
     this.window?.destroy()
@@ -181,6 +222,7 @@ export class FriendWindow {
   setHidden(hidden: boolean): void {
     if (!this.window) return
     if (hidden) {
+      this.held = undefined
       this.giveUpFetch()
       this.stopTimers()
       this.window.hide()
@@ -188,12 +230,25 @@ export class FriendWindow {
     }
     if (this.window.isVisible()) return
     this.window.showInactive()
+    this.readAreas()
+    this.resume()
+  }
+
+  /** Back to its own life: a ghost floats again, a walker drops to its floor if it isn't on it. */
+  private resume(): void {
     if (this.flies) this.fly()
-    else this.enter('idle')
+    else if (this.y < this.lane().y) this.fall()
+    else {
+      this.y = this.lane().y // let go below the floor (over the taskbar): pops back up
+      this.place()
+      this.enter('idle')
+    }
   }
 
   /** The size changed in Settings: the canvas stretches, the window goes back on the floor. */
   setScale(): void {
+    if (this.held) this.drop()
+    this.readAreas()
     const lane = this.lane()
     this.x = clamp(this.x, lane.minX, lane.maxX)
     this.y = lane.y
@@ -205,6 +260,71 @@ export class FriendWindow {
     clearInterval(this.steps)
     this.decision = undefined
     this.steps = undefined
+    this.falling = false
+  }
+
+  /** The page says whether the cursor is over the mini's pixels: only then does it take clicks. */
+  hover(over: boolean): void {
+    if (!this.window || !this.deps.grabbable || over === this.hovered) return
+    this.hovered = over
+    this.window.setIgnoreMouseEvents(!over, over ? undefined : { forward: true })
+  }
+
+  /** Picked up: it hangs from the cursor, legs going, until it's let go. */
+  grab(): void {
+    if (!this.window || !this.deps.grabbable || this.held) return
+    this.giveUpFetch()
+    this.stopTimers()
+    const cursor = screen.getCursorScreenPoint()
+    this.held = { dx: cursor.x - this.x, dy: cursor.y - this.y }
+    this.state = 'flee' // wide eyes, legs paddling
+    this.tell()
+    this.steps = setInterval(() => {
+      const held = this.held
+      if (!held) return
+      const at = screen.getCursorScreenPoint()
+      this.x = at.x - held.dx
+      this.y = at.y - held.dy
+      this.place()
+    }, CARRY_STEP_MS)
+    // The page always says when it's let go; this is only in case that message never comes.
+    this.decision = setTimeout(() => this.drop(), CARRY_MAX_MS)
+  }
+
+  /** Let go: a walker falls to the floor of the screen under it, a ghost floats back to its loop. */
+  drop(): void {
+    if (!this.held) return
+    this.held = undefined
+    this.stopTimers()
+    this.readAreas()
+    this.resume()
+  }
+
+  /** Falls straight down (no throw, no points) onto the floor under it, then carries on. */
+  private fall(): void {
+    this.stopTimers()
+    this.falling = true
+    this.state = 'flee'
+    this.tell()
+    let flight: Flight = { x: this.x, y: this.y, vx: 0, vy: 0 }
+    let last = performance.now()
+    this.steps = setInterval(() => {
+      const now = performance.now()
+      const lane = this.lane()
+      const box = {
+        minX: Number.NEGATIVE_INFINITY,
+        maxX: Number.POSITIVE_INFINITY,
+        minY: Number.NEGATIVE_INFINITY,
+        floorY: lane.y,
+      }
+      // Clamp dt so a stalled timer can't drop it through the floor in one step.
+      const next = flightStep({ ...flight, vx: 0 }, Math.min(now - last, 50), box, DUCK_FEEL)
+      flight = next
+      last = now
+      this.y = Math.min(flight.y, lane.y)
+      this.place()
+      if (next.landed || this.y >= lane.y) this.enter('idle')
+    }, FALL_STEP_MS)
   }
 
   /**
@@ -218,9 +338,10 @@ export class FriendWindow {
     this.steps = setInterval(() => {
       this.flyClock += FLY_STEP_MS / 1000
       const scale = this.deps.scale()
-      const spot = orbitAt(this.flyClock, this.deps.duckMiddle(), this.lane().y, scale)
-      this.x = spot.x - this.size / 2
-      this.y = spot.y
+      const spot = orbitAt(this.flyClock, this.deps.duckMiddle(), this.duckLane().y, scale)
+      // Glides, so a ghost that was carried off drifts back instead of jumping.
+      this.x = glide(this.x, spot.x - this.size / 2, GLIDE_PX * scale)
+      this.y = glide(this.y, spot.y, GLIDE_PX * scale)
       if (spot.direction !== this.direction) {
         this.direction = spot.direction
         this.tell()
@@ -236,6 +357,7 @@ export class FriendWindow {
 
   private enter(state: FriendState): void {
     this.stopTimers()
+    if (this.held) return // it carries on once it's let go
     if (this.state === 'fetch' && state !== 'eat') this.giveUpFetch()
     this.state = state
     if (state === 'snuggle')
@@ -315,11 +437,17 @@ export class FriendWindow {
       lane,
     )
     this.x = next.x
-    this.y = lane.y
     if (next.turned) {
       this.direction = next.direction
       this.tell()
     }
+    // Crossing onto another screen can change the floor under it.
+    const floor = this.lane()
+    if (floor.y > this.y) {
+      this.fall() // walked off the edge of a taller screen
+      return
+    }
+    this.y = floor.y // a shorter neighbour: hop up onto its floor
     this.place()
   }
 

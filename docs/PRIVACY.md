@@ -20,6 +20,9 @@ as each feature lands.
   still one request an hour). Open-Meteo sees the city name,
   that rough position, your IP address and the app's user agent; nothing else. Clearing the
   field stops the requests and forgets the place.
+- **Home and Statistics (0.9.0)** only read what is already kept: the points history and the
+  activity day files. Home's "last points" list lives in memory and is gone when the app quits.
+  Settings remembers which groups were left open in the panel's browser storage (on this PC).
 - **Fullscreen check** (0.8.0, Windows): every 2 s the app asks Windows whether a fullscreen app
   is up (`SHQueryUserNotificationState`), and only then reads that window's rectangle and its
   **process name** (`chrome`, a game's exe name…) to decide whether the duck lies flat (a video)

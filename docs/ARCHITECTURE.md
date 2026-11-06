@@ -308,6 +308,25 @@ app's processes (the perf script's metric), two samples 10 s apart after 50 s:
   draw both minis in one shared window. The duck alone stays at < 120 MB. Two minis: ✅.
 - CPU with minis out: not measured (no long perf runs).
 
+### Quick RAM check after 0.9.0 (2026-11-06)
+
+Same method (built app, throwaway folder, two samples 10 s apart after 50 s):
+
+| Minis out | Processes | RAM |
+| --- | --- | --- |
+| none | 4 | 90.0 / 86.5 MB |
+| two (ghost + comet) | 6 | 128.9 / 130.9 MB |
+
+- Within budget (< 120 MB alone, < 140 MB with minis out).
+- What 0.9.0 changed at runtime: a mini window now gets **forwarded mouse moves** (like the duck)
+  and sends one `friend:hover` message only when the cursor crosses onto or off its pixels; it has
+  a 30 Hz timer only while it's carried or falling. Each mini works out its own floor from cached
+  screen work areas (re-read on open, drop, resize and every state change, never per step).
+- The panel bundle grew to ~120 kB (menu, Home dashboard, Stats graphs); it only loads when the
+  panel opens. Home asks for its dashboard once, then at most once per 0.6 s after points news
+  and once a minute.
+- CPU: not measured (no long perf runs).
+
 ## Decisions that differ from the original plan
 
 - **Baked sheets are RGBA PNG, not indexed PNG** — `pngjs` can't write palette PNGs. Sheets use the

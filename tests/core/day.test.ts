@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { behaviorConfigFor, DEFAULT_BEHAVIOR_CONFIG } from '../../src/core/behavior/machine'
-import { dayBehaviorConfig, isDecember, msUntilNextPart, partOfDay } from '../../src/core/care/day'
+import {
+  dailyPick,
+  dayBehaviorConfig,
+  isDecember,
+  msUntilNextPart,
+  partOfDay,
+} from '../../src/core/care/day'
 
 describe('partOfDay', () => {
   it('splits the local day', () => {
@@ -67,5 +73,22 @@ describe('seasons and the morning cup', () => {
     expect(dayBehaviorConfig(on, 'morning').next.idle.espresso).toBeGreaterThan(0)
     expect(dayBehaviorConfig(on, 'day').next.idle.espresso).toBeUndefined()
     expect(dayBehaviorConfig(off, 'morning').next.idle.espresso).toBeUndefined()
+  })
+})
+
+describe('dailyPick', () => {
+  it('stays the same all day and moves on the next day, wrapping round', () => {
+    const morning = dailyPick(new Date(2026, 10, 6, 0, 5), 14)
+    expect(dailyPick(new Date(2026, 10, 6, 23, 55), 14)).toBe(morning)
+    expect(dailyPick(new Date(2026, 10, 7, 9), 14)).toBe((morning % 14) + 1)
+  })
+
+  it('is always between 1 and count', () => {
+    for (let d = 0; d < 40; d++) {
+      const pick = dailyPick(new Date(2026, 0, 1 + d), 14)
+      expect(pick).toBeGreaterThanOrEqual(1)
+      expect(pick).toBeLessThanOrEqual(14)
+    }
+    expect(dailyPick(new Date(), 0)).toBe(1)
   })
 })

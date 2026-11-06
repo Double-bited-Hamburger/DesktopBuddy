@@ -197,3 +197,18 @@ export function rainAlert(
 export function daysFrom(days: readonly DayForecast[], today: string): DayForecast[] {
   return days.filter((day) => day.date >= today)
 }
+
+/**
+ * While it rains or snows now: when it stops (the start of the first dry hour in the forecast),
+ * or undefined `stopsAt` when it goes on for as long as the forecast reaches. Undefined when it
+ * is dry now: then `rainAlert` says what's coming instead.
+ */
+export function rainStops(
+  hours: readonly HourForecast[],
+  now: number,
+  kind: WeatherKind | undefined,
+): { readonly stopsAt?: number; readonly snow: boolean } | undefined {
+  if (!needsUmbrella(kind)) return undefined
+  const dry = hours.find((h) => h.at > now && !wet(h))
+  return dry ? { stopsAt: dry.at, snow: kind === 'snow' } : { snow: kind === 'snow' }
+}

@@ -175,6 +175,34 @@
         "reward": 60
       },
       {
+        "id": "kick-10",
+        "period": "daily",
+        "event": "kick",
+        "target": 10,
+        "reward": 60
+      },
+      {
+        "id": "bounce-20",
+        "period": "daily",
+        "event": "bounce",
+        "target": 20,
+        "reward": 60
+      },
+      {
+        "id": "friend-1",
+        "period": "daily",
+        "event": "friend",
+        "target": 1,
+        "reward": 30
+      },
+      {
+        "id": "float-1",
+        "period": "daily",
+        "event": "float",
+        "target": 1,
+        "reward": 45
+      },
+      {
         "id": "pet-60",
         "period": "weekly",
         "event": "pet",
@@ -200,6 +228,27 @@
         "period": "weekly",
         "event": "focus",
         "target": 5,
+        "reward": 450
+      },
+      {
+        "id": "rocket-1",
+        "period": "weekly",
+        "event": "rocket",
+        "target": 1,
+        "reward": 150
+      },
+      {
+        "id": "kick-60",
+        "period": "weekly",
+        "event": "kick",
+        "target": 60,
+        "reward": 300
+      },
+      {
+        "id": "bounce-150",
+        "period": "weekly",
+        "event": "bounce",
+        "target": 150,
         "reward": 450
       }
     ]
