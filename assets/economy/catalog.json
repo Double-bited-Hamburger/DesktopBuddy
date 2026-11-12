@@ -5,47 +5,62 @@
       "id": "classic",
       "slot": "skin",
       "rarity": "common",
-      "sprite": "ducks/placeholder-duck"
+      "sprite": "ducks/duck"
     },
     {
       "id": "rubber",
       "slot": "skin",
       "rarity": "common",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#3a2a12",
         "W": "#ffd83d",
         "S": "#e9b524",
-        "H": "#fff1a1"
+        "H": "#fff1a1",
+        "A": "#ffd83d",
+        "C": "#ffe36b",
+        "G": "#f7cc2e",
+        "V": "#d9a21c",
+        "T": "#ffd83d"
       }
     },
     {
       "id": "mint",
       "slot": "skin",
       "rarity": "uncommon",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "W": "#bfe8cf",
         "S": "#8ccaa6",
-        "H": "#eafff2"
+        "H": "#eafff2",
+        "A": "#bfe8cf",
+        "C": "#d6f3e1",
+        "G": "#b0dec2",
+        "V": "#7fbf9a",
+        "T": "#bfe8cf"
       }
     },
     {
       "id": "strawberry",
       "slot": "skin",
       "rarity": "uncommon",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "W": "#f6b8c8",
         "S": "#e08aa0",
-        "H": "#ffe6ee"
+        "H": "#ffe6ee",
+        "A": "#f6b8c8",
+        "C": "#ffd3de",
+        "G": "#eeaabd",
+        "V": "#d27b92",
+        "T": "#f6b8c8"
       }
     },
     {
       "id": "midnight",
       "slot": "skin",
       "rarity": "rare",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#12131b",
         "W": "#4a4e6b",
@@ -53,53 +68,73 @@
         "H": "#7a80a8",
         "O": "#f2b02b",
         "D": "#b97a14",
-        "E": "#f4e9d1"
+        "E": "#f4e9d1",
+        "A": "#4a4e6b",
+        "C": "#5a5f80",
+        "G": "#42465f",
+        "V": "#2c2f44",
+        "T": "#4a4e6b"
       }
     },
     {
       "id": "golden",
       "slot": "skin",
       "rarity": "legendary",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#4a2c06",
         "W": "#e0a526",
         "S": "#a8701a",
-        "H": "#fff0a0"
+        "H": "#fff0a0",
+        "A": "#e0a526",
+        "C": "#f0c04a",
+        "G": "#d39a22",
+        "V": "#8f5f14",
+        "T": "#e0a526"
       }
     },
     {
       "id": "ghost",
       "slot": "skin",
       "rarity": "rare",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#6b78a6",
         "W": "#e6eeff",
         "S": "#b9c7e8",
         "H": "#ffffff",
-        "E": "#2e3657"
+        "E": "#2e3657",
+        "A": "#e6eeff",
+        "C": "#f2f6ff",
+        "G": "#dbe4fa",
+        "V": "#a7b6dc",
+        "T": "#e6eeff"
       }
     },
     {
       "id": "neon",
       "slot": "skin",
       "rarity": "epic",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#1a0f2e",
         "W": "#ff4fd8",
         "S": "#b02aa8",
         "H": "#ffb3f0",
         "O": "#3ff0ff",
-        "D": "#1fa8c0"
+        "D": "#1fa8c0",
+        "A": "#ff4fd8",
+        "C": "#ff8ae6",
+        "G": "#e844c6",
+        "V": "#8f1f8a",
+        "T": "#ff4fd8"
       }
     },
     {
       "id": "galaxy",
       "slot": "skin",
       "rarity": "legendary",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#0b0a1f",
         "W": "#3b2a7a",
@@ -107,19 +142,29 @@
         "H": "#b08cff",
         "E": "#9ff3ff",
         "O": "#e85ad8",
-        "D": "#9a2a92"
+        "D": "#9a2a92",
+        "A": "#3b2a7a",
+        "C": "#4b3a92",
+        "G": "#33256c",
+        "V": "#1a3468",
+        "T": "#3b2a7a"
       }
     },
     {
       "id": "christmas",
       "slot": "skin",
       "rarity": "epic",
-      "sprite": "ducks/placeholder-duck",
+      "sprite": "ducks/duck",
       "palette": {
         "K": "#1d4a2a",
         "W": "#d23a3a",
         "S": "#f4ede0",
-        "H": "#f07a6c"
+        "H": "#f07a6c",
+        "A": "#d23a3a",
+        "C": "#f4ede0",
+        "G": "#bf3030",
+        "V": "#8f2222",
+        "T": "#f4ede0"
       }
     },
     {
@@ -312,6 +357,462 @@
         "E": "#ffe066",
         "O": "#ffd84a"
       }
+    },
+    {
+      "id": "lavender",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#f0e6ff",
+        "A": "#cdb8f5",
+        "W": "#cfbaf6",
+        "S": "#9a84c8",
+        "C": "#e2d4fc",
+        "G": "#bca4ea",
+        "V": "#7f69ad",
+        "T": "#c8b2f2"
+      }
+    },
+    {
+      "id": "chocolate",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#a8744a",
+        "A": "#7a4a2a",
+        "W": "#7c4c2c",
+        "S": "#54301a",
+        "C": "#96643c",
+        "G": "#6a3e22",
+        "V": "#40220f",
+        "T": "#74462a",
+        "O": "#f2c88a",
+        "D": "#b88a4a"
+      }
+    },
+    {
+      "id": "blueberry",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#9db4ff",
+        "A": "#5f7fe0",
+        "W": "#6181e2",
+        "S": "#3f58b0",
+        "C": "#86a0f5",
+        "G": "#5270d0",
+        "V": "#2f4490",
+        "T": "#5a7adc"
+      }
+    },
+    {
+      "id": "flamingo",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffc2d4",
+        "A": "#ff8fb0",
+        "W": "#ff9ab8",
+        "S": "#e0668c",
+        "C": "#ffb3c8",
+        "G": "#f77aa0",
+        "V": "#c94f78",
+        "T": "#ff86aa",
+        "O": "#f4e9d1",
+        "D": "#3a2f3d"
+      }
+    },
+    {
+      "id": "bee",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffe873",
+        "A": "#f7c81e",
+        "W": "#2b2630",
+        "S": "#1a161e",
+        "C": "#f9ca20",
+        "G": "#f2f2ff",
+        "V": "#b8b8d8",
+        "T": "#262129"
+      }
+    },
+    {
+      "id": "sunset",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffe08a",
+        "A": "#ffb04a",
+        "W": "#ff8a4a",
+        "S": "#c8506a",
+        "C": "#ffc46a",
+        "G": "#f0646a",
+        "V": "#9a3a6a",
+        "T": "#7a3a8a"
+      }
+    },
+    {
+      "id": "ocean",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#b8f0f0",
+        "A": "#4ab8c8",
+        "W": "#2f8fb8",
+        "S": "#1f5f8a",
+        "C": "#8ae0e0",
+        "G": "#2a78a8",
+        "V": "#174a70",
+        "T": "#4ac8b8"
+      }
+    },
+    {
+      "id": "mallard",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#3fa66a",
+        "A": "#1f7a4a",
+        "W": "#b9b2a6",
+        "S": "#8d877c",
+        "C": "#7a4a2e",
+        "G": "#8a8f9a",
+        "V": "#5c6170",
+        "T": "#2f3340",
+        "O": "#f2c230",
+        "D": "#b8861a"
+      }
+    },
+    {
+      "id": "tuxedo",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#4a4a5a",
+        "A": "#2b2b3a",
+        "W": "#32323f",
+        "S": "#1f1f2a",
+        "C": "#f7f7f2",
+        "G": "#3a3a48",
+        "V": "#15151d",
+        "T": "#2e2e3b",
+        "O": "#f2a02b",
+        "D": "#b86a1a"
+      }
+    },
+    {
+      "id": "panda",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#fbfbf6",
+        "A": "#f2f2ec",
+        "W": "#f0f0ea",
+        "S": "#c9c9c2",
+        "C": "#f8f8f3",
+        "G": "#2b2b33",
+        "V": "#15151b",
+        "T": "#2f2f38",
+        "O": "#4a4a55",
+        "D": "#2a2a30"
+      }
+    },
+    {
+      "id": "ice",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#2a4a6a",
+        "E": "#1a3550",
+        "H": "#f4fdff",
+        "A": "#c8ecfa",
+        "W": "#caeefb",
+        "S": "#8cc8e6",
+        "C": "#e6f8ff",
+        "G": "#b0e0f5",
+        "V": "#6aaed0",
+        "T": "#c2e8f8",
+        "O": "#7ad0f0",
+        "D": "#3a90c0"
+      }
+    },
+    {
+      "id": "sakura",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#fff0f5",
+        "A": "#ffd6e4",
+        "W": "#ffd8e6",
+        "S": "#f0a8c0",
+        "C": "#ffe8f0",
+        "G": "#ffc2d6",
+        "V": "#e088a8",
+        "T": "#7a4a3a",
+        "O": "#e86a90",
+        "D": "#b04468"
+      }
+    },
+    {
+      "id": "lava",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#2a0f0a",
+        "E": "#fff3a8",
+        "H": "#ffd23f",
+        "A": "#e8501e",
+        "W": "#ea5220",
+        "S": "#8f1f0f",
+        "C": "#ff9a2e",
+        "G": "#c4381a",
+        "V": "#5a1208",
+        "T": "#ffb52e",
+        "O": "#3a2a2a",
+        "D": "#1f1414"
+      }
+    },
+    {
+      "id": "robot",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#1d2530",
+        "E": "#3ff0ff",
+        "H": "#e6edf2",
+        "A": "#a9b6c2",
+        "W": "#abb8c4",
+        "S": "#6f7c88",
+        "C": "#c9d4dc",
+        "G": "#8996a2",
+        "V": "#4a5560",
+        "T": "#9aa7b3",
+        "O": "#f2c230",
+        "D": "#b8861a"
+      }
+    },
+    {
+      "id": "terminal",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#06140a",
+        "E": "#b6ffc8",
+        "H": "#7dff9a",
+        "A": "#0f3d1e",
+        "W": "#114020",
+        "S": "#0a2a14",
+        "C": "#1a5a2c",
+        "G": "#0d3519",
+        "V": "#3fe06a",
+        "T": "#164a25",
+        "O": "#2fc85a",
+        "D": "#1f8a3c"
+      }
+    },
+    {
+      "id": "pumpkin",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#3a1f0a",
+        "E": "#2a1505",
+        "H": "#ffc04a",
+        "A": "#f28a1e",
+        "W": "#f48c20",
+        "S": "#b85a10",
+        "C": "#ffa63a",
+        "G": "#e07a18",
+        "V": "#8f4208",
+        "T": "#4a8a2e",
+        "O": "#5a3a1a",
+        "D": "#3a2410"
+      }
+    },
+    {
+      "id": "fable",
+      "slot": "skin",
+      "rarity": "legendary",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#2b1e3d",
+        "E": "#ffe9a8",
+        "H": "#7a66d8",
+        "A": "#3a2a7a",
+        "W": "#f3e6c4",
+        "S": "#cdb98a",
+        "C": "#fff6dc",
+        "G": "#c9a227",
+        "V": "#8a6a12",
+        "T": "#5a46b8",
+        "O": "#f2b02b",
+        "D": "#b97a14"
+      }
+    },
+    {
+      "id": "aurora",
+      "slot": "skin",
+      "rarity": "legendary",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#0f1a2e",
+        "E": "#f4fffb",
+        "H": "#b8ffe0",
+        "A": "#3fd9a8",
+        "W": "#2fa8c8",
+        "S": "#2a5fb0",
+        "C": "#7af0c0",
+        "G": "#6a5fd8",
+        "V": "#3a2f9a",
+        "T": "#c86ae0",
+        "O": "#ffd86a",
+        "D": "#c89a2e"
+      }
+    },
+    {
+      "id": "glitch-404",
+      "slot": "skin",
+      "rarity": "exotic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#0a0a12",
+        "E": "#101018",
+        "H": "#ff2f6e",
+        "A": "#f2f2f2",
+        "W": "#1b1b2b",
+        "S": "#00e5ff",
+        "C": "#ffe600",
+        "G": "#7a2fff",
+        "V": "#00ff9c",
+        "T": "#ff7a00",
+        "O": "#2f6bff",
+        "D": "#ff00c8"
+      }
+    },
+    {
+      "id": "propeller-cap",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/propeller-cap"
+    },
+    {
+      "id": "traffic-cone",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/traffic-cone"
+    },
+    {
+      "id": "chef-hat",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/chef-hat"
+    },
+    {
+      "id": "cowboy-hat",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/cowboy-hat"
+    },
+    {
+      "id": "flower-crown",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/flower-crown"
+    },
+    {
+      "id": "top-hat",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/top-hat"
+    },
+    {
+      "id": "pirate-hat",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/pirate-hat"
+    },
+    {
+      "id": "frog-hood",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/frog-hood"
+    },
+    {
+      "id": "halo",
+      "slot": "hat",
+      "rarity": "epic",
+      "sprite": "hats/halo"
+    },
+    {
+      "id": "early-bird",
+      "slot": "hat",
+      "rarity": "legendary",
+      "sprite": "hats/early-bird"
+    },
+    {
+      "id": "clown-nose",
+      "slot": "face",
+      "rarity": "common",
+      "sprite": "faces/clown-nose"
+    },
+    {
+      "id": "eye-patch",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/eye-patch"
+    },
+    {
+      "id": "heart-glasses",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/heart-glasses"
+    },
+    {
+      "id": "monocle",
+      "slot": "face",
+      "rarity": "rare",
+      "sprite": "faces/monocle"
+    },
+    {
+      "id": "bow-tie",
+      "slot": "neck",
+      "rarity": "common",
+      "sprite": "neck/bow-tie"
+    },
+    {
+      "id": "scarf",
+      "slot": "neck",
+      "rarity": "uncommon",
+      "sprite": "neck/scarf"
+    },
+    {
+      "id": "bell",
+      "slot": "neck",
+      "rarity": "uncommon",
+      "sprite": "neck/bell"
+    },
+    {
+      "id": "medal",
+      "slot": "neck",
+      "rarity": "rare",
+      "sprite": "neck/medal"
     }
   ]
 }

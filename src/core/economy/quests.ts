@@ -24,6 +24,18 @@ export const QUEST_EVENTS = [
   'float',
   /** A Rocket Boost goes off. */
   'rocket',
+  /** A handful of seeds pecked (the seeds snack; quests with `requires: "seeds"` wait for it). */
+  'seeds',
+  /** The duck dozes off. */
+  'nap',
+  /** A pet while at least one mini friend is out. */
+  'pet-mini',
+  /** A handful of bread tossed from the menu. */
+  'handful',
+  /** The ball put out to play. */
+  'ball',
+  /** A talk in rubber-duck mode (the box opened; what is typed never leaves it). */
+  'talk',
 ] as const
 export type QuestEvent = (typeof QUEST_EVENTS)[number]
 
@@ -33,11 +45,18 @@ export const QuestSchema = z.object({
   event: z.enum(QUEST_EVENTS),
   target: z.number().int().positive(),
   reward: z.number().int().positive(),
+  /**
+   * A feature the quest needs (e.g. `seeds`, a snack that lands later). Until the app has it,
+   * the quest is never drawn, so nobody gets a quest they can't do.
+   */
+  requires: z.string().min(1).optional(),
 })
 
 export const QuestConfigSchema = z.object({
-  /** How many daily quests are drawn from the pool each day (every weekly quest is active). */
+  /** How many daily quests are drawn from the pool each day. */
   dailyCount: z.number().int().nonnegative(),
+  /** How many weekly quests are drawn from the pool each week (Monday to Sunday). */
+  weeklyCount: z.number().int().nonnegative(),
   pool: z.array(QuestSchema),
 })
 
@@ -70,8 +89,8 @@ export function localWeekKey(ts: number): number {
   return localDayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - sinceMonday).getTime())
 }
 
-/** A small seeded generator, so a day always draws the same daily quests. */
-function seeded(seed: number): () => number {
+/** A small seeded generator, so a day always draws the same daily quests (and shelf). */
+export function seeded(seed: number): () => number {
   let a = seed >>> 0
   return () => {
     a = (a + 0x6d2b79f5) >>> 0
@@ -82,15 +101,45 @@ function seeded(seed: number): () => number {
   }
 }
 
-/** The daily quests for a day: `dailyCount` drawn from the pool, the same all day long. */
-export function dailyQuests(config: QuestConfig, day: number): Quest[] {
-  const pool = config.pool.filter((q) => q.period === 'daily')
-  const rng = seeded(day)
-  for (let i = pool.length - 1; i > 0; i--) {
+/** Which `requires` features this app has (everything, when not given). */
+export type QuestFeatures = (feature: string) => boolean
+const everything: QuestFeatures = () => true
+
+/** Shuffles a copy of `list` with a seeded generator (Fisher–Yates). */
+export function seededShuffle<T>(list: readonly T[], seed: number): T[] {
+  const out = [...list]
+  const rng = seeded(seed)
+  for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1))
-    ;[pool[i], pool[j]] = [pool[j] as Quest, pool[i] as Quest]
+    ;[out[i], out[j]] = [out[j] as T, out[i] as T]
   }
-  return pool.slice(0, config.dailyCount)
+  return out
+}
+
+function draw(
+  config: QuestConfig,
+  period: Quest['period'],
+  seed: number,
+  count: number,
+  has: QuestFeatures,
+): Quest[] {
+  const pool = config.pool.filter(
+    (q) => q.period === period && (q.requires === undefined || has(q.requires)),
+  )
+  return seededShuffle(pool, seed).slice(0, count)
+}
+
+/** The daily quests for a day: `dailyCount` drawn from the pool, the same all day long. */
+export function dailyQuests(config: QuestConfig, day: number, has = everything): Quest[] {
+  return draw(config, 'daily', day, config.dailyCount, has)
+}
+
+/** Weekly seeds differ from daily ones (a week key is also a day key: its Monday). */
+const WEEK_SALT = 0x5eed
+
+/** The weekly quests for the week starting on Monday `week`: `weeklyCount` drawn from the pool. */
+export function weeklyQuests(config: QuestConfig, week: number, has = everything): Quest[] {
+  return draw(config, 'weekly', week ^ WEEK_SALT, config.weeklyCount, has)
 }
 
 /**
@@ -100,11 +149,18 @@ export function dailyQuests(config: QuestConfig, day: number): Quest[] {
 export class QuestBook {
   private readonly config: QuestConfig
   private readonly clock: Clock
+  private readonly has: QuestFeatures
   private readonly progress = new Map<string, z.infer<typeof ProgressSchema>>()
 
-  constructor(config: QuestConfig, clock: Clock, save?: QuestSave) {
+  constructor(
+    config: QuestConfig,
+    clock: Clock,
+    save?: QuestSave,
+    has: QuestFeatures = everything,
+  ) {
     this.config = config
     this.clock = clock
+    this.has = has
     for (const [id, entry] of Object.entries(save?.progress ?? {})) this.progress.set(id, entry)
   }
 
@@ -113,8 +169,10 @@ export class QuestBook {
   }
 
   private active(now: number): Quest[] {
-    const weekly = this.config.pool.filter((q) => q.period === 'weekly')
-    return [...dailyQuests(this.config, localDayKey(now)), ...weekly]
+    return [
+      ...dailyQuests(this.config, localDayKey(now), this.has),
+      ...weeklyQuests(this.config, localWeekKey(now), this.has),
+    ]
   }
 
   private current(quest: Quest, now: number) {

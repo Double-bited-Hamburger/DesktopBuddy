@@ -4,31 +4,31 @@
     "click": {
       "points": 1,
       "cooldownMs": 250,
-      "dailyCap": 300
+      "dailyCap": 150
     },
     "pet": {
       "points": 2,
       "cooldownMs": 700,
-      "dailyCap": 240
+      "dailyCap": 250
     },
     "snack": {
       "points": 3,
       "cooldownMs": 500,
-      "dailyCap": 300
+      "dailyCap": 200
     },
     "ball": {
       "points": 2,
       "cooldownMs": 800,
-      "dailyCap": 300
+      "dailyCap": 200
     },
     "bounce": {
       "points": 3,
       "cooldownMs": 0,
-      "dailyCap": 450
+      "dailyCap": 200
     }
   },
   "throws": {
-    "maxHitsPerThrow": 10
+    "maxHitsPerThrow": 5
   },
   "boosts": {
     "rocket": {
@@ -41,12 +41,12 @@
   "companions": {
     "max": 2,
     "bonus": {
-      "common": 0.5,
-      "uncommon": 0.75,
-      "rare": 1,
-      "epic": 1.5,
-      "legendary": 2,
-      "exotic": 3
+      "common": 0.1,
+      "uncommon": 0.15,
+      "rare": 0.2,
+      "epic": 0.3,
+      "legendary": 0.4,
+      "exotic": 0.5
     },
     "boosted": ["click", "pet", "snack", "ball", "bounce"]
   },
@@ -54,7 +54,7 @@
   "boxes": [
     {
       "id": "paper",
-      "price": 80,
+      "price": 150,
       "odds": {
         "common": 75,
         "uncommon": 22,
@@ -63,11 +63,12 @@
       "pity": {
         "after": 10,
         "rarity": "rare"
-      }
+      },
+      "newFirst": true
     },
     {
       "id": "ribbon",
-      "price": 250,
+      "price": 500,
       "odds": {
         "uncommon": 60,
         "rare": 30,
@@ -77,11 +78,12 @@
       "pity": {
         "after": 8,
         "rarity": "epic"
-      }
+      },
+      "newFirst": true
     },
     {
       "id": "royal",
-      "price": 700,
+      "price": 1500,
       "odds": {
         "rare": 50,
         "epic": 35,
@@ -91,74 +93,151 @@
       "pity": {
         "after": 6,
         "rarity": "legendary"
-      }
+      },
+      "jackpot": {
+        "after": 15,
+        "rarity": "exotic"
+      },
+      "egg": 0.05,
+      "newFirst": true
+    },
+    {
+      "id": "star",
+      "price": 6000,
+      "odds": {
+        "legendary": 75,
+        "exotic": 25
+      },
+      "pity": {
+        "after": 3,
+        "rarity": "exotic"
+      },
+      "sold": false,
+      "newFirst": true
     }
   ],
   "freeGift": {
-    "cooldownMs": 2400000,
+    "cooldownMs": 10800000,
     "box": "paper",
     "duplicatePoints": 20
   },
   "seasonal": [
+    {
+      "id": "sakura",
+      "item": "sakura",
+      "month": 4
+    },
+    {
+      "id": "pumpkin",
+      "item": "pumpkin",
+      "month": 10
+    },
     {
       "id": "christmas",
       "item": "christmas",
       "month": 12
     }
   ],
-  "duplicateRefund": 0.5,
+  "duplicateRefund": 0.3,
   "prices": {
-    "common": 60,
-    "uncommon": 150,
-    "rare": 400,
-    "epic": 900,
-    "legendary": 2000,
-    "exotic": 4000
+    "common": 130,
+    "uncommon": 300,
+    "rare": 1300,
+    "epic": 2600,
+    "legendary": 3600,
+    "exotic": 6000
+  },
+  "shelf": {
+    "tiers": [["common", "uncommon"], ["rare"], ["epic"]]
   },
   "quests": {
     "dailyCount": 3,
+    "weeklyCount": 4,
     "pool": [
       {
         "id": "pet-8",
         "period": "daily",
         "event": "pet",
         "target": 8,
-        "reward": 75
+        "reward": 60
+      },
+      {
+        "id": "pet-25",
+        "period": "daily",
+        "event": "pet",
+        "target": 25,
+        "reward": 80
       },
       {
         "id": "click-15",
         "period": "daily",
         "event": "click",
         "target": 15,
-        "reward": 45
+        "reward": 40
+      },
+      {
+        "id": "click-40",
+        "period": "daily",
+        "event": "click",
+        "target": 40,
+        "reward": 60
       },
       {
         "id": "throw-2",
         "period": "daily",
         "event": "throw",
         "target": 2,
-        "reward": 60
+        "reward": 50
+      },
+      {
+        "id": "throw-5",
+        "period": "daily",
+        "event": "throw",
+        "target": 5,
+        "reward": 70
       },
       {
         "id": "bread-2",
         "period": "daily",
         "event": "bread",
         "target": 2,
-        "reward": 60
+        "reward": 50
       },
       {
         "id": "cigar-1",
         "period": "daily",
         "event": "cigar",
         "target": 1,
-        "reward": 60
+        "reward": 50
       },
       {
-        "id": "gift-1",
+        "id": "coffee-1",
         "period": "daily",
-        "event": "gift",
+        "event": "coffee",
         "target": 1,
-        "reward": 75
+        "reward": 50
+      },
+      {
+        "id": "quack-1",
+        "period": "daily",
+        "event": "quack",
+        "target": 1,
+        "reward": 50
+      },
+      {
+        "id": "seeds-3",
+        "period": "daily",
+        "event": "seeds",
+        "target": 3,
+        "reward": 60,
+        "requires": "seeds"
+      },
+      {
+        "id": "handful-1",
+        "period": "daily",
+        "event": "handful",
+        "target": 1,
+        "reward": 50
       },
       {
         "id": "equip-1",
@@ -172,7 +251,7 @@
         "period": "daily",
         "event": "focus",
         "target": 1,
-        "reward": 60
+        "reward": 80
       },
       {
         "id": "kick-10",
@@ -180,6 +259,13 @@
         "event": "kick",
         "target": 10,
         "reward": 60
+      },
+      {
+        "id": "kick-25",
+        "period": "daily",
+        "event": "kick",
+        "target": 25,
+        "reward": 80
       },
       {
         "id": "bounce-20",
@@ -203,32 +289,67 @@
         "reward": 45
       },
       {
+        "id": "nap-1",
+        "period": "daily",
+        "event": "nap",
+        "target": 1,
+        "reward": 40
+      },
+      {
+        "id": "pet-mini-10",
+        "period": "daily",
+        "event": "pet-mini",
+        "target": 10,
+        "reward": 70
+      },
+      {
+        "id": "talk-1",
+        "period": "daily",
+        "event": "talk",
+        "target": 1,
+        "reward": 40
+      },
+      {
+        "id": "gift-1",
+        "period": "daily",
+        "event": "gift",
+        "target": 1,
+        "reward": 60
+      },
+      {
+        "id": "ball-1",
+        "period": "daily",
+        "event": "ball",
+        "target": 1,
+        "reward": 40
+      },
+      {
         "id": "pet-60",
         "period": "weekly",
         "event": "pet",
         "target": 60,
-        "reward": 450
+        "reward": 300
       },
       {
         "id": "bread-10",
         "period": "weekly",
         "event": "bread",
         "target": 10,
-        "reward": 300
+        "reward": 250
       },
       {
-        "id": "gift-5",
+        "id": "gift-3",
         "period": "weekly",
         "event": "gift",
-        "target": 5,
-        "reward": 600
+        "target": 3,
+        "reward": 300
       },
       {
         "id": "focus-5",
         "period": "weekly",
         "event": "focus",
         "target": 5,
-        "reward": 450
+        "reward": 350
       },
       {
         "id": "rocket-1",
@@ -245,17 +366,83 @@
         "reward": 300
       },
       {
-        "id": "bounce-150",
+        "id": "bounce-100",
         "period": "weekly",
         "event": "bounce",
-        "target": 150,
-        "reward": 450
+        "target": 100,
+        "reward": 300
+      },
+      {
+        "id": "throw-25",
+        "period": "weekly",
+        "event": "throw",
+        "target": 25,
+        "reward": 300
+      },
+      {
+        "id": "coffee-5",
+        "period": "weekly",
+        "event": "coffee",
+        "target": 5,
+        "reward": 250
+      },
+      {
+        "id": "nap-5",
+        "period": "weekly",
+        "event": "nap",
+        "target": 5,
+        "reward": 250
+      },
+      {
+        "id": "float-5",
+        "period": "weekly",
+        "event": "float",
+        "target": 5,
+        "reward": 300
+      },
+      {
+        "id": "pet-mini-60",
+        "period": "weekly",
+        "event": "pet-mini",
+        "target": 60,
+        "reward": 350
+      },
+      {
+        "id": "equip-7",
+        "period": "weekly",
+        "event": "equip",
+        "target": 7,
+        "reward": 250
+      },
+      {
+        "id": "talk-3",
+        "period": "weekly",
+        "event": "talk",
+        "target": 3,
+        "reward": 250
+      },
+      {
+        "id": "seeds-20",
+        "period": "weekly",
+        "event": "seeds",
+        "target": 20,
+        "reward": 300,
+        "requires": "seeds"
+      },
+      {
+        "id": "handful-5",
+        "period": "weekly",
+        "event": "handful",
+        "target": 5,
+        "reward": 250
       }
     ]
   },
   "focus": {
     "lengths": [15, 25, 50],
     "pointsPerMinute": 3,
+    "dailyCap": 400,
+    "presenceIdleSeconds": 300,
     "cycle": {
       "breakMinutes": 5,
       "longBreakMinutes": 15,
@@ -272,5 +459,591 @@
     "mealHours": [8, 19],
     "mealWindowMinutes": 90,
     "askEveryMinutes": 120
+  },
+  "levels": {
+    "max": 30,
+    "xpBase": 640,
+    "xpPower": 1.5,
+    "notXp": [
+      "refund",
+      "rocket",
+      "rocket-refund",
+      "level",
+      "achievement",
+      "set",
+      "stamp",
+      "egg",
+      "early-bird"
+    ],
+    "rewards": [
+      {
+        "level": 2,
+        "reward": {
+          "points": 140
+        }
+      },
+      {
+        "level": 3,
+        "reward": {
+          "box": "paper"
+        }
+      },
+      {
+        "level": 4,
+        "reward": {
+          "points": 180
+        }
+      },
+      {
+        "level": 5,
+        "reward": {
+          "box": "ribbon",
+          "unlock": "trick:spin"
+        }
+      },
+      {
+        "level": 6,
+        "reward": {
+          "points": 220
+        }
+      },
+      {
+        "level": 7,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "level": 8,
+        "reward": {
+          "points": 260
+        }
+      },
+      {
+        "level": 9,
+        "reward": {
+          "points": 280
+        }
+      },
+      {
+        "level": 10,
+        "reward": {
+          "box": "royal",
+          "unlock": "trick:moonwalk"
+        }
+      },
+      {
+        "level": 11,
+        "reward": {
+          "points": 320
+        }
+      },
+      {
+        "level": 12,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "level": 13,
+        "reward": {
+          "points": 360
+        }
+      },
+      {
+        "level": 14,
+        "reward": {
+          "points": 380
+        }
+      },
+      {
+        "level": 15,
+        "reward": {
+          "box": "star",
+          "unlock": "trick:handstand"
+        }
+      },
+      {
+        "level": 16,
+        "reward": {
+          "points": 420
+        }
+      },
+      {
+        "level": 17,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "level": 18,
+        "reward": {
+          "points": 460
+        }
+      },
+      {
+        "level": 19,
+        "reward": {
+          "points": 480
+        }
+      },
+      {
+        "level": 20,
+        "reward": {
+          "box": "royal",
+          "unlock": "trick:backflip"
+        }
+      },
+      {
+        "level": 21,
+        "reward": {
+          "points": 520
+        }
+      },
+      {
+        "level": 22,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "level": 23,
+        "reward": {
+          "points": 560
+        }
+      },
+      {
+        "level": 24,
+        "reward": {
+          "points": 580
+        }
+      },
+      {
+        "level": 25,
+        "reward": {
+          "box": "star",
+          "unlock": "trick:breakdance"
+        }
+      },
+      {
+        "level": 26,
+        "reward": {
+          "points": 620
+        }
+      },
+      {
+        "level": 27,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "level": 28,
+        "reward": {
+          "points": 660
+        }
+      },
+      {
+        "level": 29,
+        "reward": {
+          "points": 680
+        }
+      },
+      {
+        "level": 30,
+        "reward": {
+          "box": "star",
+          "unlock": "trick:victory-lap"
+        }
+      }
+    ]
+  },
+  "achievements": {
+    "nightHours": [0, 5],
+    "list": [
+      {
+        "id": "pet-100",
+        "stat": "pet",
+        "target": 100,
+        "reward": {
+          "points": 100
+        }
+      },
+      {
+        "id": "pet-1000",
+        "stat": "pet",
+        "target": 1000,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "pet-10000",
+        "stat": "pet",
+        "target": 10000,
+        "reward": {
+          "box": "royal"
+        }
+      },
+      {
+        "id": "night-owl",
+        "stat": "pet-night",
+        "target": 50,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "click-500",
+        "stat": "click",
+        "target": 500,
+        "reward": {
+          "points": 100
+        }
+      },
+      {
+        "id": "click-5000",
+        "stat": "click",
+        "target": 5000,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "throw-50",
+        "stat": "throw",
+        "target": 50,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "throw-500",
+        "stat": "throw",
+        "target": 500,
+        "reward": {
+          "box": "royal"
+        }
+      },
+      {
+        "id": "bounce-500",
+        "stat": "bounce",
+        "target": 500,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "bounce-5000",
+        "stat": "bounce",
+        "target": 5000,
+        "reward": {
+          "box": "royal"
+        }
+      },
+      {
+        "id": "kick-200",
+        "stat": "kick",
+        "target": 200,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "kick-2000",
+        "stat": "kick",
+        "target": 2000,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "bread-50",
+        "stat": "bread",
+        "target": 50,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "coffee-30",
+        "stat": "coffee",
+        "target": 30,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "seeds-100",
+        "stat": "seeds",
+        "target": 100,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "nap-30",
+        "stat": "nap",
+        "target": 30,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "focus-10",
+        "stat": "focus",
+        "target": 10,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "focus-100",
+        "stat": "focus",
+        "target": 100,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "id": "gift-10",
+        "stat": "gift",
+        "target": 10,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "free-gift-50",
+        "stat": "free-gift",
+        "target": 50,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "id": "rocket-5",
+        "stat": "rocket",
+        "target": 5,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "float-20",
+        "stat": "float",
+        "target": 20,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "friend-10",
+        "stat": "friend",
+        "target": 10,
+        "reward": {
+          "points": 100
+        }
+      },
+      {
+        "id": "equip-50",
+        "stat": "equip",
+        "target": 50,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "talk-10",
+        "stat": "talk",
+        "target": 10,
+        "reward": {
+          "points": 150
+        }
+      },
+      {
+        "id": "days-7",
+        "stat": "days",
+        "target": 7,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "days-30",
+        "stat": "days",
+        "target": 30,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "id": "days-100",
+        "stat": "days",
+        "target": 100,
+        "reward": {
+          "box": "star"
+        }
+      },
+      {
+        "id": "owned-10",
+        "stat": "owned",
+        "target": 10,
+        "reward": {
+          "points": 300
+        }
+      },
+      {
+        "id": "owned-20",
+        "stat": "owned",
+        "target": 20,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "owned-30",
+        "stat": "owned",
+        "target": 30,
+        "reward": {
+          "box": "royal"
+        }
+      },
+      {
+        "id": "level-10",
+        "stat": "level",
+        "target": 10,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "level-20",
+        "stat": "level",
+        "target": 20,
+        "reward": {
+          "box": "star"
+        }
+      },
+      {
+        "id": "level-30",
+        "stat": "level",
+        "target": 30,
+        "reward": {
+          "unlock": "trick:bow"
+        }
+      },
+      {
+        "id": "sets-1",
+        "stat": "sets",
+        "target": 1,
+        "reward": {
+          "box": "ribbon"
+        }
+      },
+      {
+        "id": "sets-5",
+        "stat": "sets",
+        "target": 5,
+        "reward": {
+          "egg": 1
+        }
+      },
+      {
+        "id": "eggs-1",
+        "stat": "eggs",
+        "target": 1,
+        "reward": {
+          "points": 200
+        }
+      },
+      {
+        "id": "eggs-5",
+        "stat": "eggs",
+        "target": 5,
+        "reward": {
+          "box": "star"
+        }
+      }
+    ]
+  },
+  "albums": [
+    {
+      "id": "pond",
+      "items": ["rubber", "bucket-hat", "umbrella-hat", "mini-pebble", "mini-sandy"],
+      "reward": {
+        "box": "ribbon"
+      }
+    },
+    {
+      "id": "arcade",
+      "items": ["neon", "plumber-cap", "cyber-visor", "golden-cartridge"],
+      "reward": {
+        "box": "star"
+      }
+    },
+    {
+      "id": "winter",
+      "items": ["beanie", "santa-hat", "christmas", "ghost"],
+      "reward": {
+        "box": "royal"
+      }
+    },
+    {
+      "id": "court",
+      "items": ["crown", "golden", "viking-helmet", "wizard-hat"],
+      "reward": {
+        "box": "royal"
+      }
+    },
+    {
+      "id": "flock",
+      "items": [
+        "friend-duck",
+        "mini-pebble",
+        "mini-sandy",
+        "mini-peach",
+        "mini-lilac",
+        "mini-ember",
+        "mini-ghost",
+        "mini-comet"
+      ],
+      "reward": {
+        "unlock": "trick:parade"
+      }
+    }
+  ],
+  "stamps": {
+    "every": 7,
+    "rewards": [
+      {
+        "box": "paper"
+      },
+      {
+        "box": "ribbon"
+      },
+      {
+        "box": "paper"
+      },
+      {
+        "box": "royal"
+      }
+    ]
+  },
+  "eggs": {
+    "hatchMinutes": 120,
+    "odds": {
+      "common": 30,
+      "uncommon": 25,
+      "rare": 20,
+      "epic": 12,
+      "legendary": 8,
+      "exotic": 5
+    },
+    "allOwnedPoints": 300,
+    "presenceIdleSeconds": 120
+  },
+  "earlyBird": {
+    "unlock": "early-bird"
   }
 }

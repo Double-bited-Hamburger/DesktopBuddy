@@ -66,22 +66,15 @@ export function earnedOn(entries: readonly LedgerEntry[], now: number): Record<s
 export interface CapBar {
   readonly source: string
   readonly earned: number
-  /** Today's limit, with the minis' bonus applied when they boost this source. */
+  /** Today's limit (the minis' bonus makes it come sooner, it never raises it). */
   readonly cap: number
   readonly full: boolean
 }
 
-/**
- * One bar per capped source: what it paid today against today's limit. `multiplierFor` is what
- * the minis out add to that source (1 when they don't boost it), the same as the ledger uses.
- */
-export function capBars(
-  rules: SourceRules,
-  earned: Readonly<Record<string, number>>,
-  multiplierFor: (source: string) => number,
-): CapBar[] {
+/** One bar per capped source: what it paid today against today's limit. */
+export function capBars(rules: SourceRules, earned: Readonly<Record<string, number>>): CapBar[] {
   return Object.entries(rules).map(([source, rule]) => {
-    const cap = Math.floor(rule.dailyCap * Math.max(1, multiplierFor(source)))
+    const cap = rule.dailyCap
     const paid = earned[source] ?? 0
     return { source, earned: paid, cap, full: paid >= cap }
   })

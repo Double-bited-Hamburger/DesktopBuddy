@@ -29,9 +29,24 @@ describe('ledger save file', () => {
 
   it('backs up a file it cannot understand instead of overwriting it silently', async () => {
     const storage = new MemoryStorage()
+    await storage.write(LEDGER_KEY, { version: 1, stuff: true })
+    expect(await loadLedgerEntries(storage, 42)).toEqual([])
+    expect(await storage.read('ledger-backup-42')).toEqual({ version: 1, stuff: true })
+  })
+
+  it('leaves a ledger from a newer version untouched (no backup needed, no overwrite)', async () => {
+    const storage = new MemoryStorage()
     await storage.write(LEDGER_KEY, { version: 9, stuff: true })
     expect(await loadLedgerEntries(storage, 42)).toEqual([])
-    expect(await storage.read('ledger-backup-42')).toEqual({ version: 9, stuff: true })
+    await saveLedger(storage, [{ ts: 1, source: 'click', delta: 1 }])
+    expect(await storage.read(LEDGER_KEY)).toEqual({ version: 9, stuff: true })
+  })
+
+  it('copies a torn ledger aside byte for byte', async () => {
+    const storage = new MemoryStorage()
+    storage.writeRaw(LEDGER_KEY, '{"version":1,"entries":[{"ts":1,')
+    expect(await loadLedgerEntries(storage, 5)).toEqual([])
+    expect(storage.readRaw('ledger-backup-5')).toBe('{"version":1,"entries":[{"ts":1,')
   })
 
   it('loads other saves the same way (inventory), backing up a bad one', async () => {

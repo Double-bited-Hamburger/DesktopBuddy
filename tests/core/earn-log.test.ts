@@ -60,10 +60,10 @@ describe('capBars', () => {
     click: { points: 1, cooldownMs: 250, dailyCap: 300 },
   }
 
-  it('shows each limit, raised by the minis where they boost it, and when it is full', () => {
-    const bars = capBars(rules, { pet: 360, click: 12 }, (s) => (s === 'pet' ? 1.5 : 1))
+  it('shows each limit (the minis never raise it, economy 2.0) and when it is full', () => {
+    const bars = capBars(rules, { pet: 240, click: 12 })
     expect(bars).toEqual([
-      { source: 'pet', earned: 360, cap: 360, full: true },
+      { source: 'pet', earned: 240, cap: 240, full: true },
       { source: 'click', earned: 12, cap: 300, full: false },
     ])
   })

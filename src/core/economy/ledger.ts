@@ -66,7 +66,8 @@ export class PointsLedger {
 
   /**
    * Pays a source, applying its cooldown and daily cap. `multiplier` (companions, ≥ 1) multiplies
-   * both the points and the cap; fractions carry over to the next earn.
+   * the points only, never the cap (economy 2.0: minis make the cap come sooner, not bigger);
+   * fractions carry over to the next earn.
    */
   earn(source: string, multiplier = 1): EarnResult {
     const rule = this.rules[source]
@@ -78,7 +79,7 @@ export class PointsLedger {
       return { granted: 0, reason: 'cooldown' }
 
     const boost = Number.isFinite(multiplier) ? Math.max(1, multiplier) : 1
-    const remaining = Math.floor(rule.dailyCap * boost) - this.earnedToday(source)
+    const remaining = rule.dailyCap - this.earnedToday(source)
     if (remaining <= 0) return { granted: 0, reason: 'daily-cap' }
 
     const exact = rule.points * boost + (this.carry.get(source) ?? 0)

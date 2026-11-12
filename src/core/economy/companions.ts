@@ -4,10 +4,10 @@ import { RARITIES } from '../catalog/catalog'
 
 /**
  * Mini friend ducks (catalog slot `friend`). Up to `max` come out with your duck as companions,
- * and each one adds a bonus to what playing with the duck pays: a legendary mini (+2) makes a
- * click pay ×3, an exotic one (+3) ×4. Two minis add up: 1 + both bonuses. The daily caps of the
- * boosted sources grow by the same factor, so the bonus is real; quests, focus and active time are
- * never boosted. Balance lives in economy.json (`companions`).
+ * and each one adds a bonus to what playing with the duck pays: a legendary mini (+0.4) makes a
+ * click pay ×1.4, an exotic one (+0.5) ×1.5. Two minis add up: 1 + both bonuses (×1.9 at most).
+ * Economy 2.0: the daily caps do NOT grow with it (minis fill a cap sooner, never past it); quests,
+ * focus and active time are never boosted. Balance lives in economy.json (`companions`).
  */
 export const CompanionsConfigSchema = z.object({
   max: z.number().int().min(1).max(4),

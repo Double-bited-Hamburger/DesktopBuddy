@@ -5,7 +5,15 @@ import type { Catalog } from '../../src/core/catalog/catalog'
 import { parseCatalog } from '../../src/core/catalog/catalog'
 import { checkEconomy } from '../../src/core/economy/config'
 import type { GiftBox } from '../../src/core/economy/gifts'
-import { boxOdds, freeGiftReadyAt, openBox, opensUntilPity } from '../../src/core/economy/gifts'
+import {
+  boxOdds,
+  freeGiftReadyAt,
+  jackpotKey,
+  openBox,
+  opensUntilJackpot,
+  opensUntilPity,
+  rollsEgg,
+} from '../../src/core/economy/gifts'
 import { parseEconomy } from '../../src/core/economy/save'
 import { sequence } from '../helpers'
 
@@ -61,6 +69,69 @@ describe('openBox', () => {
     const roll = openBox(box, catalog, misses, new Set(), unlucky)
     expect(roll.item.rarity).toBe('uncommon')
     expect(roll).toMatchObject({ pity: true, misses: 0 })
+  })
+})
+
+describe('economy 2.0 boxes', () => {
+  const royal: GiftBox = {
+    id: 'royal',
+    price: 1000,
+    odds: { common: 90, uncommon: 9, epic: 1 },
+    pity: { after: 3, rarity: 'uncommon' },
+    jackpot: { after: 5, rarity: 'epic' },
+    egg: 0.25,
+    newFirst: true,
+  }
+
+  it('newFirst: items of the rolled rarity you do not own come first', () => {
+    const roll = openBox(royal, catalog, 0, new Set(['plain']), sequence([0.1, 0]))
+    expect(roll).toMatchObject({ duplicate: false })
+    expect(roll.item.id).toBe('beanie')
+    // Both commons owned: a duplicate, as usual.
+    const dup = openBox(royal, catalog, 0, new Set(['plain', 'beanie']), sequence([0.1, 0]))
+    expect(dup.duplicate).toBe(true)
+  })
+
+  it('the jackpot guarantees its rarity after after - 1 opens without it', () => {
+    let misses = 0
+    let jackpot = 0
+    const unlucky = sequence([0])
+    for (let i = 0; i < 4; i++) {
+      const roll = openBox(royal, catalog, misses, new Set(), unlucky, jackpot)
+      misses = roll.misses
+      jackpot = roll.jackpotMisses
+    }
+    expect(jackpot).toBe(4)
+    expect(opensUntilJackpot(royal, jackpot)).toBe(1)
+    const roll = openBox(royal, catalog, misses, new Set(), unlucky, jackpot)
+    expect(roll.item.rarity).toBe('epic')
+    expect(roll).toMatchObject({ pity: true, misses: 0, jackpotMisses: 0 })
+    expect(jackpotKey(royal)).toBe('royal@epic')
+    expect(opensUntilJackpot(box, 3)).toBeUndefined()
+  })
+
+  it('an egg is its own roll at the shown chance', () => {
+    expect(rollsEgg(royal, sequence([0.2]))).toBe(true)
+    expect(rollsEgg(royal, sequence([0.3]))).toBe(false)
+    expect(rollsEgg(box, sequence([0]))).toBe(false)
+  })
+
+  it('shipped: duplicates pay 30%, the free gift every 3 h, the royal box has a jackpot', () => {
+    const read = (name: string) =>
+      JSON.parse(readFileSync(join(__dirname, '../../assets/economy', name), 'utf8')) as unknown
+    const economy = parseEconomy(read('economy.json'))
+    expect(economy.duplicateRefund).toBe(0.3)
+    expect(economy.freeGift.cooldownMs).toBe(3 * 60 * 60 * 1000)
+    expect(economy.throws.maxHitsPerThrow).toBe(5)
+    const caps = Object.values(economy.sources).reduce((sum, rule) => sum + rule.dailyCap, 0)
+    expect(caps).toBeGreaterThanOrEqual(900)
+    expect(caps).toBeLessThanOrEqual(1100)
+    expect(economy.focus.dailyCap).toBe(400)
+    expect(economy.boxes.find((b) => b.id === 'royal')?.jackpot?.rarity).toBe('exotic')
+    // The star box is never sold, and the shelf never sells legendary or exotic.
+    expect(economy.boxes.find((b) => b.id === 'star')?.sold).toBe(false)
+    expect(economy.shelf.tiers.flat()).not.toContain('legendary')
+    expect(economy.shelf.tiers.flat()).not.toContain('exotic')
   })
 })
 

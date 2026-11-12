@@ -3,6 +3,7 @@ import type { EarnResult, LedgerEntry } from '../core/economy/ledger'
 import { PointsLedger } from '../core/economy/ledger'
 import { loadLedgerEntries, saveLedger } from '../core/economy/save'
 import type { StorageAdapter } from '../core/storage/storage'
+import { logError } from './log'
 
 /** Saving is batched: a burst of clicks becomes one write a moment later. */
 const SAVE_DELAY_MS = 1000
@@ -83,7 +84,7 @@ export class PointsService {
   private save(): Promise<void> {
     this.saving = this.saving
       .then(() => saveLedger(this.storage, this.ledger.entries))
-      .catch((error) => console.error('Could not save points', error))
+      .catch((error) => logError('Could not save points', error))
     return this.saving
   }
 }

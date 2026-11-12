@@ -19,20 +19,21 @@ const config = economy.companions
 const owned = new Set(['friend-duck', 'mini-pebble', 'mini-ghost', 'mini-comet', 'classic'])
 
 describe('companion bonuses', () => {
-  it('legendary ×3, exotic ×4, common ×1.5', () => {
-    expect(companionMultiplier(catalog, config, ['mini-ghost'])).toBe(3)
-    expect(companionMultiplier(catalog, config, ['mini-comet'])).toBe(4)
-    expect(companionMultiplier(catalog, config, ['mini-pebble'])).toBe(1.5)
+  // Economy 2.0 (1.0.0): +10% common … +50% exotic, instead of +50% … +200%.
+  it('legendary ×1.4, exotic ×1.5, common ×1.1', () => {
+    expect(companionMultiplier(catalog, config, ['mini-ghost'])).toBeCloseTo(1.4)
+    expect(companionMultiplier(catalog, config, ['mini-comet'])).toBeCloseTo(1.5)
+    expect(companionMultiplier(catalog, config, ['mini-pebble'])).toBeCloseTo(1.1)
     expect(companionMultiplier(catalog, config, [])).toBe(1)
   })
 
-  it('two companions add up, and only the first two count', () => {
-    expect(companionMultiplier(catalog, config, ['mini-ghost', 'mini-pebble'])).toBe(3.5)
-    expect(companionMultiplier(catalog, config, ['mini-comet', 'mini-ghost'])).toBe(6)
-    expect(companionMultiplier(catalog, config, ['mini-comet', 'mini-ghost', 'mini-pebble'])).toBe(
-      6,
-    )
-    expect(companionMultiplier(catalog, config, ['mini-ghost', 'mini-ghost'])).toBe(3)
+  it('two companions add up to at most ×1.9, and only the first two count', () => {
+    expect(companionMultiplier(catalog, config, ['mini-ghost', 'mini-pebble'])).toBeCloseTo(1.5)
+    expect(companionMultiplier(catalog, config, ['mini-comet', 'mini-ghost'])).toBeCloseTo(1.9)
+    expect(
+      companionMultiplier(catalog, config, ['mini-comet', 'mini-ghost', 'mini-pebble']),
+    ).toBeCloseTo(1.9)
+    expect(companionMultiplier(catalog, config, ['mini-ghost', 'mini-ghost'])).toBeCloseTo(1.4)
   })
 
   it('a skin or an unknown id adds nothing', () => {
@@ -48,6 +49,7 @@ describe('companion bonuses', () => {
 
   it('label', () => {
     expect(multiplierLabel(1.5)).toBe('×1.5')
+    expect(multiplierLabel(1 + 0.4 + 0.5)).toBe('×1.9')
     expect(multiplierLabel(3)).toBe('×3')
   })
 })
@@ -95,15 +97,17 @@ describe('the ledger with a multiplier', () => {
     expect(ledger.earn('click', 3).granted).toBe(3)
   })
 
-  it('raises the daily cap by the same factor', () => {
+  it('never raises the daily cap (economy 2.0: the cap just comes sooner)', () => {
     let now = new Date(2026, 10, 5, 12, 0, 0).getTime()
     const ledger = new PointsLedger(economy.sources, () => now)
     const cap = economy.sources.click?.dailyCap ?? 0
-    for (let i = 0; i < cap * 4; i++) {
+    let earns = 0
+    while (ledger.earn('click', 1.9).reason !== 'daily-cap') {
       now += 1000
-      ledger.earn('click', 3)
+      earns++
     }
-    expect(ledger.earnedToday('click')).toBe(cap * 3)
+    expect(ledger.earnedToday('click')).toBe(cap)
+    expect(earns).toBeLessThan(cap) // sooner than without minis
   })
 
   it('never pays less than without companions', () => {

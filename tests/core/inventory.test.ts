@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import type { Catalog } from '../../src/core/catalog/catalog'
 import { equipItem, parseCatalog } from '../../src/core/catalog/catalog'
 import {
-  featuredItem,
   InventorySaveSchema,
   newInventory,
   ownedIds,
+  shelfItems,
+  shopCatalog,
 } from '../../src/core/economy/inventory'
 
 const catalog: Catalog = parseCatalog({
@@ -39,12 +40,29 @@ describe('inventory', () => {
   })
 })
 
-describe('featuredItem', () => {
-  it('rotates daily through everything but the starter set', () => {
-    const seen = [20261030, 20261031, 20261101].map((d) => featuredItem(catalog, d, ['plain'])?.id)
-    expect(new Set(seen)).toEqual(new Set(['beanie', 'mint', 'crown']))
-    expect(featuredItem(catalog, 20261030, ['plain'])).toEqual(
-      featuredItem(catalog, 20261030, ['plain']),
-    )
+describe('shelfItems', () => {
+  const shelf = { tiers: [['common', 'uncommon'], ['epic']] as const }
+  const tiers = { tiers: shelf.tiers.map((t) => [...t]) }
+
+  it('puts one item per tier on the shelf, the same all day', () => {
+    const today = shelfItems(catalog, 20261030, tiers, new Set(['plain']))
+    expect(today).toHaveLength(2)
+    expect(['beanie', 'mint']).toContain(today[0]?.id)
+    expect(today[1]?.id).toBe('crown')
+    expect(shelfItems(catalog, 20261030, tiers, new Set(['plain']))).toEqual(today)
+  })
+
+  it('changes from day to day and never shows a skipped item', () => {
+    const seen = new Set<string>()
+    for (let d = 1; d <= 20; d++) {
+      const first = shelfItems(catalog, 20261100 + d, tiers, new Set(['plain']))[0]?.id
+      if (first) seen.add(first)
+    }
+    expect(seen).toEqual(new Set(['beanie', 'mint']))
+  })
+
+  it('leaves a spot empty when its tier has nothing left', () => {
+    const shop = shopCatalog(catalog, new Set(['crown']))
+    expect(shelfItems(shop, 20261030, tiers, new Set()).map((i) => i.rarity)).not.toContain('epic')
   })
 })
