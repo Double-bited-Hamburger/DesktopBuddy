@@ -1,5 +1,6 @@
 import type { WebContents } from 'electron'
 import { ipcMain } from 'electron'
+import { FriendsActionSchema } from '../core/friends/actions'
 import { ZOOM_SPEED } from '../core/toys/coffee'
 import { TURBO_SPEED } from '../core/toys/quack'
 import type { Snack } from '../core/toys/snacks'
@@ -30,6 +31,7 @@ import type { BreakBuddy } from './break-buddy'
 import type { BubbleWindow } from './bubble-window'
 import type { DuckWindow } from './duck-window'
 import type { FriendWindow } from './friend-window'
+import type { FriendsService } from './friends'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
@@ -75,6 +77,8 @@ interface IpcDeps {
   readonly progress: ProgressService
   /** Bond level, achievements, sets, stamps, eggs (economy 2.0). */
   readonly progression: ProgressionService
+  /** Friends over the relay (opt-in, docs/FRIENDS.md). */
+  readonly friendsNet: FriendsService
   /** Tracking settings, Today/Stats views, erase/export and focus sessions. */
   readonly activity: ActivityControls
   /** The Settings screen: validated patches, autostart, export / erase everything, restart. */
@@ -117,6 +121,7 @@ export function registerIpc({
   ball,
   progress,
   progression,
+  friendsNet,
   activity,
   settings,
   breaks,
@@ -321,6 +326,18 @@ export function registerIpc({
     if (id !== undefined && typeof id !== 'string' && typeof id !== 'number')
       throw new Error('Invalid reward id')
     return progression.claim(kind, id)
+  })
+
+  // Friends: panel-only; every action is parsed against FriendsActionSchema first.
+  ipcMain.handle(IPC.friendsView, (event) => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return friendsNet.view()
+  })
+  ipcMain.handle(IPC.friendsDo, (event, action: unknown) => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = FriendsActionSchema.safeParse(action)
+    if (!parsed.success) throw new Error('Invalid friends action')
+    return friendsNet.act(parsed.data)
   })
 
   ipcMain.handle(IPC.hatchEgg, (event, id: unknown): HatchResult => {

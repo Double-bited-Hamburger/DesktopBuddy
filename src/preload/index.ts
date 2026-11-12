@@ -8,6 +8,8 @@ import type {
   BuyResult,
   ClaimResult,
   DuckLivePrefs,
+  FriendsResult,
+  FriendsView,
   GiftResult,
   HatchResult,
   Loadout,
@@ -19,6 +21,7 @@ import type {
   StoreView,
   TodayView,
   UpdateView,
+  VisitorView,
 } from '../shared/ipc'
 import { CARE_EVENTS, FALL_EVENTS, IPC, ROCKET_PHASES, WEATHER_KINDS } from '../shared/ipc'
 
@@ -173,6 +176,15 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.progressionChanged, handler)
     },
     claimReward: (kind, id): Promise<ClaimResult> => ipcRenderer.invoke(IPC.claimReward, kind, id),
+    friends: {
+      view: (): Promise<FriendsView> => ipcRenderer.invoke(IPC.friendsView),
+      do: (action): Promise<FriendsResult> => ipcRenderer.invoke(IPC.friendsDo, action),
+      onChange: (listener) => {
+        const handler = (_event: unknown, view: FriendsView) => listener(view)
+        ipcRenderer.on(IPC.friendsChanged, handler)
+        return () => ipcRenderer.off(IPC.friendsChanged, handler)
+      },
+    },
     hatchEgg: (id): Promise<HatchResult> => ipcRenderer.invoke(IPC.hatchEgg, id),
     activity: {
       today: (): Promise<TodayView> => ipcRenderer.invoke(IPC.activityToday),
@@ -224,6 +236,15 @@ const api: BuddyApi = {
     typed: () => ipcRenderer.send(IPC.talkTyped),
     line: () => ipcRenderer.send(IPC.talkLine),
     done: () => ipcRenderer.send(IPC.talkDone),
+  },
+  visitor: {
+    onShow: (listener) => {
+      const handler = (_event: unknown, view: VisitorView, scale: unknown) => {
+        if (typeof scale === 'number' && view && typeof view === 'object') listener(view, scale)
+      }
+      ipcRenderer.on(IPC.visitorShow, handler)
+      return () => ipcRenderer.off(IPC.visitorShow, handler)
+    },
   },
   friend: {
     onState: (listener) => {

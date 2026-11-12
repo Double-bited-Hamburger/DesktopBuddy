@@ -894,6 +894,30 @@ handful piece is still its own window (about 430 MB for a bread handful in dev).
 the problem, since one seeds snack is one window. Rewriting the pile into a single window means
 reworking the snack windows' physics and click-through; it should be its own task.
 
+## 1.0.0 — Stage 8 (Friends) (built 2026-11-12)
+
+Design and security review: [FRIENDS.md](FRIENDS.md). Owner chose a Cloudflare relay, short
+text messages + waves.
+
+- **Relay** (`relay/`): one Durable Object per friend group on a free Cloudflare Worker, or the
+  same rooms in plain Node (`npm run relay:dev`). Up to 8 ducks a group, frames size- and
+  rate-limited, only the last sealed status kept.
+- **Invite codes** (`DUCK-XXXX-…`, 160-bit secret) give the room id and an AES-256-GCM key; the
+  relay never sees names, outfits, statuses or messages.
+- **Friends screen** ("Pond Pals" / "Amici dello Stagno"): on/off, relay address, make or join a
+  group, copy the code, leave (with "Sure?"), friends with live status (at the PC / away /
+  offline, focusing, ♪ listening and the song), last message, Visit / Send home, Mute, a
+  message box (80 characters) and Wave, and a switch for each thing shared.
+- **Visiting duck:** a friend's duck in their outfit beside yours (click-through), name tag,
+  earphones while they listen, the song or their message in a bubble.
+- **Music:** Windows' "now playing" list (music apps, and browser music with an album, never
+  videos), read only while "listening" is shared; the song itself only
+  with its own switch (off by default).
+- Off by default: no socket and no timers until turned on with a relay and a group.
+
+Deployed the same day to the owner's free Cloudflare account; it is the built-in relay. Verified
+and not verified: see FRIENDS.md.
+
 ## 1.0.0 — Stage 7, part 1 (panel: Journey, shelf, first run) (built 2026-11-12)
 
 - **Journey screen** ("Duck Journey" / "Il Viaggio", star icon in the menu, between Quests and

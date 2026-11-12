@@ -46,6 +46,31 @@ export const NamesSchema = z.object({
 })
 export type Names = z.infer<typeof NamesSchema>
 
+/** What Friends shares, each with its own switch (the song is off until switched on). */
+export const FriendsShareSchema = z.object({
+  look: z.boolean().default(true),
+  presence: z.boolean().default(true),
+  focus: z.boolean().default(true),
+  music: z.boolean().default(true),
+  song: z.boolean().default(false),
+  messages: z.boolean().default(true),
+})
+export type FriendsShare = z.infer<typeof FriendsShareSchema>
+
+export const FriendsSettingsSchema = z.object({
+  enabled: z.boolean().default(false),
+  /** The relay's address (wss://…); empty = the built-in one (core/friends/relay-url.ts). */
+  relay: z.string().max(200).default(''),
+  /** The room's invite code (holds its secret); empty = in no room. Kept on this PC only. */
+  invite: z.string().max(80).default(''),
+  /** This PC's random id in the room. */
+  member: z.string().max(40).default(''),
+  share: FriendsShareSchema.prefault({}),
+  /** Friends whose messages are not shown (member ids). */
+  muted: z.array(z.string().max(40)).max(32).default([]),
+})
+export type FriendsSettings = z.infer<typeof FriendsSettingsSchema>
+
 export const THEMES = ['system', 'light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
 
@@ -116,6 +141,8 @@ export const SettingsSchema = z.object({
       categories: z.record(z.string(), z.enum(['focus', 'distraction', 'neutral'])).default({}),
     })
     .prefault({}),
+  /** Friends (docs/FRIENDS.md): off, and no network, until the user turns it on and joins. */
+  friends: FriendsSettingsSchema.prefault({}),
 })
 
 export type Settings = z.infer<typeof SettingsSchema>

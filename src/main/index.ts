@@ -41,6 +41,8 @@ import { checkEconomy } from '../core/economy/config'
 import { capBars, EarnLog, earnedOn, pointsPerDay } from '../core/economy/earn-log'
 import { localDayKey } from '../core/economy/ledger'
 import { parseEconomy } from '../core/economy/save'
+import type { Listening } from '../core/friends/music'
+import { listeningTo } from '../core/friends/music'
 import { createTranslator } from '../core/i18n/i18n'
 import { pageOfUrl } from '../core/log/log'
 import type { Settings } from '../core/settings/settings'
@@ -80,8 +82,10 @@ import { DuckWindow, SHAPED } from './duck-window'
 import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
 import { FriendWindow } from './friend-window'
+import { FriendsService } from './friends'
 import { registerIpc } from './ipc'
 import { eraseLog, initLog, logError, logInfo, logPath, logWarn } from './log'
+import { windowsNowPlaying } from './now-playing'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
@@ -94,6 +98,7 @@ import { TalkWindow } from './talk-window'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
 import { UpdateService } from './updates'
+import { VisitorWindow } from './visitor-window'
 import { WeatherService } from './weather'
 
 // Keep a reference so the tray icon is not garbage collected.
@@ -147,6 +152,8 @@ function hungerCheckMs(): number {
 
 /** After an unlock or wake-up, the duck waits this long before saying hello. */
 const WELCOME_DELAY_MS = 1500
+/** Friends: idle this long and friends see "away". */
+const FRIENDS_AWAY_SECONDS = 5 * 60
 /** "Hide for 1 hour" in the tray. */
 const AWAY_MS = 60 * 60_000
 
@@ -314,6 +321,8 @@ async function start(): Promise<void> {
     ),
   })
   /** Dresses your duck in an item the player owns. */
+  /** Tells friends about a new outfit or name (set once Friends exists, further down). */
+  let friendsNetChanged = () => {}
   const equip = async (slot: unknown, id: unknown) => {
     const before = settings.loadout
     const loadout = equipItem(catalog, before, slot, id, progress.ownedSet)
@@ -323,6 +332,7 @@ async function start(): Promise<void> {
     await saveSettings(storage, settings)
     duck.window.webContents.send(IPC.loadout, loadout)
     if (changed) progress.record('equip')
+    friendsNetChanged()
     return loadout
   }
   /** Minis multiply what playing with the duck pays (core/economy/companions.ts). */
@@ -929,8 +939,10 @@ async function start(): Promise<void> {
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
       ball.setScale(next.scale)
+      visitor.setScale()
       for (const friend of friends) friend.setScale()
     }
+    if (next.names.duck !== before.names.duck) friendsNetChanged()
     if (JSON.stringify(next.breaks) !== JSON.stringify(before.breaks)) breaks.sync()
     if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
     if (JSON.stringify(next.fullscreen) !== JSON.stringify(before.fullscreen)) checkFullscreen()
@@ -987,8 +999,65 @@ async function start(): Promise<void> {
       mood: duckAsleep ? 'sleepy' : level === 'fine' ? 'happy' : level,
     }
   }
+  // Friends over the relay (docs/FRIENDS.md): off, no socket, until the user turns it on.
+  // What plays, from Windows' own "now playing" list, filtered to music (core/friends/music.ts).
+  // Looked at only while Friends is connected and listening is shared.
+  let nowPlaying: ReturnType<typeof windowsNowPlaying>
+  try {
+    nowPlaying = windowsNowPlaying()
+  } catch (error) {
+    logError('Now playing is unavailable', error)
+  }
+  let listening: Listening | undefined
+  const visitor = new VisitorWindow({
+    scale: () => settings.scale,
+    duckBounds: () => duck.window.getBounds(),
+  })
+  const friendsNet = new FriendsService({
+    settings: () => settings.friends,
+    save: async (next) => {
+      settings = { ...settings, friends: next }
+      await saveSettings(storage, settings)
+    },
+    local: () => ({
+      name: settings.names.duck,
+      look: settings.loadout,
+      here: awaySince === undefined && powerMonitor.getSystemIdleTime() < FRIENDS_AWAY_SECONDS,
+      focusing: tracker.focusing,
+      // The music app is only looked at while listening is shared.
+      song: settings.friends.share.music ? listening?.song : undefined,
+    }),
+    changed: (view) => panel.webContents?.send(IPC.friendsChanged, view),
+    message: (from, text) => {
+      // Over the visitor when it is that friend, else in your duck's bubble.
+      if (visitor.visiting === from.member) return visitor.say(text ?? t('friends.waved'))
+      if (!canTalk()) return
+      bubble.say(
+        text ?? t('friends.waved'),
+        from.name || t('friends.someone'),
+        duck.window.getBounds(),
+        settings.scale,
+      )
+    },
+    visit: (friend) => visitor.show(friend),
+    refresh: async () => {
+      if (!settings.friends.share.music || !nowPlaying) {
+        listening = undefined
+        return
+      }
+      listening = await nowPlaying()
+        .then(listeningTo)
+        .catch((error) => {
+          logWarn(`Now playing failed: ${String(error)}`)
+          return undefined
+        })
+    },
+    log: (text, error) => logWarn(`${text}: ${String(error)}`),
+  })
+  friendsNetChanged = () => friendsNet.localChanged()
   registerIpc({
     dashboard,
+    friendsNet,
     friendOf: (sender) => friends.find((friend) => friend.owns(sender)),
     config,
     equip,
@@ -1027,6 +1096,7 @@ async function start(): Promise<void> {
 
   buildTray()
   started = true
+  friendsNet.sync()
   // First run: three tips, one bubble each. Ignoring one ends them (no nagging).
   const tip = (index: number) => {
     const key = FIRST_RUN_TIPS[index]
@@ -1061,6 +1131,8 @@ async function start(): Promise<void> {
     ball.takeAway()
     weather.stop()
     progression.stop()
+    friendsNet.stop()
+    visitor.close()
   })
   // Write any batched points before the app goes away.
   let flushed = false

@@ -1,0 +1,60 @@
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  font:
+    12px / 1.25 ui-monospace,
+    "Cascadia Mono",
+    Consolas,
+    monospace;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.say,
+.tag {
+  margin: 0;
+  max-width: calc(100vw - 8px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border: 2px solid #3b2a20;
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: #3b2a20;
+}
+
+.say {
+  background: #fffaf0;
+  font-weight: bold;
+}
+
+.tag {
+  background: #f7d84a;
+}
+
+.tag.away {
+  background: #dcc8a0;
+}
+
+canvas {
+  display: block;
+  image-rendering: pixelated;
+}

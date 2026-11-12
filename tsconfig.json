@@ -16,5 +16,5 @@
     "jsxImportSource": "preact",
     "noEmit": true
   },
-  "include": ["src", "tests", "tools", "*.config.ts", "*.config.mts"]
+  "include": ["src", "tests", "tools", "relay", "*.config.ts", "*.config.mts"]
 }

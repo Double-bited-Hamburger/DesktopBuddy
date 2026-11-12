@@ -13,3 +13,6 @@ assets/baked/
 .claude/settings.local.json
 .env
 .env.*
+
+# Cloudflare deploy cache (relay)
+.wrangler/

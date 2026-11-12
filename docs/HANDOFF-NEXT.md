@@ -118,6 +118,10 @@ tray items by hand, and claims/hatching with a save that has some.
 - Then, as time allows: keyboard focus styles, Esc closes the panel, errors shown to the user,
   a confirm before spending more than 500, a snow switch, mute and "hide for 1 hour" in the tray.
 
+### 6a. Stage 8 Friends: DONE and deployed (2026-11-12)
+See docs/FRIENDS.md. The relay runs on the owner's Cloudflare account and is the app's default
+(`DEFAULT_RELAY` in `src/main/relay-url.ts`). Next is Stage 9, the release.
+
 ### 6. Later (ask the owner first)
 - Stage 8 Friends and Stage 9 release are big. See `docs/HANDOFF-1.0.md` and the plan file named
   there.

@@ -82,8 +82,15 @@ as each feature lands.
 4. **User control.** Editable ignore list; editable focus/distraction categories; pause any time;
    one-click **erase all activity** (and erase everything) in Settings → Danger zone; export as
    JSON.
-5. **Friends (Phase 9)** is opt-in and off by default. It uses a **self-hostable** relay; only what
-   the user chooses to share (name, loadout, chat messages) is sent. No tracking data is ever sent.
+5. **Friends (1.0.0)** is opt-in and off by default: no socket at all until the user turns it on
+   and joins a group. It uses a **self-hostable** relay (a Cloudflare Worker or `npm run
+   relay:dev`). Everything is **end-to-end encrypted** (AES-256-GCM, key from the invite code);
+   the relay sees a room id, a random member id, scrambled bytes and, like any server, IP
+   addresses. Only what the user switches on is sent: the duck's name and outfit, at the PC or
+   away, focusing, listening to music, the song title (**off by default**; from Windows'
+   "now playing" list, music only, never videos, every 30 s while connected; see FRIENDS.md) and messages (80 characters).
+   Never sent: app names, other window titles, points, items, tracking data. See
+   [FRIENDS.md](FRIENDS.md).
 6. **No dark data.** Every stored field is listed here; a change to what is stored updates this
    file in the same change.
 
@@ -100,3 +107,10 @@ as each feature lands.
 | `activity-YYYY-MM-DD` | `day`; `apps` (process names seen, empty while app names are off); `minutes` as `[minute of day, app index or -1, active 1/0]`; `sessions` as `[start minute, length]` | Phase 6 |
 | `*-backup-<time>`     | a copy of a save file that failed validation, kept instead of deleted (since 1.0.0 `settings` too, and a file that isn't valid JSON is copied byte for byte) | Phase 4 |
 | `logs/buddy.log` (+ `.1`) | app lifecycle and errors only, see "Log file" above (next to `data/`, not in it) | 1.0.0 |
+
+### Friends (settings.json, `friends`)
+
+- `enabled`, `relay` (address), `invite` (the group's invite code, which holds its secret: kept on
+  this PC only), `member` (this PC's random id in the group), `share` (the switches), `muted`
+  (member ids whose messages are hidden). Friends' statuses and messages are kept in memory only,
+  never written to disk. "Leave" asks the relay to forget this PC's last status.

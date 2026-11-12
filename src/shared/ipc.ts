@@ -11,6 +11,7 @@ import type { LevelProgress } from '../core/economy/levels'
 import type { QuestView } from '../core/economy/quests'
 import type { Reward } from '../core/economy/rewards'
 import type { AlbumSetView } from '../core/economy/sets'
+import type { FriendsAction } from '../core/friends/actions'
 import type {
   Breaks,
   DuckPrefs,
@@ -66,6 +67,9 @@ export const IPC = {
   progressionChanged: 'panel:progression-changed',
   claimReward: 'panel:claim-reward',
   hatchEgg: 'panel:hatch-egg',
+  friendsView: 'panel:friends-view',
+  friendsDo: 'panel:friends-do',
+  friendsChanged: 'panel:friends-changed',
   activityToday: 'panel:activity-today',
   activityStats: 'panel:activity-stats',
   activityScreenTime: 'panel:activity-screen-time',
@@ -86,6 +90,7 @@ export const IPC = {
   care: 'duck:care',
   weather: 'duck:weather',
   friendState: 'friend:state',
+  visitorShow: 'visitor:show',
   friendHover: 'friend:hover',
   friendGrab: 'friend:grab',
   friendDrop: 'friend:drop',
@@ -136,6 +141,68 @@ export interface AppConfig {
 
 /** What the duck wears: catalog ids (see assets/economy/catalog.json). */
 export type Loadout = Settings['loadout']
+
+/** Where the Friends connection stands. */
+export type FriendsConnection =
+  | 'off'
+  | 'no-relay'
+  | 'no-room'
+  | 'connecting'
+  | 'online'
+  | 'offline'
+  | 'full'
+
+/** One friend's duck, as shown on the Friends screen. */
+export interface FriendView {
+  readonly member: string
+  readonly name: string
+  readonly look?: Loadout
+  /** 'offline': its app is not connected; 'unknown': it shares no presence. */
+  readonly presence: 'here' | 'away' | 'offline' | 'unknown'
+  readonly focusing: boolean
+  readonly music?: { readonly song?: string }
+  readonly muted: boolean
+  readonly visiting: boolean
+  readonly lastMessage?: { readonly text?: string; readonly wave?: boolean; readonly at: number }
+}
+
+export interface FriendsView {
+  readonly enabled: boolean
+  /** The relay address set by the user (empty = the built-in one). */
+  readonly relay: string
+  readonly defaultRelay: string
+  /** The room's invite code (empty = in no room). */
+  readonly invite: string
+  readonly connection: FriendsConnection
+  readonly share: Settings['friends']['share']
+  readonly friends: readonly FriendView[]
+  readonly maxMembers: number
+  /** What friends see of you now (only while connected). */
+  readonly seen?: {
+    readonly presence?: 'here' | 'away'
+    readonly focusing?: boolean
+    readonly music?: { readonly song?: string }
+  }
+}
+
+/** What the visiting duck's page draws. */
+export interface VisitorView {
+  readonly name: string
+  readonly look: Loadout
+  readonly music?: { readonly song?: string }
+  /** Away from their PC (or offline): it sits. */
+  readonly away: boolean
+  /** A message, shown for a few seconds. */
+  readonly say?: string
+}
+
+export type FriendsResult =
+  | { readonly ok: true; readonly view: FriendsView }
+  | {
+      readonly ok: false
+      readonly reason: 'code' | 'relay' | 'offline' | 'empty'
+      readonly view: FriendsView
+    }
 
 /** What the duck page may ask to earn for. Throws (`play`) are detected by main itself. */
 /** The mini friends out with your duck (Bag, Friends tab), and what they add to the points. */
@@ -649,6 +716,13 @@ export interface BuddyApi {
     claimReward(kind: RewardKind, id?: string | number): Promise<ClaimResult>
     /** Hatches a ready egg into a mini (by the odds shown). */
     hatchEgg(id: number): Promise<HatchResult>
+    /** Friends (opt-in, docs/FRIENDS.md). */
+    friends: {
+      view(): Promise<FriendsView>
+      do(action: FriendsAction): Promise<FriendsResult>
+      /** The view changed (a friend's status, the connection). Returns unsubscribe. */
+      onChange(listener: (view: FriendsView) => void): () => void
+    }
     /** Opt-in activity tracking and focus sessions (Today / Stats). */
     activity: {
       today(): Promise<TodayView>
@@ -718,6 +792,10 @@ export interface BuddyApi {
     /** Picked up with the mouse, and let go (main moves the window and drops it on a floor). */
     grab(): void
     drop(): void
+  }
+  /** A friend's visiting duck (Friends): its page draws what main sends. */
+  visitor: {
+    onShow(listener: (view: VisitorView, scale: number) => void): () => void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

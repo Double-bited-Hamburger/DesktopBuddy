@@ -25,7 +25,9 @@
     "smoke": "node tools/smoke-cdp.mjs",
     "perf": "node tools/measure-perf.mjs",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "readme-art": "tsx tools/readme-art.ts"
+    "readme-art": "tsx tools/readme-art.ts",
+    "relay:dev": "tsx relay/local.ts",
+    "relay:deploy": "npx wrangler@4 deploy --config relay/wrangler.toml"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.3",

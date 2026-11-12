@@ -11,6 +11,7 @@ import type { Snack } from '../../core/toys/snacks'
 import { SNACKS } from '../../core/toys/snacks'
 import type { Loadout, ProgressionView, SettingsView, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
+import { Friends } from './friends'
 import { Home } from './home'
 import { Journey } from './journey'
 import type { Screen } from './menu'
@@ -239,6 +240,7 @@ function App() {
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}
       {screen === 'journey' && <Journey t={t} language={language} />}
+      {screen === 'friends' && <Friends t={t} />}
       {screen === 'today' && <Today t={t} />}
       {screen === 'stats' && <Stats t={t} language={language} onGo={setScreen} />}
       {screen === 'settings' && <Settings t={t} onChange={settingsChanged} />}

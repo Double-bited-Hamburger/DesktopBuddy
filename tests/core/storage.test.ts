@@ -50,6 +50,22 @@ describe('settings', () => {
       volume: 0.5,
       muted: false,
       snow: true,
+      // Friends: off, no relay, no room; the song is never shared unless switched on.
+      friends: {
+        enabled: false,
+        relay: '',
+        invite: '',
+        member: '',
+        share: {
+          look: true,
+          presence: true,
+          focus: true,
+          music: true,
+          song: false,
+          messages: true,
+        },
+        muted: [],
+      },
       showPointsPill: false,
       theme: 'system',
       duck: { wander: true, naps: true, chatter: true, fidget: true },
