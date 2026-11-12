@@ -1,0 +1,19 @@
+# A green frog hood with two eyes on top.
+name: frog-hood
+size: 15x7
+anchor: head 7 5
+palette:
+  K #2a1f2d
+  G #6cc04a
+  L #a5e07a
+  W #ffffff
+  E #1e1620
+
+@frame frog-hood
+..KKK.....KKK..
+.KWEWK...KWEWK.
+.KGGGKKKKKGGGK.
+KGGGGGGGGGGGGGK
+KGLGGGGGGGGGGGK
+KGGGGGGGGGGGGGK
+.KKKKKKKKKKKKK.

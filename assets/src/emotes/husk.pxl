@@ -1,0 +1,12 @@
+# A tiny seed husk left behind after pecking.
+name: husk
+size: 4x3
+palette:
+  K #4a3a24
+  B #d8b46a
+  b #9c7a3a
+
+@frame husk
+.KK.
+KBbK
+.KK.

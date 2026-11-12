@@ -1,0 +1,20 @@
+# A striped cap with a propeller on top.
+name: propeller-cap
+size: 13x8
+anchor: head 6 6
+palette:
+  K #2a1f2d
+  R #e0483e
+  B #3b6fd1
+  Y #f2c230
+  G #58a84a
+
+@frame propeller-cap
+.RRRRKYYYY...
+......K......
+....KKKKK....
+...KRRBBYK...
+..KRRBBBYYK..
+..KRRBBBYYKKK
+..KKKKKKKKGGK
+..........KK.

@@ -1,0 +1,13 @@
+# A pirate eye patch.
+name: eye-patch
+size: 10x4
+anchor: face 7 1
+palette:
+  K #2a1f2d
+  B #3a3a4a
+
+@frame eye-patch
+KKKKKKKKKK
+......KBBK
+......KBBK
+.......KK.

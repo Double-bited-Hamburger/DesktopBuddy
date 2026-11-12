@@ -1,0 +1,15 @@
+# A crown of pink and yellow flowers.
+name: flower-crown
+size: 13x4
+anchor: head 6 3
+palette:
+  K #2a1f2d
+  P #f08ab0
+  Y #f7d84a
+  G #58a84a
+
+@frame flower-crown
+.KK.KK.KK.KK.
+KPPKYYKPPKYYK
+KPPKYYKPPKYYK
+GKKGKKGKKGKKG

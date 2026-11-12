@@ -5,16 +5,16 @@ import { describe, expect, it } from 'vitest'
 import { SpriteManifestSchema } from '../../src/core/sprite/sheet'
 import { bakePxl } from '../../tools/lib/bake'
 
-const duck = readFileSync(join(__dirname, '../../assets/src/ducks/placeholder-duck.pxl'), 'utf8')
+const duck = readFileSync(join(__dirname, '../../assets/src/ducks/duck.pxl'), 'utf8')
 
 describe('bakePxl', () => {
-  it('bakes the placeholder duck into a valid manifest and a decodable PNG strip', () => {
+  it('bakes the duck into a valid manifest and a decodable PNG strip', () => {
     const baked = bakePxl(duck)
-    expect(baked.name).toBe('placeholder-duck')
+    expect(baked.name).toBe('duck')
     expect(SpriteManifestSchema.safeParse(baked.manifest).success).toBe(true)
 
     const png = PNG.sync.read(baked.png)
-    expect([png.width, png.height]).toEqual([896, 32]) // 28 frames of 32x32
+    expect([png.width, png.height]).toEqual([1888, 32]) // 59 frames of 32x32
     // Transparent corner stays transparent; the outline pixel at frame 0 row 4 col 18 is opaque.
     expect(png.data[3]).toBe(0)
     expect(png.data[(4 * png.width + 18) * 4 + 3]).toBe(255)

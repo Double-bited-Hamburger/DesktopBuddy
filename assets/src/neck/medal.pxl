@@ -1,0 +1,17 @@
+# A gold medal on a blue ribbon.
+name: medal
+size: 5x6
+anchor: neck 2 0
+palette:
+  K #2a1f2d
+  B #3b6fd1
+  Y #f2c230
+  L #fff3a8
+
+@frame medal
+KBKBK
+.KBK.
+.KKK.
+KYLYK
+KYYYK
+.KKK.

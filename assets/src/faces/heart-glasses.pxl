@@ -1,0 +1,14 @@
+# Pink heart-shaped glasses.
+name: heart-glasses
+size: 10x4
+anchor: face 7 1
+palette:
+  K #2a1f2d
+  P #f0508a
+  L #ffb0cc
+
+@frame heart-glasses
+KKKKKKKKKK
+......KPLK
+......KPPK
+.......KK.

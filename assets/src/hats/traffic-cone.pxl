@@ -1,0 +1,20 @@
+# A traffic cone worn as a hat.
+name: traffic-cone
+size: 11x10
+anchor: head 5 8
+palette:
+  K #2a1f2d
+  O #f2742b
+  W #ffffff
+
+@frame traffic-cone
+....KKK....
+....KOK....
+...KOOOK...
+...KWWWK...
+..KOOOOOK..
+..KOOOOOK..
+.KWWWWWWWK.
+.KOOOOOOOK.
+KOOOOOOOOOK
+KKKKKKKKKKK

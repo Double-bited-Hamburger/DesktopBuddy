@@ -1,0 +1,20 @@
+# A storybook sparkle: big, then small.
+name: sparkle
+size: 5x5
+palette:
+  Y #f7d84a
+  L #fff6b0
+
+@frame sparkle-1
+..Y..
+..Y..
+YYLYY
+..Y..
+..Y..
+
+@frame sparkle-2
+.....
+.Y.Y.
+..L..
+.Y.Y.
+.....

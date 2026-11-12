@@ -1,0 +1,13 @@
+# A red bow tie.
+name: bow-tie
+size: 7x4
+anchor: neck 3 1
+palette:
+  K #2a1f2d
+  R #d23a3a
+
+@frame bow-tie
+KK...KK
+KRKKKRK
+KRKKKRK
+KK...KK

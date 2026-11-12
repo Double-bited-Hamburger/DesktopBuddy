@@ -1,0 +1,18 @@
+# The early-bird cap: a rising sun. Only for ducks that were here before 1.0.0.
+name: early-bird
+size: 13x7
+anchor: head 6 5
+palette:
+  K #2a1f2d
+  Y #f7c83a
+  L #fff3a8
+  B #3b6fd1
+
+@frame early-bird
+..Y...Y...Y..
+...Y.KKK.Y...
+....KYYYK....
+YY.KYYLYYK.YY
+..KYYYYYYYK..
+.KBBBBBBBBBK.
+.KKKKKKKKKKK.

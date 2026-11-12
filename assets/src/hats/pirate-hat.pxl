@@ -1,0 +1,19 @@
+# A pirate hat with a gold trim.
+name: pirate-hat
+size: 15x8
+anchor: head 7 6
+palette:
+  K #2a1f2d
+  B #2b2b3a
+  W #f4f4f4
+  G #e0b030
+
+@frame pirate-hat
+......KKK......
+....KKBBBKK....
+...KBBWBWBBK...
+..KBBBBWBBBBK..
+.KBBBBWBWBBBBK.
+KGGGGGGGGGGGGGK
+KKBBBBBBBBBBBKK
+..KKKKKKKKKKK..

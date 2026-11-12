@@ -53,13 +53,27 @@ needed — the format doesn't change.
 
 ## Frames
 
-A duck needs at least: `idle`, `blink`, `step` (walk). Planned: `sleep`, `quack`, `peck`,
-`ruffle`, `happy`, plus emote overlays (wave, thumbs-up, peace — pixel hands are on the roadmap).
-Animation timing lives in code (`AnimationSet`), not in the art files.
+The duck is `ducks/duck.pxl` (53 frames, redrawn for 1.0.0). Code refers to frames by name, so
+**never rename one**; add new ones. Animation timing lives in code (`core/anim/clips.ts`), not in
+the art files. Head anchor `head 20 5`, `face 22 10` unless the frame overrides it.
 
-Special duck frames (0.8.0): `shock` faces **the viewer** (wide eyes, wings stiff; no hat or
-glasses are drawn on it: its anchors are for the side view), and `lie` is the duck flat on the
-taskbar for fullscreen videos (one bulging eye rolled up). Effects that go with them:
+| Group | Frames |
+| --- | --- |
+| Standing | `idle`, `blink`, `happy` (^ eyes, cheek), `wide` (big eye), `tired` (lid), `stare` (brow), `savor`, `wag` (tail up; alternate with idle), `pet-lean` (head up into the hand, eyes shut) |
+| Beak | `quack`, `yawn-small`, `yawn`, `cough`, `sneeze`, `burp` (chest out, cheeks), `foam` (white foam on the beak) |
+| Walking | `step`, `walk-1..4` (waddle: out, dip, out, dip), `wide-step`, `tired-step`, `run-1..4` (leaning in, big leg swing, 4 = feet off the ground) |
+| Resting | `sit` = napping **loaf** breathing out, `loaf-2` breathing in (back 1 px higher), `crouch`, `getup-1` (half up from the loaf, sleepy), `wake` (poked awake: wide eyes, feathers puffed) |
+| Watching a film | `lie` (on its belly, head up, heavy lid, cheek), `lie-blink` |
+| Moved by you | `held-1`/`held-2` (dangling, feet kicking in turn, beak open), `flap-1`/`flap-2` (wings up/down, panicked eyes), `land` (squashed 2 px shorter, wider), `ouch`/`ouch-2` (sat down, swirly eyes, stars going round) |
+| Fidgets | `shake-l`/`shake-r`, `stretch`, `hop`, `preen` (head turned back into the wing), `scratch` (one foot up behind the head) |
+| Food | `peck` (head turned down), `peck-fast` (beak on the ground, for seeds), `bulge`/`jitter` (QUACK can: huge eyes, feathers on end; jitter moves the head 1 px), `hiccup` |
+| Special | `shock` (facing the viewer) |
+
+`shock` faces **the viewer** (wide eyes, wings stiff; no hat or glasses are drawn on it: its
+anchors are for the side view). No frame may read as dead: closed eyes are curves (^ or ‿), dizzy
+eyes are swirls, never X eyes or a rolled-up eye. On `preen` the head faces left, so glasses sit
+only roughly; on `peck`/`peck-fast` the hat sits on the turned-down crown. Effects that go with
+the special frames:
 `toys/rocket` (12×24, flame frames), `emotes/boom` (32×32, 8 frames: flash, fireball, rocket bits,
 smoke), `emotes/glint` (5×5, on the sunglasses), `toys/umbrella` `open-1..3` (the umbrella puffing
 open above a floating duck).
@@ -70,6 +84,43 @@ recolored per item like skins, with palettes that differ from the duck skins. Fr
 
 After adding or changing any item or sprite, run `npm run readme-art` (the README wardrobe is
 built from the catalog; a test checks its caption).
+
+**Emotes added for 1.0.0** (not wired yet): `emotes/dream` (16×12, `dream-bread`, `dream-pond`:
+a thought cloud over a nap), `emotes/swirl-stars` (21×7, 4 frames: a ring of stars round the
+head), `emotes/shout` (38×15, `shout-1`, `shout-2` shaken 1 px: "QUAAACK!", never mirrored),
+`emotes/speed-lines` (12×12, 2 frames, behind a running duck), `emotes/dust` (11×7, 3 frames,
+braking), `emotes/husk` (4×3, a seed husk), `emotes/hic` (15×11, a "hic" bubble). Lettering is our
+own 3×5 pixel font.
+
+## Body zones (palette keys of `ducks/duck`)
+
+Every part of the duck has its own key, so a skin can paint parts differently and still be a
+pure palette swap. In the classic duck the zones are close creams, but **every hex is distinct**
+(the recolor is an exact-color match; a test checks it).
+
+| Key | Zone | Classic |
+| --- | --- | --- |
+| `K` | outline | `#2a1f2d` |
+| `E` | eye | `#1e1620` |
+| `I` | eye shine, coffee foam (leave it white unless the skin needs otherwise) | `#ffffff` |
+| `H` | head: light (top-left of the crown) | `#fffaf0` |
+| `A` | head: main (down to the neck) | `#f3e8d0` |
+| `W` | body: main (back and sides) | `#f4e9d1` |
+| `S` | body: shade (underside) | `#dcc8a0` |
+| `C` | chest and belly (throat down to between the legs) | `#fbf3e0` |
+| `G` | wing: main | `#ece0c3` |
+| `V` | wing: feather line (lower edge, tip) | `#cdb68a` |
+| `T` | tail tuft | `#f2e6cc` |
+| `O` / `D` | beak and feet / their dark side | `#f2872b` / `#b8561a` |
+| `Y` | stars (dizzy) | `#f7d84a` |
+| `P` | cheeks, inside of the beak | `#f2a0a0` |
+
+15 colors; one slot is free (keep it free for a marking zone, e.g. bee stripes, if a skin truly
+needs one). Recipes: **mallard** = green `A`/`H`, grey `W`/`S`, brown `C`, blue `G` with dark
+`V`, black `T`; **tuxedo** = black `A`/`W`/`G`/`T`, white `C`, grey `S`/`V`. Stripes or spots
+that cross zones are not a palette swap: they need the free key painted into the frames, or their
+own sprite (rare tiers and up may have their own silhouette). A skin that only sets the old keys
+(`K W S H O D E`) leaves the zones classic cream, so new skins must set `A C G V T` too.
 
 ## Duck types (skins) and rarity
 

@@ -1,0 +1,28 @@
+# The storybook of fables the duck reads: open, and a page turning.
+name: storybook
+size: 12x8
+palette:
+  K #2a1f2d
+  W #fffaf0
+  L #b9a98a
+  B #7a3e8f
+
+@frame book-open
+.KKKK..KKKK.
+KWWWWKKWWWWK
+KWLLWKKWLLWK
+KWWWWKKWWWWK
+KWLLWKKWLWWK
+KWWWWKKWWWWK
+KBBBBBBBBBBK
+.KKKKKKKKKK.
+
+@frame book-turn
+.KKKK.KKKKK.
+KWWWWKWKWWWK
+KWLLWKWWKLWK
+KWWWWKKWKWWK
+KWLLWKKWLWWK
+KWWWWKKWWWWK
+KBBBBBBBBBBK
+.KKKKKKKKKK.

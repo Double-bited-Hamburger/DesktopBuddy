@@ -1,0 +1,20 @@
+# A top hat with a red band.
+name: top-hat
+size: 13x9
+anchor: head 6 7
+palette:
+  K #2a1f2d
+  B #2b2b3a
+  L #5a5a70
+  R #d23a3a
+
+@frame top-hat
+...KKKKKKK...
+...KLBBBBK...
+...KLBBBBK...
+...KLBBBBK...
+...KBBBBBK...
+...KRRRRRK...
+KKKKBBBBBKKKK
+KBBBBBBBBBBBK
+.KKKKKKKKKKK.

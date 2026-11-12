@@ -1,0 +1,23 @@
+# Music notes floating up while the duck sings.
+name: notes
+size: 7x7
+palette:
+  K #2a1f2d
+
+@frame note-1
+...KK..
+...KKK.
+...K.K.
+...K...
+.KKK...
+KKKK...
+.KK....
+
+@frame note-2
+.KKKKK.
+.K...K.
+.K...K.
+.K...K.
+KK..KK.
+KK..KK.
+.......

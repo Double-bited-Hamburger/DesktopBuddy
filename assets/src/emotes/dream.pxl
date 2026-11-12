@@ -1,0 +1,39 @@
+# Dreaming during a nap: a thought cloud with a tiny bread, then a tiny pond.
+name: dream
+size: 16x12
+palette:
+  K #2a1f2d
+  H #fffaf0
+  B #e0a24f
+  b #9c5a24
+  L #4f9fd8
+  l #a9dcff
+  R #4f9a45
+
+@frame dream-bread
+....KKKKKKKKK...
+...KHHHHHHHHHK..
+..KHHHbbbbHHHHK.
+.KHHHbBBBBbHHHHK
+.KHHHbBbBbBHHHHK
+.KHHHbBBBBbHHHHK
+..KHHHbbbbHHHHK.
+...KKKKKKKKKKK..
+...KHHK.........
+...KHHK.........
+....KK..........
+..K.............
+
+@frame dream-pond
+....KKKKKKKKK...
+...KHHHHHHHHHK..
+..KHRHHHHHHHHHK.
+.KHHRHlLLLlHHHHK
+.KHLLLLLLLLLLHHK
+.KHHLlLLLLlLHHHK
+..KHHHHHHHHHHHK.
+...KKKKKKKKKKK..
+...KHHK.........
+...KHHK.........
+....KK..........
+..K.............

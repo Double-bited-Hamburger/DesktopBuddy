@@ -1,0 +1,16 @@
+# A golden halo floating over the head.
+name: halo
+size: 11x6
+anchor: head 5 5
+palette:
+  K #2a1f2d
+  Y #f7d84a
+  L #fff6b0
+
+@frame halo
+.KKKKKKKKK.
+KYYYLLYYYYK
+.KKKKKKKKK.
+...........
+...........
+...........

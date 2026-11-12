@@ -1,0 +1,34 @@
+# Braking hard: a puff of dust at the feet that spreads and fades (3 frames).
+name: dust
+size: 11x7
+palette:
+  K #5a4e44
+  M #e3d8c4
+  m #b3a48c
+
+@frame dust-1
+...........
+.....KK....
+....KMMK...
+...KMMMmK..
+...KMMmmK..
+....KmmK...
+.....KK....
+
+@frame dust-2
+...........
+.......KK..
+..KK..KMMK.
+.KMMKKMMMmK
+.KMmKKMMmmK
+..KK..KmmK.
+.......KK..
+
+@frame dust-3
+........KK.
+.K.....KMMK
+KmK....KMmK
+.K..K...KK.
+...KmK.....
+....K......
+...........

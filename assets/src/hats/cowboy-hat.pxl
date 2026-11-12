@@ -1,0 +1,18 @@
+# A cowboy hat with a curled brim.
+name: cowboy-hat
+size: 15x7
+anchor: head 7 5
+palette:
+  K #2a1f2d
+  T #a8703a
+  L #c98f55
+  D #5a3418
+
+@frame cowboy-hat
+.....KKKKK.....
+....KTTLTTK....
+....KTTTTTK....
+K...KDDDDDK...K
+KTKKTTTTTTTKKTK
+.KTTTTTTTTTTTK.
+..KKKKKKKKKKK..

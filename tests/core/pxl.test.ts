@@ -99,8 +99,8 @@ describe('pxlToSprite', () => {
   })
 })
 
-describe('placeholder duck source', () => {
-  const text = readFileSync(join(__dirname, '../../assets/src/ducks/placeholder-duck.pxl'), 'utf8')
+describe('duck source', () => {
+  const text = readFileSync(join(__dirname, '../../assets/src/ducks/duck.pxl'), 'utf8')
 
   it('parses and follows the art bible limits', () => {
     const doc = parsePxl(text)
@@ -134,6 +134,37 @@ describe('placeholder duck source', () => {
       'hop',
       'shock',
       'lie',
+      'loaf-2',
+      'lie-blink',
+      'ouch-2',
+      'held-1',
+      'held-2',
+      'flap-1',
+      'flap-2',
+      'land',
+      'wake',
+      'getup-1',
+      'run-1',
+      'run-2',
+      'run-3',
+      'run-4',
+      'preen',
+      'scratch',
+      'sneeze',
+      'wag',
+      'pet-lean',
+      'foam',
+      'bulge',
+      'jitter',
+      'hiccup',
+      'burp',
+      'peck-fast',
+      'wink',
+      'sing',
+      'tada',
+      'read',
+      'front',
+      'back',
     ])
     expect(lintPxl(doc)).toEqual([])
     expect(doc.anchors.head).toBeDefined()

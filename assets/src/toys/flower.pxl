@@ -1,0 +1,17 @@
+# A seed left overnight grows into a little flower.
+name: flower
+size: 5x7
+palette:
+  K #2a1f2d
+  P #f08ab0
+  Y #f7d84a
+  G #58a84a
+
+@frame flower
+.KKK.
+KPPPK
+KPYPK
+KPPPK
+.KGK.
+GKGK.
+.KGK.

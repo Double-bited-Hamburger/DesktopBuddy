@@ -1,0 +1,16 @@
+# A striped winter scarf.
+name: scarf
+size: 12x6
+anchor: neck 7 1
+palette:
+  K #2a1f2d
+  R #d23a3a
+  W #f4ede0
+
+@frame scarf
+.KKKKKKKKKK.
+KRRWRRWRRWRK
+.KKKKKRWKKK.
+......KRRK..
+......KWRK..
+......KKKK..

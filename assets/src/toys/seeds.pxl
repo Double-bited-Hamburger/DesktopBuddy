@@ -1,0 +1,21 @@
+# A scattered handful of seeds. seeds-3 is the whole pile, seeds-1 the last few.
+name: seeds
+size: 8x3
+palette:
+  S #c9a45a
+  D #8a6a2e
+
+@frame seeds-3
+.S..D.S.
+S.DS.S.D
+.S.S.DS.
+
+@frame seeds-2
+....D.S.
+..DS.S.D
+...S.DS.
+
+@frame seeds-1
+........
+.....S.D
+......S.

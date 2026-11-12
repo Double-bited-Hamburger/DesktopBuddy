@@ -1,0 +1,18 @@
+# A monocle on a little gold chain.
+name: monocle
+size: 6x7
+anchor: face 1 1
+palette:
+  K #2a1f2d
+  L #cfe8ff
+  G #a8d0f0
+  Y #e0b030
+
+@frame monocle
+.KKK..
+KLLLK.
+KLGLK.
+.KKK..
+...Y..
+...Y..
+..Y...

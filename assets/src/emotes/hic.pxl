@@ -1,0 +1,19 @@
+# Hiccup: a small "hic" bubble.
+name: hic
+size: 15x11
+palette:
+  K #2a1f2d
+  H #fffaf0
+
+@frame hic
+..KKKKKKKKKKK..
+.KHHHHHHHHHHHK.
+KHHKHHHKHHHHHHK
+KHHKHHHHHHKKHHK
+KHHKKKHKHKHHHHK
+KHHKHKHKHKHHHHK
+KHHKHKHKHHKKHHK
+.KHHHHHHHHHHHK.
+..KHHKKKKKKKK..
+..KHK..........
+...K...........

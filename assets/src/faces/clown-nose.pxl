@@ -1,0 +1,14 @@
+# A red clown nose on the tip of the beak.
+name: clown-nose
+size: 10x4
+anchor: face 0 1
+palette:
+  K #2a1f2d
+  R #e0303a
+  L #ff8a8a
+
+@frame clown-nose
+.......KK.
+......KRLK
+......KRRK
+.......KK.

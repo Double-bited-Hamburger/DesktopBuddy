@@ -1,0 +1,20 @@
+# A tall puffy chef hat.
+name: chef-hat
+size: 13x10
+anchor: head 6 8
+palette:
+  K #2a1f2d
+  W #ffffff
+  S #d5d5e0
+
+@frame chef-hat
+...KKKKKKK...
+..KWWWWWWWK..
+.KWWWWWWWWWK.
+KWWWWWWWWWWWK
+KWWSWWWSWWWWK
+.KWSWWWSWWWK.
+..KWWWWWWWK..
+..KWWWWWWWK..
+..KSSSSSSSK..
+..KKKKKKKKK..

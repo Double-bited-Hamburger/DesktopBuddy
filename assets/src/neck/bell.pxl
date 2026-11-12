@@ -1,0 +1,18 @@
+# A little bell on a red collar.
+name: bell
+size: 5x6
+anchor: neck 2 0
+palette:
+  K #2a1f2d
+  R #d23a3a
+  Y #f2c230
+  L #fff3a8
+  E #1e1620
+
+@frame bell
+KRRRK
+.KKK.
+KYLYK
+KYYYK
+KKEKK
+..K..
