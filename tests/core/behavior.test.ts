@@ -7,10 +7,15 @@ import {
   FIDGETS,
   GETUP_MS,
   pinnedBehaviorConfig,
+  RESTS,
+  SHAKE_MS,
   STARE_MAX_MS,
   TURN_MS,
   tiredBehaviorConfig,
+  WAG_MS,
+  WAKE_MS,
 } from '../../src/core/behavior/machine'
+import { dayBehaviorConfig } from '../../src/core/care/day'
 import { LISTEN_MAX_MS } from '../../src/core/care/listen'
 import { DRINK_MS } from '../../src/core/toys/coffee'
 import { sequence } from '../helpers'
@@ -58,11 +63,16 @@ describe('BehaviorMachine', () => {
     expect(machine.state).toBe('idle')
   })
 
-  it('wakes from sleep when poked, and ignores a poke otherwise', () => {
-    const machine = new BehaviorMachine(sequence([0, 0.6, 0, 0.5]), BASIC)
+  it('jumps awake when poked asleep, then idles; a poke otherwise does nothing', () => {
+    const machine = new BehaviorMachine(sequence([0, 0.6, 0, 0.5, 0, 0]), BASIC)
     machine.update(1500)
     expect(machine.state).toBe('sleep')
     machine.poke()
+    expect(machine.state).toBe('wake')
+    expect(machine.msUntilDecision).toBe(WAKE_MS)
+    machine.poke()
+    expect(machine.state).toBe('wake') // no second startle
+    machine.update(WAKE_MS)
     expect(machine.state).toBe('idle')
     machine.poke()
     expect(machine.state).toBe('idle')
@@ -136,16 +146,18 @@ describe('BehaviorMachine', () => {
     expect(machine.state).toBe('idle')
   })
 
-  it('sits dazed after a hard landing, then gets back up', () => {
+  it('sits dazed after a hard landing, shakes its head clear, then gets back up', () => {
     const machine = new BehaviorMachine(sequence([0, 0, 0]), BASIC)
     machine.hurt()
     expect(machine.state).toBe('ouch')
     expect(machine.msUntilDecision).toBe(2000)
     machine.update(2000)
+    expect(machine.state).toBe('shake')
+    machine.update(SHAKE_MS)
     expect(machine.state).toBe('idle')
   })
 
-  it('is happy while petted, even asleep, then goes back to idle', () => {
+  it('is happy while petted, even asleep, then wags its tail and idles', () => {
     const machine = new BehaviorMachine(sequence([0, 0.6, 0, 0, 0]), BASIC)
     machine.update(1500)
     expect(machine.state).toBe('sleep')
@@ -156,6 +168,8 @@ describe('BehaviorMachine', () => {
     machine.pet() // more petting: happy for longer
     expect(machine.msUntilDecision).toBe(1500)
     machine.update(1500)
+    expect(machine.state).toBe('wag')
+    machine.update(WAG_MS)
     expect(machine.state).toBe('idle')
   })
 
@@ -172,7 +186,7 @@ describe('BehaviorMachine', () => {
 })
 
 describe('pinnedBehaviorConfig', () => {
-  it.each(BEHAVIOR_STATES.filter((state) => state !== 'turn'))(
+  it.each(BEHAVIOR_STATES.filter((state) => state !== 'turn' && state !== 'wake'))(
     'keeps the duck in %s forever',
     (state) => {
       const machine = new BehaviorMachine(sequence([0.5]), pinnedBehaviorConfig())
@@ -197,7 +211,10 @@ describe('pinnedBehaviorConfig', () => {
     const machine = new BehaviorMachine(sequence([0.5]), pinnedBehaviorConfig())
     machine.enter('sleep')
     machine.poke()
+    expect(machine.state).toBe('wake')
+    machine.update(WAKE_MS)
     expect(machine.state).toBe('idle')
+    expect(machine.update(1_000_000_000)).toBe(false)
   })
 })
 
@@ -211,7 +228,7 @@ describe('behaviorConfigFor', () => {
   it('removes switched-off idle choices', () => {
     const idle = behaviorConfigFor({ wander: false, naps: true, chatter: false, fidget: false })
       .next.idle
-    expect(Object.keys(idle).sort()).toEqual(['idle', 'sleep'])
+    expect(Object.keys(idle).sort()).toEqual(['idle', 'sleep', 'story']) // the rests stay
   })
 
   it('never walks once wandering is off', () => {
@@ -334,5 +351,34 @@ describe('idle moments', () => {
     const lively = behaviorConfigFor({ ...all, wander: false, naps: false, chatter: false }).next
       .idle
     for (const moment of FIDGETS) expect(lively[moment]).toBeGreaterThan(0)
+  })
+})
+
+describe('signature moments (1.0.0)', () => {
+  const all = { wander: true, naps: true, chatter: true, fidget: true }
+
+  it('storytime is a rest: it goes with the naps switch, not the fidgets', () => {
+    expect(RESTS).toContain('story')
+    expect(FIDGETS).not.toContain('story')
+    expect(behaviorConfigFor({ ...all, naps: false }).next.idle.story).toBeUndefined()
+    expect(behaviorConfigFor({ ...all, fidget: false }).next.idle.story).toBeGreaterThan(0)
+  })
+
+  it('the song and the twirl are fidgets, and every signature moment ends in idle', () => {
+    expect(FIDGETS).toEqual(expect.arrayContaining(['song', 'twirl']))
+    for (const state of ['story', 'song', 'twirl', 'wink'] as const)
+      expect(DEFAULT_BEHAVIOR_CONFIG.next[state]).toEqual({ idle: 1 })
+  })
+
+  it('a click or a pet sometimes ends in a wink', () => {
+    expect(DEFAULT_BEHAVIOR_CONFIG.next.quack.wink).toBeGreaterThan(0)
+    expect(DEFAULT_BEHAVIOR_CONFIG.next.happy.wink).toBeGreaterThan(0)
+  })
+
+  it('storytime is likelier in the evening', () => {
+    const base = DEFAULT_BEHAVIOR_CONFIG.next.idle.story ?? 0
+    expect(dayBehaviorConfig(DEFAULT_BEHAVIOR_CONFIG, 'evening').next.idle.story).toBeGreaterThan(
+      base,
+    )
   })
 })

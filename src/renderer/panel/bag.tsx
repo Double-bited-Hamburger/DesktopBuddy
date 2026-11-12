@@ -11,6 +11,7 @@ const TABS: readonly { slot: ItemSlot; label: string }[] = [
   { slot: 'skin', label: 'bag.skins' },
   { slot: 'hat', label: 'bag.hats' },
   { slot: 'face', label: 'bag.faces' },
+  { slot: 'neck', label: 'bag.necks' },
   { slot: 'friend', label: 'bag.friends' },
 ]
 

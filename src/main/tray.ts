@@ -15,6 +15,12 @@ interface TrayActions {
   /** Whether the points pill is on now, and how to switch it. */
   pillShown: boolean
   setPill(shown: boolean): void
+  /** Sounds muted, and how to switch it. */
+  muted: boolean
+  setMuted(muted: boolean): void
+  /** Hidden for an hour now, and how to hide it or call it back. */
+  away: boolean
+  setAway(away: boolean): void
   /** A found or downloaded update ("Update to 0.3.0"), shown only when there is one. */
   update?: { label: string; run(): void }
   quit(): void
@@ -62,6 +68,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
       { label: t('tray.talk'), click: actions.talk },
       { label: t('tray.feed'), click: () => actions.feed('bread') },
       { label: t('tray.handful'), click: actions.feedHandful },
+      { label: t('tray.seeds'), click: () => actions.feed('seeds') },
       { label: t('tray.cigar'), click: () => actions.feed('cigar') },
       { label: t('tray.coffee'), click: () => actions.feed('coffee') },
       { label: t('tray.quack'), click: () => actions.feed('quack') },
@@ -71,6 +78,16 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
         type: 'checkbox',
         checked: actions.pillShown,
         click: (item) => actions.setPill(item.checked),
+      },
+      {
+        label: t('tray.mute'),
+        type: 'checkbox',
+        checked: actions.muted,
+        click: (item) => actions.setMuted(item.checked),
+      },
+      {
+        label: t(actions.away ? 'tray.comeBack' : 'tray.hideHour'),
+        click: () => actions.setAway(!actions.away),
       },
       { type: 'separator' },
       ...(actions.update ? [{ label: actions.update.label, click: actions.update.run }] : []),

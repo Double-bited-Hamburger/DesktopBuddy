@@ -8,11 +8,14 @@ import type {
   AppConfig,
   BoostResult,
   BuyResult,
+  ClaimResult,
   CompanionsView,
   DashboardView,
   EarnSource,
   GiftResult,
+  HatchResult,
   Loadout,
+  ProgressionView,
   SettingsView,
   SmokeBarView,
   StatsView,
@@ -30,6 +33,7 @@ import type { FriendWindow } from './friend-window'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
 import type { ProgressService } from './progress'
+import type { ProgressionService } from './progression'
 import type { SettingsControls } from './settings-controls'
 import type { SnackPile } from './snack-pile'
 import type { TalkWindow } from './talk-window'
@@ -67,8 +71,10 @@ interface IpcDeps {
   readonly snacks: SnackPile
   /** The ball, while it is out. */
   readonly ball: BallPlay
-  /** Inventory, gifts, featured item and quests. */
+  /** Inventory, gifts, the shelf and quests. */
   readonly progress: ProgressService
+  /** Bond level, achievements, sets, stamps, eggs (economy 2.0). */
+  readonly progression: ProgressionService
   /** Tracking settings, Today/Stats views, erase/export and focus sessions. */
   readonly activity: ActivityControls
   /** The Settings screen: validated patches, autostart, export / erase everything, restart. */
@@ -110,6 +116,7 @@ export function registerIpc({
   snacks,
   ball,
   progress,
+  progression,
   activity,
   settings,
   breaks,
@@ -287,9 +294,10 @@ export function registerIpc({
     return buyRocket()
   })
 
-  ipcMain.handle(IPC.buyFeatured, (event): BuyResult => {
+  ipcMain.handle(IPC.buyFeatured, (event, id: unknown): BuyResult => {
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
-    return progress.buyFeatured()
+    if (id !== undefined && typeof id !== 'string') throw new Error('Invalid item')
+    return progress.buyFeatured(id)
   })
 
   ipcMain.handle(IPC.claimSeasonal, (event): BuyResult => {
@@ -300,6 +308,25 @@ export function registerIpc({
   ipcMain.handle(IPC.claimQuest, (event, id: unknown): number => {
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
     return progress.claimQuest(id)
+  })
+
+  // Progression (economy 2.0): panel-only; ProgressionService checks every claim is due.
+  ipcMain.handle(IPC.progression, (event): ProgressionView => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return progression.view()
+  })
+
+  ipcMain.handle(IPC.claimReward, (event, kind: unknown, id: unknown): ClaimResult => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    if (id !== undefined && typeof id !== 'string' && typeof id !== 'number')
+      throw new Error('Invalid reward id')
+    return progression.claim(kind, id)
+  })
+
+  ipcMain.handle(IPC.hatchEgg, (event, id: unknown): HatchResult => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    if (typeof id !== 'number') throw new Error('Invalid egg')
+    return progression.hatch(id)
   })
 
   // Activity channels are panel-only; ActivityControls validates every payload.

@@ -84,7 +84,7 @@ function ico(images: readonly { size: number; png: Buffer }[]): Buffer {
 }
 
 async function main(): Promise<void> {
-  const text = await readFile(join(root, 'assets', 'src', 'ducks', 'placeholder-duck.pxl'), 'utf8')
+  const text = await readFile(join(root, 'assets', 'src', 'ducks', 'duck.pxl'), 'utf8')
   const idle = pxlToSprite(parsePxl(text)).frames.find((f) => f.name === 'idle')
   if (!idle) throw new Error('the duck has no idle frame')
   const duck = crop(idle)

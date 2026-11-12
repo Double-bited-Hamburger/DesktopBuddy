@@ -6,7 +6,9 @@ import { PICKUP_MS } from './snacks'
 /**
  * Coffee: the duck pecks the mug up, lifts it (steam curling up), then three sips: it tips the
  * mug into its beak with its eyes shut, and savors each one with happy eyes and pink cheeks.
- * After the last sip its eyes pop wide open and sparks twinkle round its head. Then it either
+ * After the last sip it sits there with a foam moustache, puffing a happy little cloud of steam;
+ * then an eye twitches (wide, normal, wide) and it is wide awake, sparks twinkling round its
+ * head. Then it either
  * sits on a sofa that pops up and reads the newspaper, or zooms around (see the `drink` choices
  * in behavior/machine.ts). Pure timing, like core/toys/bread.ts.
  */
@@ -17,13 +19,20 @@ export const LIFT_MS = 500
 export const TIP_MS = 550
 export const SAVOR_MS = 450
 export const SIP_MS = TIP_MS + SAVOR_MS
+/** The foam moustache after the last sip, with a happy puff of steam. */
+export const FOAM_MS = 1000
+/** The eye twitch: wide, normal, wide, this long each. */
+export const TWITCH_STEP_MS = 150
+export const TWITCH_MS = 3 * TWITCH_STEP_MS
 /** Wide awake, sparks twinkling, before it goes off to read or zoom. */
 export const AWAKE_MS = 800
 /** The steam wiggles and the sparks twinkle this often. */
 export const STEAM_MS = 300
 export const BUZZ_MS = 200
 /** The whole mug; the duck's `drink` state lasts exactly this long. */
-export const DRINK_MS = PICKUP_MS + LIFT_MS + COFFEE_SIPS * SIP_MS + AWAKE_MS
+export const DRINK_MS = PICKUP_MS + LIFT_MS + COFFEE_SIPS * SIP_MS + FOAM_MS + TWITCH_MS + AWAKE_MS
+/** Where on the timeline the last sip is done (the mug counts as drunk from here). */
+export const LAST_SIP_AT = PICKUP_MS + LIFT_MS + COFFEE_SIPS * SIP_MS
 /** While reading, the duck turns the page this often. */
 export const PAGE_MS = 4000
 /** Walking speed while zooming around after a coffee, as a multiple of the normal walk. */
@@ -44,8 +53,8 @@ export type SipFrame = 'sip-full' | 'sip-half' | 'sip-low'
 export type PaperFrame = 'paper' | 'paper-turned'
 
 export interface CoffeeView {
-  /** The duck frame to show (placeholder-duck.pxl). */
-  readonly pose: 'peck' | 'idle' | 'blink' | 'savor' | 'wide'
+  /** The duck frame to show (ducks/duck.pxl). */
+  readonly pose: 'peck' | 'idle' | 'blink' | 'savor' | 'foam' | 'wide'
   /** The mug, or undefined once it is drunk and put away. */
   readonly mug?: CoffeeFrame | SipFrame
   /** On the ground (being pecked up), upright at the beak, or tipped into it. */
@@ -77,7 +86,13 @@ export function coffeeAt(elapsedMs: number): CoffeeView | undefined {
     const mug = UPRIGHT[sip + 1] ?? 'coffee-empty'
     return { pose: 'savor', mug, at: 'beak', steam: sip === 0 ? steam : undefined }
   }
-  const awake = sipping - COFFEE_SIPS * SIP_MS
+  const done = elapsedMs - LAST_SIP_AT
+  // The foam moustache and a happy puff (the steam over the beak, the mug put away).
+  if (done < FOAM_MS) return { pose: 'foam', at: 'beak', steam }
+  const twitch = done - FOAM_MS
+  if (twitch < TWITCH_MS)
+    return { pose: Math.floor(twitch / TWITCH_STEP_MS) === 1 ? 'idle' : 'wide', at: 'beak' }
+  const awake = twitch - TWITCH_MS
   return { pose: 'wide', at: 'beak', buzz: alternate(awake, BUZZ_MS, 'buzz-1', 'buzz-2') }
 }
 

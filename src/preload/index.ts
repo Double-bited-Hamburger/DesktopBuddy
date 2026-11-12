@@ -6,10 +6,13 @@ import type {
   AppConfig,
   BuddyApi,
   BuyResult,
+  ClaimResult,
   DuckLivePrefs,
   GiftResult,
+  HatchResult,
   Loadout,
   PointsEvent,
+  ProgressionView,
   ScreenTimeView,
   SettingsView,
   StatsView,
@@ -24,8 +27,8 @@ const idOrNull = (value: unknown) => value === null || typeof value === 'string'
 /** A loadout from main: a skin id and hat/face ids or null (main checked them against the catalog). */
 function isLoadout(value: unknown): value is Loadout {
   if (typeof value !== 'object' || value === null) return false
-  const { skin, hat, face } = value as Record<string, unknown>
-  return typeof skin === 'string' && idOrNull(hat) && idOrNull(face)
+  const { skin, hat, face, neck } = value as Record<string, unknown>
+  return typeof skin === 'string' && idOrNull(hat) && idOrNull(face) && idOrNull(neck ?? null)
 }
 
 // The renderers only ever see this object. Every call maps to one fixed channel;
@@ -78,7 +81,12 @@ const api: BuddyApi = {
     },
     onPrefs: (listener) => {
       const handler = (_event: unknown, prefs: DuckLivePrefs) =>
-        listener({ scale: prefs.scale, volume: prefs.volume, duck: prefs.duck })
+        listener({
+          scale: prefs.scale,
+          volume: prefs.volume,
+          duck: prefs.duck,
+          snow: prefs.snow !== false,
+        })
       ipcRenderer.on(IPC.duckPrefs, handler)
       return () => ipcRenderer.off(IPC.duckPrefs, handler)
     },
@@ -97,8 +105,16 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.care, handler)
     },
     onLoadout: (listener) => {
-      // Main only ever sends a validated loadout; still hand over plain data, not the event.
-      const handler = (_event: unknown, loadout: Loadout) => listener(loadout)
+      // Main only ever sends a validated loadout; still check its shape and hand over plain data.
+      const handler = (_event: unknown, loadout: unknown) => {
+        if (isLoadout(loadout))
+          listener({
+            skin: loadout.skin,
+            hat: loadout.hat,
+            face: loadout.face,
+            neck: loadout.neck ?? null,
+          })
+      }
       ipcRenderer.on(IPC.loadout, handler)
       return () => ipcRenderer.off(IPC.loadout, handler)
     },
@@ -146,10 +162,18 @@ const api: BuddyApi = {
       return () => ipcRenderer.off(IPC.storeChanged, handler)
     },
     openGift: (box): Promise<GiftResult> => ipcRenderer.invoke(IPC.openGift, box),
-    buyFeatured: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.buyFeatured),
+    buyFeatured: (id?: string): Promise<BuyResult> => ipcRenderer.invoke(IPC.buyFeatured, id),
     claimSeasonal: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.claimSeasonal),
     buyBoost: (id) => ipcRenderer.invoke(IPC.buyBoost, id),
     claimQuest: (id): Promise<number> => ipcRenderer.invoke(IPC.claimQuest, id),
+    progression: (): Promise<ProgressionView> => ipcRenderer.invoke(IPC.progression),
+    onProgression: (listener) => {
+      const handler = (_event: unknown, view: ProgressionView) => listener(view)
+      ipcRenderer.on(IPC.progressionChanged, handler)
+      return () => ipcRenderer.off(IPC.progressionChanged, handler)
+    },
+    claimReward: (kind, id): Promise<ClaimResult> => ipcRenderer.invoke(IPC.claimReward, kind, id),
+    hatchEgg: (id): Promise<HatchResult> => ipcRenderer.invoke(IPC.hatchEgg, id),
     activity: {
       today: (): Promise<TodayView> => ipcRenderer.invoke(IPC.activityToday),
       stats: (): Promise<StatsView> => ipcRenderer.invoke(IPC.activityStats),

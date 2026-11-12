@@ -121,12 +121,14 @@ describe('shipped catalog (assets/economy/catalog.json)', () => {
   })
 
   it('hat and face sprites declare the anchor of their slot', () => {
-    const slotAnchor = { hat: 'head', face: 'face' } as const
-    for (const item of shipped.items.filter((i) => i.slot === 'hat' || i.slot === 'face')) {
+    const slotAnchor = { hat: 'head', face: 'face', neck: 'neck' } as const
+    for (const item of shipped.items.filter(
+      (i) => i.slot === 'hat' || i.slot === 'face' || i.slot === 'neck',
+    )) {
       const doc = parsePxl(
         readFileSync(join(__dirname, '../../assets/src', `${item.sprite}.pxl`), 'utf8'),
       )
-      const anchor = slotAnchor[item.slot as 'hat' | 'face']
+      const anchor = slotAnchor[item.slot as 'hat' | 'face' | 'neck']
       expect(doc.anchors, item.id).toHaveProperty([anchor])
     }
   })

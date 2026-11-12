@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import type { Tray } from 'electron'
-import { app, powerMonitor, screen } from 'electron'
+import { app, dialog, powerMonitor, screen } from 'electron'
 import catalogJson from '../../assets/economy/catalog.json'
 import economyJson from '../../assets/economy/economy.json'
 import en from '../../assets/i18n/en.json'
@@ -8,6 +8,7 @@ import it from '../../assets/i18n/it.json'
 import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
 import { partOfDay } from '../core/care/day'
+import { FIRST_RUN_TIPS, FIRST_TIP_DELAY_MS, languageFromLocales } from '../core/care/first-run'
 import type { FullscreenMode } from '../core/care/fullscreen'
 import { coversScreen, fullscreenMode } from '../core/care/fullscreen'
 import {
@@ -41,8 +42,9 @@ import { capBars, EarnLog, earnedOn, pointsPerDay } from '../core/economy/earn-l
 import { localDayKey } from '../core/economy/ledger'
 import { parseEconomy } from '../core/economy/save'
 import { createTranslator } from '../core/i18n/i18n'
+import { pageOfUrl } from '../core/log/log'
 import type { Settings } from '../core/settings/settings'
-import { loadSettings, saveSettings } from '../core/settings/settings'
+import { loadSettings, SETTINGS_KEY, saveSettings, soundVolume } from '../core/settings/settings'
 import { FLOOR_INSET, STAGE_SIZE } from '../core/stage'
 import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
 import { dropOffset } from '../core/toys/meal'
@@ -57,7 +59,7 @@ import {
   smoked,
 } from '../core/toys/smoke-bar'
 import type { Snack } from '../core/toys/snacks'
-import { focusReward } from '../core/tracker/focus'
+import { focusCounts, focusPointsDue } from '../core/tracker/focus'
 import { ANNOUNCE_TRIES, shouldAskAutoCheck, toAnnounce } from '../core/update/versions'
 import type {
   AppConfig,
@@ -79,10 +81,12 @@ import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
 import { FriendWindow } from './friend-window'
 import { registerIpc } from './ipc'
+import { eraseLog, initLog, logError, logInfo, logPath, logWarn } from './log'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
 import { PointsService } from './points'
 import { ProgressService } from './progress'
+import { ProgressionService } from './progression'
 import { backUpSavesIfNewVersion, eraseBackups } from './save-backup'
 import { SettingsControls } from './settings-controls'
 import { SnackPile } from './snack-pile'
@@ -143,6 +147,8 @@ function hungerCheckMs(): number {
 
 /** After an unlock or wake-up, the duck waits this long before saying hello. */
 const WELCOME_DELAY_MS = 1500
+/** "Hide for 1 hour" in the tray. */
+const AWAY_MS = 60 * 60_000
 
 async function start(): Promise<void> {
   await app.whenReady()
@@ -151,7 +157,18 @@ async function start(): Promise<void> {
   const storage = new FileStorage(join(app.getPath('userData'), 'data'))
   // A new version's first run: copy the saves aside before anything reads or migrates them.
   await backUpSavesIfNewVersion(app.getPath('userData'), storage, app.getVersion())
-  let settings = await loadSettings(storage)
+  // A brand-new duck (no settings file yet): speak the OS language and give three tips.
+  const firstRun = (await storage.read(SETTINGS_KEY).catch(() => null)) === undefined
+  let settings = await loadSettings(storage, Date.now())
+  if (firstRun) {
+    settings = {
+      ...settings,
+      language: languageFromLocales([...app.getPreferredSystemLanguages(), app.getLocale()]),
+    }
+    await saveSettings(storage, settings).catch((error) =>
+      logError('Could not save first-run settings', error),
+    )
+  }
   let t = createTranslator(settings.language, { en, it })
   const catalog = parseCatalog(catalogJson)
   const pinState = pinStateFromEnv()
@@ -200,7 +217,8 @@ async function start(): Promise<void> {
     language: settings.language,
     loadout: settings.loadout,
     points: points.balance,
-    volume: settings.volume,
+    volume: soundVolume(settings),
+    decemberSnow: settings.snow,
     duck: settings.duck,
     theme: settings.theme,
     tired,
@@ -241,11 +259,40 @@ async function start(): Promise<void> {
         announce(source, amount)
       },
     },
-    [settings.loadout.skin, settings.loadout.hat, settings.loadout.face].flatMap((id) =>
-      id === null ? [] : [id],
-    ),
+    [
+      settings.loadout.skin,
+      settings.loadout.hat,
+      settings.loadout.face,
+      settings.loadout.neck,
+    ].flatMap((id) => (id === null ? [] : [id])),
   )
   progress.onChange = () => panel.webContents?.send(IPC.storeChanged, progress.view())
+  // Economy 2.0's long-term goals (progression.json): bond level, achievements, sets, stamps, eggs.
+  const progression = await ProgressionService.load({
+    storage,
+    economy,
+    catalog,
+    progress,
+    wallet: {
+      spend: (source, amount) => {
+        if (!points.spend(source, amount)) return false
+        announce(source, -amount)
+        return true
+      },
+      grant: (source, amount) => {
+        points.grant(source, amount)
+        announce(source, amount)
+      },
+    },
+    entries: () => points.entries,
+    idleSeconds: () => powerMonitor.getSystemIdleTime(),
+  })
+  progression.onChange = () => {
+    const contents = panel.webContents
+    if (contents) contents.send(IPC.progressionChanged, progression.view())
+  }
+  progress.onCount = (event) => progression.count(event)
+  progress.onEgg = () => progression.addEgg()
   // Data safety: anyone who switched the friend on before it became an item keeps it.
   if (settings.friendDuck) progress.grantOwned(FRIEND_ITEM)
   // 0.8.0: the full-size friend became the first mini; one that was out comes out as a mini.
@@ -284,16 +331,15 @@ async function start(): Promise<void> {
     boosted.has(source) ? companionMultiplier(catalog, economy.companions, companionsOut()) : 1
   const earn = (source: string) => {
     if (source === 'click' || source === 'pet') progress.record(source)
+    if (source === 'pet' && companionsOut().length > 0) progress.record('pet-mini')
     const multiplier = multiplierFor(source)
     const result = points.earn(source, multiplier)
     if (result.reason === 'cooldown' || result.reason === 'daily-cap')
       earnLog.add(Date.now(), source, 0, result.reason)
     if (result.granted <= 0) return
     // Filled today's limit with this one: the duck says MAX (once, since the next pays nothing).
-    const rule = economy.sources[source]
-    const cap = rule
-      ? Math.floor(rule.dailyCap * Math.max(1, multiplier))
-      : Number.POSITIVE_INFINITY
+    // Economy 2.0: the minis raise the points, never the cap.
+    const cap = economy.sources[source]?.dailyCap ?? Number.POSITIVE_INFINITY
     announce(source, result.granted, points.earnedToday(source) >= cap)
   }
   duck.onThrown = () => progress.record('throw')
@@ -407,11 +453,13 @@ async function start(): Promise<void> {
     snacks.serve(kind)
   }
   const feedHandful = () => {
+    progress.record('handful')
     panel.closeUnlessPinned()
     ball.takeAway()
     snacks.handful('bread')
   }
   const throwBall = () => {
+    progress.record('ball')
     panel.closeUnlessPinned()
     snacks.clear() // snacks are free: the ball replaces any still lying around
     ball.serve()
@@ -425,19 +473,20 @@ async function start(): Promise<void> {
       if (snackCaught === 'coffee' || snackCaught === 'quack') {
         coffeeLog = recordCoffee(coffeeLog, localDayKey(Date.now()))
         saveCoffeeLog(storage, coffeeLog).catch((error) =>
-          console.error('Could not save the coffee count', error),
+          logError('Could not save the coffee count', error),
         )
       }
       if (snackCaught === 'cigar') {
         smokeBar = smoked(smokeBar, Date.now())
         saveSmokeBar(storage, smokeBar).catch((error) =>
-          console.error('Could not save the smoke bar', error),
+          logError('Could not save the smoke bar', error),
         )
       }
-      if (snackCaught === 'bread') {
+      // Bread and seeds are real food: the duck isn't hungry for a while.
+      if (snackCaught === 'bread' || snackCaught === 'seeds') {
         hunger = fedAt(hunger, Date.now())
         saveHunger(storage, hunger).catch((error) =>
-          console.error('Could not save the last meal', error),
+          logError('Could not save the last meal', error),
         )
       }
       snackCaught = undefined
@@ -450,9 +499,7 @@ async function start(): Promise<void> {
   const setPill = (shown: boolean) => {
     settings = { ...settings, showPointsPill: shown }
     pill.setVisible(shown)
-    saveSettings(storage, settings).catch((error) =>
-      console.error('Could not save settings', error),
-    )
+    saveSettings(storage, settings).catch((error) => logError('Could not save settings', error))
   }
   // Activity tracking (opt-in) and focus sessions. A finished session pays points and counts
   // for quests whether or not tracking is on.
@@ -465,12 +512,14 @@ async function start(): Promise<void> {
     focusMinuteMsFromEnv(),
   )
   tracker.onFocusDone = (run, bonus) => {
-    const reward = focusReward(economy.focus, run) + bonus
+    // Economy 2.0: only the minutes the user was at the PC pay, up to the daily focus cap.
+    const present = run.present ?? 0
+    const reward = focusPointsDue(economy.focus, run, present, bonus, points.earnedToday('focus'))
     if (reward > 0) {
       points.grant('focus', reward)
       announce('focus', reward)
     }
-    progress.record('focus')
+    if (focusCounts(run, present)) progress.record('focus')
     // A cycle goes straight on to its break (focus-break); a single session ends with a dance.
     if (!run.cycle) duck.window.webContents.send(IPC.care, 'focus-done')
   }
@@ -489,6 +538,11 @@ async function start(): Promise<void> {
   const sayFocus = (line: string) => {
     if (busyNow() || talk.isOpen || !duck.window.isVisible()) return
     bubble.say(line, settings.names.duck, duck.window.getBounds(), settings.scale)
+  }
+  // The duck page came back after a crash (main/revive.ts): it re-read its config; tell it the rest.
+  duck.onPageBack = () => {
+    duckSleeping(false) // a fresh page starts awake
+    if (tracker.focusing) duck.window.webContents.send(IPC.care, 'focus-on' satisfies CareEvent)
   }
   // A session or cycle that was running when the app closed carries on (once the duck page is
   // there to put its headphones on).
@@ -590,6 +644,7 @@ async function start(): Promise<void> {
 
   // The duck page says when it naps: the minis may come and nap next to it.
   const duckSleeping = (asleep: boolean) => {
+    if (asleep && !duckAsleep) progress.record('nap')
     duckAsleep = asleep
     for (const friend of friends) friend.duckSleeping(asleep)
   }
@@ -684,6 +739,7 @@ async function start(): Promise<void> {
   // Hunger (core/care/hunger.ts): only while the user is at the PC and nothing else is going on.
   setInterval(() => {
     weather.retryAlert() // rain coming, and the duck couldn't say so earlier
+    progression.visit() // a new day while the app runs gets its stamp
     announceUpdate() // a new version it couldn't announce yet
     askAutoCheck()
     const now = Date.now()
@@ -693,9 +749,7 @@ async function start(): Promise<void> {
     const level = hungerAt(new Date(now), hunger.lastFedAt, economy.hunger)
     if (!shouldSayHungry(level, now, hunger.lastSaidAt, economy.hunger)) return
     hunger = saidAt(hunger, now)
-    saveHunger(storage, hunger).catch((error) =>
-      console.error('Could not save the hunger time', error),
-    )
+    saveHunger(storage, hunger).catch((error) => logError('Could not save the hunger time', error))
     const line = hungerLine(level, settings.names.you)
     bubble.say(t(line.key, line.vars), settings.names.duck, duck.window.getBounds(), settings.scale)
     duck.window.webContents.send(IPC.care, 'hungry')
@@ -713,9 +767,10 @@ async function start(): Promise<void> {
       await saveSettings(storage, settings)
     },
     () => pointsPerDay(points.entries, Date.now(), 14),
+    (options) => panel.showSaveDialog(options),
   )
   const flushAll = async () => {
-    await Promise.all([points.flush(), progress.flush(), tracker.pause()])
+    await Promise.all([points.flush(), progress.flush(), progression.flush(), tracker.pause()])
   }
   // Check for updates (Settings → Updates). The daily check is opt-in; downloading and
   // installing always wait for a click.
@@ -736,7 +791,7 @@ async function start(): Promise<void> {
   let announceTries = 0
   const markAnnounced = (version: string) =>
     applySettings({ ...settings, updates: { ...settings.updates, announced: version } }).catch(
-      (error) => console.error('Could not save the announced version', error),
+      (error) => logError('Could not save the announced version', error),
     )
   const announceUpdate = () => {
     const version = toAnnounce(updates.current, settings.updates.announced)
@@ -789,7 +844,7 @@ async function start(): Promise<void> {
         applySettings({
           ...settings,
           updates: { ...settings.updates, asked: true, autoCheck: answer === 0 },
-        }).catch((error) => console.error('Could not save the update answer', error))
+        }).catch((error) => logError('Could not save the update answer', error))
       },
     )
   }
@@ -804,6 +859,30 @@ async function start(): Promise<void> {
       return { label: t('tray.restartUpdate'), run: () => void updates.install() }
     return undefined
   }
+  // "Hide for 1 hour" (tray): the duck, its minis, snacks and ball leave, then come back by
+  // themselves. One timer, nothing saved: quitting meanwhile just brings it back next start.
+  let awayTimer: ReturnType<typeof setTimeout> | undefined
+  const setAway = (away: boolean) => {
+    if (away === (awayTimer !== undefined)) return
+    if (away) {
+      awayTimer = setTimeout(() => setAway(false), AWAY_MS)
+      bubble.close()
+      duck.setAway(true)
+      snacks.setHidden(true)
+      ball.setHidden(true)
+      for (const friend of friends) friend.setHidden(true)
+    } else {
+      clearTimeout(awayTimer)
+      awayTimer = undefined
+      duck.setAway(false, fullscreen !== 'hide' && !breaks.busy)
+      if (fullscreen !== 'hide') {
+        snacks.setHidden(false)
+        ball.setHidden(false)
+      }
+      for (const friend of friends) friend.setHidden(fullscreen !== 'normal')
+    }
+    buildTray()
+  }
   const buildTray = () => {
     tray?.destroy()
     tray = createTray(t, {
@@ -811,9 +890,20 @@ async function start(): Promise<void> {
       feed,
       feedHandful,
       throwBall,
-      talk: () => talk.open(duck.window.getBounds(), settings.names.duck),
+      talk: () => {
+        progress.record('talk')
+        talk.open(duck.window.getBounds(), settings.names.duck)
+      },
       pillShown: settings.showPointsPill,
       setPill,
+      muted: settings.muted,
+      setMuted: (muted) => {
+        applySettings({ ...settings, muted }).catch((error) =>
+          logError('Could not save settings', error),
+        )
+      },
+      away: awayTimer !== undefined,
+      setAway,
       update: trayUpdate(),
       quit: () => app.quit(),
       duckName: settings.names.duck,
@@ -830,7 +920,8 @@ async function start(): Promise<void> {
       if (next.showPointsPill) pill.setVisible(false) // reopened below in the new language
     } else if (
       next.showPointsPill !== before.showPointsPill || // the tray checkbox
-      next.names.duck !== before.names.duck // the tray tooltip
+      next.names.duck !== before.names.duck || // the tray tooltip
+      next.muted !== before.muted // the tray checkbox
     )
       buildTray()
     pill.setVisible(next.showPointsPill)
@@ -846,10 +937,16 @@ async function start(): Promise<void> {
     if (next.weatherCity !== before.weatherCity) await weather.sync() // so the view has the result
     if (
       next.scale !== before.scale ||
-      next.volume !== before.volume ||
+      soundVolume(next) !== soundVolume(before) ||
+      next.snow !== before.snow ||
       JSON.stringify(next.duck) !== JSON.stringify(before.duck)
     ) {
-      const prefs: DuckLivePrefs = { scale: next.scale, volume: next.volume, duck: next.duck }
+      const prefs: DuckLivePrefs = {
+        scale: next.scale,
+        volume: soundVolume(next),
+        duck: next.duck,
+        snow: next.snow,
+      }
       duck.window.webContents.send(IPC.duckPrefs, prefs)
     }
   }
@@ -862,13 +959,18 @@ async function start(): Promise<void> {
       tracker.stop()
       weather.stop()
     },
-    eraseBackups: () => eraseBackups(app.getPath('userData')),
+    // The backups and the log go too (the log stops writing: the app exits right after).
+    eraseBackups: async () => {
+      await eraseBackups(app.getPath('userData'))
+      eraseLog()
+    },
     weather: () => weather.view(),
+    saveDialog: (options) => panel.showSaveDialog(options),
   })
   const dashboard = (): DashboardView => {
     const now = Date.now()
     const earned = earnedOn(points.entries, now)
-    const bars = capBars(economy.sources, earned, multiplierFor)
+    const bars = capBars(economy.sources, earned)
     const other = Object.fromEntries(
       Object.entries(earned).filter(([source]) => !(source in economy.sources)),
     )
@@ -914,6 +1016,7 @@ async function start(): Promise<void> {
     snacks,
     ball,
     progress,
+    progression,
     activity,
     settings: settingsControls,
     breaks,
@@ -924,6 +1027,25 @@ async function start(): Promise<void> {
 
   buildTray()
   started = true
+  // First run: three tips, one bubble each. Ignoring one ends them (no nagging).
+  const tip = (index: number) => {
+    const key = FIRST_RUN_TIPS[index]
+    if (!key || !canTalk()) return
+    const last = index === FIRST_RUN_TIPS.length - 1
+    bubble.ask(
+      t(key, { name: settings.names.duck }),
+      settings.names.duck,
+      duck.window.getBounds(),
+      settings.scale,
+      [t(last ? 'bubble.ok' : 'tip.next')],
+      (answer) => {
+        if (answer !== undefined && !last) tip(index + 1)
+      },
+    )
+  }
+  if (firstRun || (!app.isPackaged && process.env.BUDDY_FIRST_RUN === '1'))
+    setTimeout(() => tip(0), FIRST_TIP_DELAY_MS)
+  logInfo('Started')
   // A little after start (not in the middle of the welcome): the one-time update question.
   setTimeout(askAutoCheck, ASK_UPDATES_DELAY_MS)
   // Dev only: open the talk box at start, for probes (the tray can't be clicked from a script).
@@ -938,6 +1060,7 @@ async function start(): Promise<void> {
     for (const friend of friends) friend.setEnabled(false)
     ball.takeAway()
     weather.stop()
+    progression.stop()
   })
   // Write any batched points before the app goes away.
   let flushed = false
@@ -949,6 +1072,7 @@ async function start(): Promise<void> {
     updates.stop()
     flushAll().finally(() => {
       flushed = true
+      logInfo('Quit')
       app.quit()
     })
   })
@@ -966,6 +1090,28 @@ if (!app.isPackaged && process.env.BUDDY_DATA_DIR)
 // Dev-only experiment: `BUDDY_NO_GPU=1` draws without the GPU, to measure what the walk costs.
 if (!app.isPackaged && process.env.BUDDY_NO_GPU === '1') app.disableHardwareAcceleration()
 
+// The local log (main/log.ts): lifecycle and errors only, in <userData>/logs.
+initLog(app.getPath('userData'))
+logInfo(
+  `DesktopBuddy ${app.getVersion()} starting (${process.platform} ${process.arch}, Electron ${process.versions.electron})`,
+)
+// Logged, and the app carries on (as it would after Electron's own error box).
+process.on('uncaughtException', (error) => logError('Uncaught exception', error))
+process.on('unhandledRejection', (reason) => logError('Unhandled promise rejection', reason))
+// Which page only (from its URL), never what it showed.
+app.on('render-process-gone', (_event, contents, details) => {
+  if (details.reason === 'clean-exit') return
+  const page = pageOfUrl(contents.getURL())
+  logWarn(`The ${page} page went away: ${details.reason} (exit code ${details.exitCode})`)
+})
+app.on('child-process-gone', (_event, details) => {
+  if (details.reason === 'clean-exit') return
+  const name = details.name ?? details.serviceName ?? ''
+  logWarn(
+    `A ${details.type} process ${name} went away: ${details.reason} (exit code ${details.exitCode})`,
+  )
+})
+
 app.setAppUserModelId('dev.desktopbuddy.app')
 
 // Linux: run on X11 (XWayland on Wayland desktops such as Fedora's and Ubuntu's). Under native
@@ -975,7 +1121,16 @@ if (process.platform === 'linux' && !process.env.BUDDY_WAYLAND)
 
 if (app.requestSingleInstanceLock()) {
   start().catch((error) => {
-    console.error('DesktopBuddy failed to start', error)
+    logError('DesktopBuddy failed to start', error)
+    // Not a silent exit: say so, plainly, and where the details are. (English: the settings,
+    // and so the language, may be what failed.)
+    const where = logPath()
+    dialog.showErrorBox(
+      'DesktopBuddy could not start',
+      'Something went wrong while the duck was starting, so it has closed.\n\n' +
+        'Your points, items and settings are still saved on this PC.' +
+        (where ? `\n\nDetails are in the log file:\n${where}` : ''),
+    )
     app.exit(1)
   })
 } else {

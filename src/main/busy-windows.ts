@@ -2,6 +2,7 @@ import koffi from 'koffi'
 import { BUSY_STATES } from '../core/care/fullscreen'
 import type { Rect } from '../core/types'
 import { win32Foreground } from './foreground-windows'
+import { logError } from './log'
 
 /** One fullscreen look: Windows' notification state, the foreground app and its window (px). */
 export interface FullscreenLook {
@@ -24,7 +25,8 @@ export function windowsFullscreen(): (() => FullscreenLook) | undefined {
     const query = shell32.func(
       'int32_t __stdcall SHQueryUserNotificationState(_Out_ int32_t* state)',
     )
-    const RECT = koffi.struct('DUCK_RECT', {
+    // Registers the struct type by name for the signature below.
+    koffi.struct('DUCK_RECT', {
       left: 'int32_t',
       top: 'int32_t',
       right: 'int32_t',
@@ -48,7 +50,7 @@ export function windowsFullscreen(): (() => FullscreenLook) | undefined {
       return { state, process: win32.processOf(window), rect }
     }
   } catch (error) {
-    console.error('Fullscreen check unavailable, the duck stays as it is', error)
+    logError('Fullscreen check unavailable, the duck stays as it is', error)
     return undefined
   }
 }
@@ -71,7 +73,7 @@ export function windowsBusy(): () => boolean {
       return BUSY_STATES.has(state[0] ?? 0)
     }
   } catch (error) {
-    console.error('Fullscreen check unavailable, the break buddy may ask during games', error)
+    logError('Fullscreen check unavailable, the break buddy may ask during games', error)
     return () => false
   }
 }

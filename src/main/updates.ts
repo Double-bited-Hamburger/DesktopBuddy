@@ -3,6 +3,7 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater'
 import { autoUpdater } from 'electron-updater'
 import { FIRST_CHECK_DELAY_MS, UPDATE_CHECK_EVERY_MS } from '../core/update/versions'
 import type { UpdateView } from '../shared/ipc'
+import { logError } from './log'
 
 interface UpdateDeps {
   /** The "check once a day" switch from Settings. */
@@ -54,7 +55,7 @@ export class UpdateService {
       this.set({ state: 'ready', version: info.version }),
     )
     autoUpdater.on('error', (error: Error) => {
-      console.error('Update failed', error)
+      logError('Update failed', error)
       this.set({ state: 'error' })
     })
   }

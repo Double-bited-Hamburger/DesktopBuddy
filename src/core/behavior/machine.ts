@@ -2,7 +2,8 @@ import { LISTEN_MAX_MS } from '../care/listen'
 import { MEAL_MS } from '../toys/bread'
 import { COUGH_MS, REFUSE_MS, SMOKE_MS } from '../toys/cigar'
 import { DRINK_MS, ESPRESSO_MS } from '../toys/coffee'
-import { CHUG_MS } from '../toys/quack'
+import { CHUG_MS, CRASH_MS, POWER_NAP_MS } from '../toys/quack'
+import { SEEDS_MS } from '../toys/seeds'
 import type { Rng } from '../types'
 
 /** The longest a stare can last on its own (a break is given up on well before this). */
@@ -15,6 +16,21 @@ export const GETUP_MS = 400
 export const SHAKE_MS = 900
 export const HOP_MS = 1000
 export const STRETCH_MS = 1600
+/** Poked while napping: a startled jump, wide-eyed, before it's back to normal. */
+export const WAKE_MS = 700
+/** After bread: a happy little wiggle, sometimes a burp, and after a handful a stuffed waddle. */
+export const WIGGLE_MS = 600
+export const BURP_MS = 1000
+export const STUFFED_MS = 3300
+/** More idle moments: preening the wing, a scratch behind the head, a sneeze, a tail wag. */
+export const PREEN_MS = 2000
+export const SCRATCH_MS = 1500
+export const SNEEZE_MS = 1500
+export const WAG_MS = 1200
+/** The signature moments: a song, a twirl to show itself off, a wink after a click or a pet. */
+export const SONG_MS = 2400
+export const TWIRL_MS = 1750
+export const WINK_MS = 700
 
 export const BEHAVIOR_STATES = [
   'idle',
@@ -46,6 +62,20 @@ export const BEHAVIOR_STATES = [
   'espresso',
   'focus',
   'dance',
+  'wake',
+  'crash',
+  'wiggle',
+  'burp',
+  'stuffed',
+  'preen',
+  'scratch',
+  'sneeze',
+  'wag',
+  'story',
+  'song',
+  'twirl',
+  'wink',
+  'nibble',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -99,6 +129,20 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     espresso: [ESPRESSO_MS, ESPRESSO_MS], // the tiny morning coffee
     focus: [FOCUS_MAX_MS, FOCUS_MAX_MS], // headphones on, still and quiet
     dance: [DANCE_MS, DANCE_MS],
+    wake: [WAKE_MS, WAKE_MS],
+    crash: [CRASH_MS, CRASH_MS], // the sugar crash after a QUACK can (core/toys/quack.ts)
+    wiggle: [WIGGLE_MS, WIGGLE_MS],
+    burp: [BURP_MS, BURP_MS],
+    stuffed: [STUFFED_MS, STUFFED_MS],
+    preen: [PREEN_MS, PREEN_MS],
+    scratch: [SCRATCH_MS, SCRATCH_MS],
+    sneeze: [SNEEZE_MS, SNEEZE_MS],
+    wag: [WAG_MS, WAG_MS],
+    story: [10_000, 16_000], // reading its storybook of fables
+    song: [SONG_MS, SONG_MS],
+    twirl: [TWIRL_MS, TWIRL_MS],
+    wink: [WINK_MS, WINK_MS],
+    nibble: [SEEDS_MS, SEEDS_MS], // pecking up a handful of seeds
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -112,13 +156,20 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
       stretch: 0.04,
       hop: 0.03,
       forage: 0.06,
+      preen: 0.03,
+      scratch: 0.03,
+      sneeze: 0.015,
+      wag: 0.03,
+      story: 0.015,
+      song: 0.02,
+      twirl: 0.015,
     },
     walk: { idle: 1 },
     sleep: { getup: 1 }, // sat down for a rest: it gets up before anything else
-    quack: { idle: 1 },
-    ouch: { idle: 1 },
-    happy: { idle: 1 },
-    eat: { idle: 1 },
+    quack: { idle: 0.85, wink: 0.15 }, // and sometimes a wink
+    ouch: { shake: 1 }, // shakes its head clear
+    happy: { wag: 0.75, wink: 0.25 }, // and wags its tail, or winks
+    eat: { wiggle: 1 }, // a happy wiggle after the bread
     run: { idle: 1 },
     smoke: { idle: 1 },
     // After a coffee: usually the sofa and the newspaper, sometimes a sprint.
@@ -138,10 +189,24 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     forage: { idle: 1 },
     listen: { idle: 1 },
     chug: { turbo: 1 },
-    turbo: { idle: 0.6, yawn: 0.4 }, // and sometimes the crash
+    turbo: { crash: 1 }, // and then the sugar crash
     espresso: { idle: 1 },
     focus: { idle: 1 },
     dance: { idle: 1 },
+    wake: { idle: 1 },
+    crash: { sleep: 1 }, // a power nap (see `update`)
+    wiggle: { idle: 0.6, burp: 0.4 },
+    burp: { idle: 1 },
+    stuffed: { idle: 1 },
+    preen: { idle: 1 },
+    scratch: { idle: 1 },
+    sneeze: { idle: 1 },
+    wag: { idle: 1 },
+    story: { idle: 1 },
+    song: { idle: 1 },
+    twirl: { idle: 1 },
+    wink: { idle: 1 },
+    nibble: { wiggle: 1 }, // a happy wiggle after the seeds
   },
 }
 
@@ -151,74 +216,39 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
  */
 export function pinnedBehaviorConfig(): BehaviorConfig {
   const forever = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER] as const
-  return {
-    durationMs: {
-      idle: forever,
-      walk: forever,
-      sleep: forever,
-      quack: forever,
-      ouch: forever,
-      happy: forever,
-      eat: forever,
-      run: forever,
-      smoke: forever,
-      drink: forever,
-      read: forever,
-      zoom: forever,
-      yawn: forever,
-      stare: forever,
-      cough: forever,
-      refuse: forever,
-      turn: [TURN_MS, TURN_MS], // a pinned walk still turns at the edges and walks back
-      getup: forever,
-      look: forever,
-      shake: forever,
-      stretch: forever,
-      hop: forever,
-      forage: forever,
-      listen: forever,
-      chug: forever,
-      turbo: forever,
-      espresso: forever,
-      focus: forever,
-      dance: forever,
-    },
-    next: {
-      idle: { idle: 1 },
-      walk: { walk: 1 },
-      sleep: { sleep: 1 },
-      quack: { quack: 1 },
-      ouch: { ouch: 1 },
-      happy: { happy: 1 },
-      eat: { eat: 1 },
-      run: { run: 1 },
-      smoke: { smoke: 1 },
-      drink: { drink: 1 },
-      read: { read: 1 },
-      zoom: { zoom: 1 },
-      yawn: { yawn: 1 },
-      stare: { stare: 1 },
-      cough: { cough: 1 },
-      refuse: { refuse: 1 },
-      turn: { walk: 1 },
-      getup: { getup: 1 },
-      look: { look: 1 },
-      shake: { shake: 1 },
-      stretch: { stretch: 1 },
-      hop: { hop: 1 },
-      forage: { forage: 1 },
-      listen: { listen: 1 },
-      chug: { chug: 1 },
-      turbo: { turbo: 1 },
-      espresso: { espresso: 1 },
-      focus: { focus: 1 },
-      dance: { dance: 1 },
-    },
-  }
+  const durationMs = Object.fromEntries(BEHAVIOR_STATES.map((state) => [state, forever])) as Record<
+    BehaviorState,
+    readonly [number, number]
+  >
+  const next = Object.fromEntries(
+    BEHAVIOR_STATES.map((state) => [state, { [state]: 1 }]),
+  ) as Record<BehaviorState, Partial<Record<BehaviorState, number>>>
+  // A pinned walk still turns at the edges and walks back.
+  durationMs.turn = [TURN_MS, TURN_MS]
+  next.turn = { walk: 1 }
+  // A poked sleeper still jumps awake, then idles (pinning is for measurement, not a cage).
+  durationMs.wake = [WAKE_MS, WAKE_MS]
+  next.wake = { idle: 1 }
+  return { durationMs, next }
 }
 
 /** The small moments a duck picks while idling (switched off together by `fidget`). */
-export const FIDGETS: readonly BehaviorState[] = ['look', 'shake', 'stretch', 'hop', 'forage']
+export const FIDGETS: readonly BehaviorState[] = [
+  'look',
+  'shake',
+  'stretch',
+  'hop',
+  'forage',
+  'preen',
+  'scratch',
+  'sneeze',
+  'wag',
+  'song',
+  'twirl',
+]
+
+/** Longer rests the duck picks by itself, switched off with the naps (`naps`). */
+export const RESTS: readonly BehaviorState[] = ['sleep', 'story']
 
 /** The user's switches for what the duck does on its own (see settings `duck`). */
 export interface BehaviorPrefs {
@@ -239,7 +269,7 @@ export function behaviorConfigFor(
 ): BehaviorConfig {
   const off: BehaviorState[] = []
   if (!prefs.wander) off.push('walk')
-  if (!prefs.naps) off.push('sleep')
+  if (!prefs.naps) off.push(...RESTS)
   if (!prefs.chatter) off.push('quack')
   if (!prefs.fidget) off.push(...FIDGETS)
   const idle = Object.fromEntries(
@@ -322,12 +352,15 @@ export class BehaviorMachine {
     const before = this.current
     this.enter(pickWeighted(this.config.next[this.current], this.rng))
     if (before === 'turn' && this.current === 'walk') this.facing = this.turnTo
+    // After the sugar crash it only naps for a moment.
+    if (before === 'crash' && this.current === 'sleep')
+      this.remainingMs = Math.min(this.remainingMs, POWER_NAP_MS)
     return this.current !== before
   }
 
-  /** Something woke the duck (a click, a pet, a drag): sleeping ends, idling restarts. */
+  /** Something woke the duck (a click, a drag): a napping duck jumps awake, then idles. */
   poke(): void {
-    if (this.current === 'sleep') this.enter('idle')
+    if (this.current === 'sleep') this.enter('wake')
   }
 
   /** The duck was clicked: it quacks (waking up if needed), then goes back to idling. */
@@ -335,14 +368,22 @@ export class BehaviorMachine {
     this.enter('quack')
   }
 
-  /** Petted: the duck closes its eyes happily. More petting keeps it happy a little longer. */
+  /**
+   * Petted: the duck leans into the hand with its eyes closed, then wags its tail. More petting
+   * keeps it happy a little longer.
+   */
   pet(): void {
     this.enter('happy')
   }
 
-  /** Fed a slice of bread: the duck eats it (see core/toys/bread.ts), then idles. */
+  /** Fed a slice of bread: the duck eats it (see core/toys/bread.ts), then wiggles happily. */
   eat(): void {
     this.enter('eat')
+  }
+
+  /** Fed seeds: the duck pecks the little pile away where it lies (see core/toys/seeds.ts). */
+  nibble(): void {
+    this.enter('nibble')
   }
 
   /** Caught a cigar: the duck smokes it like a boss (see core/toys/cigar.ts), then idles. */
@@ -365,7 +406,7 @@ export class BehaviorMachine {
     this.enter('drink')
   }
 
-  /** Fed a QUACK can: the duck chugs it (see core/toys/quack.ts), then races around. */
+  /** Fed a QUACK can: the duck chugs it (see core/toys/quack.ts), races around, then crashes. */
   chug(): void {
     this.enter('chug')
   }

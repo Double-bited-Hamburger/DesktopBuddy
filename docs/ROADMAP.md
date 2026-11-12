@@ -10,7 +10,7 @@ Tooling, repo layout, `CLAUDE.md` + agents, docs, walking skeleton.
 Exit criteria and evidence (2026-10-26):
 
 - [x] `npm run check` green (typecheck, Biome, 100 Vitest tests)
-- [x] `npm run bake` turns `placeholder-duck.pxl` into a PNG strip + manifest that the renderer loads
+- [x] `npm run bake` turns `placeholder-duck.pxl` (now `duck.pxl`) into a PNG strip + manifest that the renderer loads
 - [x] `npm run build` produces main/preload/renderer bundles; preload is CJS (sandbox-compatible)
 - [x] Duck window verified from the OS: 120×120, topmost, no-activate, layered, click-through;
   bottom edge sits `FLOOR_INSET × scale` px below the work area as designed; it walked
@@ -777,6 +777,220 @@ path only: the cursor didn't move), the ghost gliding back.
 from one screen onto a lower or higher one with the eyes (unit-tested lane math only), the tray
 icon at 125/150% scaling, the MAX popup seen on screen, the new quests counting in a real play
 session (unit-tested), the light theme screenshots, Linux.
+
+## 1.0.0 — Stage 1 (reliability) (built 2026-11-11)
+
+- **Local log file** `<userData>/logs/buddy.log` (256 KB, one rotation): lifecycle and errors
+  only, never titles, app names, typed text, places, names or points. Uncaught exceptions,
+  unhandled rejections, crashed pages and helper processes, and the errors main used to only
+  print are logged. "Erase everything" deletes it.
+- **The duck comes back after its page crashes** (reload, at most 3 times in 10 minutes, then it
+  is left and logged); the pill, minis and snacks too; a crashed panel closes.
+- **Startup failure** shows a plain error box with the log path instead of quitting silently.
+- **A broken `settings.json` is copied aside** before the defaults are saved (like the economy
+  saves); a file that isn't even JSON is now copied byte for byte (settings and economy saves).
+- **Save migrations:** `core/storage/migrate.ts` (steps by version). None registered: every save
+  is still version 1. A save from a **newer** app version is left untouched and never written
+  over during that run (the app uses defaults in memory for it).
+- **Export dialogs** sit over the panel, which stays open meanwhile, so "Saved." shows.
+- Removed the unused `ElectronPlatform`; the preload now checks the loadout shape it passes on.
+
+Verified: `npm run check` pieces (typecheck, lint, 550 tests) and `npm run build`; the built app
+on throwaway folders: a torn `settings.json` was copied aside byte for byte and the app started on
+defaults; a version-2 `inventory.json` stayed byte-identical through the run; the duck page
+crashed over CDP (`Page.crash`) came back three times (canvas and `window.buddy` there again),
+the fourth crash was left and logged; "Erase everything" (called over CDP) removed the log.
+
+**Not verified:** the startup error box (no failure was forced), the export dialogs with a real
+click (the fix was checked by reading the code paths only), crashes of the pill, mini, snack or
+panel pages, a crash during a focus session, a lying duck or a meal (re-sent state read from the
+code, not seen), `child-process-gone` (the GPU process was never killed), an installed build,
+Linux.
+
+## 1.0.0 — Stage 2 (duck redraw) (drawn 2026-11-11)
+
+- `ducks/placeholder-duck.pxl` is now **`ducks/duck.pxl`** (`name: duck`); catalog sprite paths,
+  tests and tools (`readme-art`, `make-icon`) point at it.
+- **Polished base duck**, same silhouette and anchors (hats and glasses still fit): a 3×3 eye
+  with a 1 px shine, a folded wing with a feather line, a tail tuft, a lighter chest and a
+  shaded underside. Every old frame name is kept.
+- **Body zones** for two-tone skins: new palette keys `A` (head), `C` (chest/belly), `G`/`V`
+  (wing), `T` (tail), `I` (eye shine, foam), on top of `K E W S H O D Y P` (15 colors, one free).
+  Every shipped skin sets the new keys, so they look as before; christmas got a white tail.
+- **No more "dead" poses:** `sit` is a cosy napping loaf (+ `loaf-2` breathing in), `lie` lies
+  on its belly with the head up and a heavy-lidded eye (+ `lie-blink`), `ouch` has swirly eyes
+  (+ `ouch-2`).
+- **New frames:** `held-1/2`, `flap-1/2`, `land`, `wake`, `getup-1`, `run-1..4`, `preen`,
+  `scratch`, `sneeze`, `wag`, `pet-lean`, `foam`, `bulge`, `jitter`, `hiccup`, `burp`,
+  `peck-fast` (53 frames). **New emotes:** `dream`, `swirl-stars`, `shout`, `speed-lines`,
+  `dust`, `husk`, `hic`.
+
+Verified: `npm run bake`, the art tests, `npm run readme-art`; review sheets rendered at 3–8× on
+light and dark backgrounds (classic, rubber, midnight and every skin's idle), and every frame
+dressed with the cap and nerd glasses through `dressDuck`.
+
+**Not verified:** how it looks on a real desktop at 3× (only rendered PNGs were viewed); the new
+frames and emotes are **not wired** into the behavior yet (Stage 3), so held/thrown still show
+`quack` and nothing plays `run-*`, `dream`, `shout`…; glasses on `preen` (head turned back) and
+hats on `peck`/`peck-fast` are only approximately placed; the emote spots on the stage are not
+chosen yet.
+
+## 1.0.0 — Stage 3 (livelier duck) (built 2026-11-11, finished 2026-11-12)
+
+The redrawn frames now play, and nothing looks dead any more.
+
+- **Sleep:** sits down, then a breathing loaf (`sit` / `loaf-2`). The Zzz follows the head, and
+  now and then there is a dream bubble (bread or a pond). Poked while napping: a startled `wake`
+  jump. Getting up uses `getup-1`.
+- **Lying under a fullscreen video:** the comfy `lie` pose with a slow blink every 5 s (the one
+  timer a lying duck keeps).
+- **Held / thrown / landing:** feet kicking (`held-1/2`), flapping (`flap-1/2`), a `land` squash and
+  a one-pixel bounce. **Ouch:** swirly eyes (`ouch` / `ouch-2`), then a head shake.
+- **QUACK can:** gulps, bulging eyes, a vibrating jitter, the shaking "QUAAACK!" shout, turbo with
+  speed lines and dust at the edges, then the sugar crash (sway, stars, three hiccups with "hic"),
+  then a power nap.
+- **Coffee:** a foam moustache and an eye twitch before the sofa or the sprint. **Bread:** a wiggle
+  and sometimes a burp; a handful ends in a stuffed waddle.
+- **Petting:** leans into the hand, then wags its tail (or winks).
+- **New idle moments:** preen (no glasses), scratch, sneeze, wag.
+- **Signature moments (the "Fable 5.2" set):**
+  - **Storytime:** reads a little storybook of fables with a sparkle; a page turns every 3 s.
+    10–16 s, rare, three times likelier in the evening. It is a rest, so it goes with the naps
+    switch.
+  - **Song:** eyes shut, beak open and shut, a note rising (a chirp with chatter on).
+  - **Twirl:** front, turned round, back, then ta-da. Front and back are drawn without hat or
+    glasses (`NO_OUTFIT_POSES`).
+  - **Wink:** sometimes after a click (15%) or a pet (25%).
+- **Motion layer:** `core/anim/motion.ts` nudges the whole dressed duck by whole pixels (caffeine
+  jitter, landing bounce, startle, crash sway, scratch bob, a shiver in the snow). It is in the
+  redraw key and has its own wake time, so there is no free-running timer.
+
+Verified: `npm run check` (all tests pass except the economy timing, which needs a re-tune after the
+new items). In the dev app on a throwaway data folder, each state above was posed over CDP and the
+canvas captured (no page errors).
+
+**Not verified:** sounds heard; real mouse petting, holding and throwing; how the animations feel
+at full speed on a real desktop (only still captures were checked); CPU and RAM with the new
+states (no perf run); Linux.
+
+## 1.0.0 — Stage 4 (seeds) (built 2026-11-12)
+
+- **Seeds** are a new snack (`SNACKS`): "Scatter seeds" in the tray and 🌻 Seeds in the panel's Feed
+  menu. One seeds snack is a little scattered pile (`toys/seeds`) that the duck never picks up: it
+  pecks it away where it lies in three fast bursts (`peck` / `peck-fast`, the new `nibble` state,
+  `core/toys/seeds.ts`), the pile shrinking each time, then wiggles happily. A tiny tick sound.
+- Counts as a meal for hunger (like bread), pays the `snack` source, and records the `seeds`
+  quest event, so the seeds quests (`requires: "seeds"`) and the "fed seeds" achievement turn on.
+- Dropped mid-meal (grabbed or clicked), the pile resumes looking smaller (`dropOffset`).
+
+Verified: `npm run check` (seeds tests in `tests/core/seeds.test.ts`); in the dev app on a throwaway
+folder, the seeds meal posed over CDP facing both ways (no page errors).
+
+**Not verified:** feeding seeds from the real tray or panel with a real mouse, the tick sound heard,
+and minis sharing seeds.
+
+**Not done (left for a separate decision):** the "one pile window for a handful" change. Each
+handful piece is still its own window (about 430 MB for a bread handful in dev). Seeds don't have
+the problem, since one seeds snack is one window. Rewriting the pile into a single window means
+reworking the snack windows' physics and click-through; it should be its own task.
+
+## 1.0.0 — Stage 7, part 1 (panel: Journey, shelf, first run) (built 2026-11-12)
+
+- **Journey screen** ("Duck Journey" / "Il Viaggio", star icon in the menu, between Quests and
+  Today): bond level with its bar and the next two level rewards, Claim for every level reached,
+  the stamp card, eggs (warming bar, Hatch, the exact hatch odds), album sets and all
+  achievements (ready ones first, each with what it counts and what it pays). A red dot in the
+  menu when something can be claimed. After a claim, one line says what arrived.
+- **Store:** all three shelf items (was one), and the October / spring seasonal labels.
+- **"Sure?" before big spends:** buying or opening anything over 500 points needs a second
+  click within 4 seconds.
+- **Errors are shown:** a failed buy, gift or claim says so ("Nothing was spent") instead of
+  only logging.
+- **First run:** a new duck (no settings file) speaks the OS language (Italian PC → Italian),
+  then gives three tip bubbles: petting, right-click menu, tray and throwing. Ignoring one ends
+  them. `BUDDY_FIRST_RUN=1` replays them in dev builds. Existing saves are untouched.
+- **Keyboard:** visible focus ring on every control; Esc closes the panel (or just the menu
+  drawer when it is open).
+
+Verified: `npm run check` (660 tests); dev app on a fresh throwaway folder: the language came
+out Italian, the first tip bubble showed, Journey / Store / Quests / menu screenshotted with no
+console errors.
+
+**Not verified:** claiming a real level, set or achievement and hatching an egg in the app (the
+fresh save had nothing claimable; the main-side claims are covered by Stage 5 tests), the
+"Sure?" button and Esc with a real keyboard and mouse, tips 2 and 3 on screen, the light theme.
+
+**Finished the same day:**
+
+- **Snow switch:** Settings › the duck › "snow in December" (on by default). Applies live.
+- **Mute:** in the tray menu and in Settings › Sounds. The volume is kept for when it is switched
+  off again; the gift reel in the Store is silent too.
+- **Hide for 1 hour** in the tray ("Come back now" while away): the duck, its minis, snacks and
+  ball leave, and come back by themselves. Nothing is saved: quitting meanwhile just brings the
+  duck back at the next start. While away the end of a fullscreen game or the break sign does not
+  bring it back early.
+
+Verified: `npm run check` (665 tests); in the dev app the snow and mute switches change the duck
+live (snow on → off → on, sound 0.5 → 0 → 0.5), Settings screenshotted in Italian.
+
+**Not verified:** the tray menu itself (a script cannot click the tray), so "Hide for 1 hour",
+"Come back now" and the tray mute checkbox were never clicked. If a game ends during the hour,
+snacks and the ball may come back before the duck does.
+
+## 1.0.0 — Stage 6, part 1 (neck slot) (built 2026-11-12)
+
+- **A fourth slot, `neck`**, worn under glasses and hat: striped scarf (uncommon), bow tie (common),
+  little bell (uncommon), gold medal (rare). A Bag tab "Neck" ("Collo"), found in boxes and on the
+  shelf like any item.
+- Every duck frame has a `neck` anchor (at the throat; fixed by hand on `peck`, `peck-fast` and
+  `preen`, where the head is turned).
+- **Old saves:** the saved loadout gained an optional `neck` (default null). A 0.9 settings file
+  loads with nothing on the neck (tested); older loadouts sent over IPC are accepted too.
+- README wardrobe picture and caption now include neckwear.
+- **Economy re-check:** with 4 more items the normal player went to 39 days, so prices were trimmed:
+  shelf 130 / 300 / 1,300 / 2,600 (legendary 3,600, exotic 6,000), boxes 150 / 500 / 1,500. Normal
+  player now about 33 days (simulation), grinder never under 19.
+
+Verified: `npm run check`; every neck item rendered on ten poses with a cap (scarf, bow tie, bell,
+medal on idle, walk, hop, run, nap, lying, held, peck, stretch, happy).
+
+**Not verified:** equipping from the real Bag with a mouse, the Bag tab layout in Italian, the
+item previews in the store reel.
+
+## 1.0.0 — Stage 5 (economy 2.0) (built 2026-11-11)
+
+Why: on 0.9.0 a tester unlocked every skin in two days (~13–15k points a day against a 24,920
+collection). Owner's target: a normal player needs about a month, a grinder no less than ~12
+days. Details and every number: [ECONOMY.md](ECONOMY.md).
+
+- [x] **Rebalance** (all in `economy.json`): play caps 1,590 → 1,000 a day; minis +10% … +50%
+  (×1.9 at most) and they **no longer raise the caps** (ledger fix); 5 paid edge hits per throw
+  (was 10); free gift every 3 h (was 40 min) and it no longer counts for the gift quests; focus
+  capped at 400 a day and **paid only for minutes present** (system idle time once a focus
+  minute, nothing else read); duplicates refund 30% (was 50%); boxes 300 / 1,000 / 3,000 (re-tuned 2026-11-12 to 180 / 600 / 1,800, see ECONOMY.md).
+- [x] **Royal box**: exotic guaranteed within 15 opens (a second, shown "jackpot" counter, kept in
+  the inventory's `misses` map), 5% egg chance, items you don't own first. **Star box**
+  (reward-only): legendary/exotic, exotic by the 3rd.
+- [x] **Shelf**: 3 items a day (common–uncommon, rare, epic), seeded by the day; legendary and
+  exotic are never sold. `featured` kept as the first shelf item so the current Store still works.
+- [x] **Quests**: 3 daily from 24, **4 weekly from 16** (seeded by the week, ~1,100 a week), new
+  events `nap`, `pet-mini`, `handful`, `ball`, `talk`, `seeds` (and the unused `coffee`,
+  `quack`); `requires: "seeds"` keeps the seeds quests out of the draw until the snack exists.
+- [x] **Long-term goals** in a new `progression.json` (v1): bond level 1–30 derived from lifetime
+  points earned (no second counter), 38 achievements with lifetime counters, 5 album sets, a stamp
+  card (no streak), eggs that hatch a missing mini after 2 h at the PC, an early-bird claim for
+  0.9 players. All claimed, nothing expires. Backfilled from the ledger on first run.
+- [x] IPC for the panel: `progression()`, `onProgression()`, `claimReward(kind, id?)`,
+  `hatchEgg(id)`, `buyFeatured(id?)`, `StoreView.shelf`, box `jackpot` / `egg` / `newFirst`.
+- [x] `tools/simulate-economy.ts` + `tests/tools/economy-sim.test.ts`: normal median 30 days
+  (26–39), grinder 20.5 (14–23), casual 48; first rare ≈ day 3 for a normal player.
+- [x] The 0.9 saves keep `version: 1` and their shape; no item id removed or renamed.
+
+**Not verified:** real days of play (the month is simulated); the panel screens for these
+systems (Stage 7: the new IPC was typechecked, never called from a page); the focus presence
+check, the egg warm-up timer and the stamp-on-a-new-day in the running app; a real 0.9 save
+upgraded by the app (the backfill is unit-tested on a made-up ledger). `npm run check` was not
+fully green at hand-off because of other stages' work in progress (see the hand-off report).
 
 ## Phase 9 — Friends (opt-in, last)
 

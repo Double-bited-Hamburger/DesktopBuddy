@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises'
-import { app, dialog } from 'electron'
+import type { SaveDialogOptions, SaveDialogReturnValue } from 'electron'
+import { app } from 'electron'
 import type { Settings } from '../core/settings/settings'
 import { applySettingsPatch } from '../core/settings/settings'
 import type { StorageAdapter } from '../core/storage/storage'
@@ -19,6 +20,8 @@ interface SettingsDeps {
   readonly eraseBackups: () => Promise<void>
   /** The weather line (opt-in, see main/weather.ts). */
   readonly weather: () => WeatherView
+  /** A save dialog over the panel, which stays open meanwhile (PanelWindow.showSaveDialog). */
+  readonly saveDialog: (options: SaveDialogOptions) => Promise<SaveDialogReturnValue>
 }
 
 /**
@@ -38,6 +41,8 @@ export class SettingsControls {
       scale: s.scale,
       language: s.language,
       volume: s.volume,
+      muted: s.muted,
+      snow: s.snow,
       showPointsPill: s.showPointsPill,
       theme: s.theme,
       duck: s.duck,
@@ -73,7 +78,7 @@ export class SettingsControls {
 
   /** Every save file as one JSON document, in a file the user picks. */
   async exportAll(): Promise<boolean> {
-    const { canceled, filePath } = await dialog.showSaveDialog({
+    const { canceled, filePath } = await this.deps.saveDialog({
       defaultPath: 'desktopbuddy-data.json',
       filters: [{ name: 'JSON', extensions: ['json'] }],
     })

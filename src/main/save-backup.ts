@@ -8,6 +8,7 @@ import {
   loadLastRun,
   saveLastRun,
 } from '../core/update/versions'
+import { logError } from './log'
 
 /** Backups sit next to the saves: %APPDATA%\desktop-buddy\backups\<when>-from-<version>. */
 export const backupsDir = (userData: string) => join(userData, 'backups')
@@ -36,7 +37,7 @@ export async function backUpSavesIfNewVersion(
     }
     if (lastRun !== current) await saveLastRun(storage, current)
   } catch (error) {
-    console.error('Could not back up the saves before this version ran', error)
+    logError('Could not back up the saves before this version ran', error)
   }
 }
 

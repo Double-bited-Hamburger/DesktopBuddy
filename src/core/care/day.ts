@@ -54,9 +54,9 @@ export function msUntilNextPart(now: Date): number {
 /** How the idle choices shift: multiplied weights, plus yawns. Night and morning only. */
 const SHIFTS: Readonly<Record<PartOfDay, Partial<Record<BehaviorState, number>>>> = {
   night: { sleep: 3, walk: 0.5, hop: 0.3, shake: 0.5 },
-  morning: { stretch: 2.5, shake: 1.5 },
+  morning: { stretch: 2.5, shake: 1.5, preen: 2 }, // a good stretch and a groom
   day: {},
-  evening: {},
+  evening: { story: 3 }, // storytime before bed
 }
 /** A tiny coffee now and then in the morning; a fidget, so it goes when fidgets are off. */
 const MORNING_ESPRESSO = 0.06

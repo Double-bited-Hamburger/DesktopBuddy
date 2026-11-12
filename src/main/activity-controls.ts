@@ -1,4 +1,5 @@
 import { writeFile } from 'node:fs/promises'
+import type { SaveDialogOptions, SaveDialogReturnValue } from 'electron'
 import { dialog } from 'electron'
 import { z } from 'zod'
 import { localDayKey } from '../core/economy/ledger'
@@ -38,6 +39,7 @@ export class ActivityControls {
   private readonly tracking: () => Tracking
   private readonly saveTracking: (tracking: Tracking) => Promise<void>
   private readonly points: () => StatsView['points']
+  private readonly saveDialog: (options: SaveDialogOptions) => Promise<SaveDialogReturnValue>
 
   constructor(
     tracker: TrackerService,
@@ -45,12 +47,16 @@ export class ActivityControls {
     tracking: () => Tracking,
     saveTracking: (tracking: Tracking) => Promise<void>,
     points: () => StatsView['points'] = () => [],
+    /** Over the panel, which stays open meanwhile (PanelWindow.showSaveDialog). */
+    saveDialog: (options: SaveDialogOptions) => Promise<SaveDialogReturnValue> = (options) =>
+      dialog.showSaveDialog(options),
   ) {
     this.tracker = tracker
     this.focusConfig = focusConfig
     this.tracking = tracking
     this.saveTracking = saveTracking
     this.points = points
+    this.saveDialog = saveDialog
   }
 
   today(): Promise<TodayView> {
@@ -110,7 +116,7 @@ export class ActivityControls {
 
   /** The user picks the file; nothing is written anywhere else. */
   async exportAll(): Promise<boolean> {
-    const { canceled, filePath } = await dialog.showSaveDialog({
+    const { canceled, filePath } = await this.saveDialog({
       defaultPath: 'desktopbuddy-activity.json',
       filters: [{ name: 'JSON', extensions: ['json'] }],
     })

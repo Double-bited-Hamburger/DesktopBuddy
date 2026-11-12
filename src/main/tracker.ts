@@ -14,6 +14,7 @@ import {
   recordSession,
 } from '../core/tracker/activity'
 import type { FocusConfig } from '../core/tracker/focus'
+import { presentNow } from '../core/tracker/focus'
 import type { FocusRun } from '../core/tracker/pomodoro'
 import {
   afterPhase,
@@ -31,6 +32,7 @@ import { meetsStreak, streakOf, summarizeDay, topApps } from '../core/tracker/su
 import { focusHeatmap, weekTotals } from '../core/tracker/week-stats'
 import type { ScreenTimeView, TodayView, TrackerStats } from '../shared/ipc'
 import type { ForegroundSource } from './foreground'
+import { logError } from './log'
 
 /** One sample every 5 s while tracking is on: 12 per minute bucket. */
 const SAMPLE_MS = 5000
@@ -70,13 +72,20 @@ export class TrackerService {
   private saveTimer: ReturnType<typeof setTimeout> | undefined
   private focusTimer: ReturnType<typeof setTimeout> | undefined
   private backTimer: ReturnType<typeof setInterval> | undefined
+  /** During focus time only: one presence check per focus minute (economy 2.0). */
+  private presenceTimer: ReturnType<typeof setInterval> | undefined
+  /** The running focus round's minutes checked and minutes the user was there. */
+  private presence = { checked: 0, present: 0 }
   private run: FocusRun | undefined
   /** One minute of focus time (shorter only for dev probes: BUDDY_FOCUS_SECONDS). */
   private readonly minuteMs: number
   /** The day file being written to (loaded lazily). */
   private today: DayActivity | undefined
   private saving: Promise<void> = Promise.resolve()
-  /** A focus round ran to the end; `bonus` is extra for completing a full Pomodoro set. */
+  /**
+   * A focus round ran to the end; `bonus` is extra for completing a full Pomodoro set. The run
+   * carries `checked` / `present`: only the minutes the user was at the PC pay.
+   */
   onFocusDone: (run: FocusRun, bonus: number) => void = () => undefined
   /** Focus time started or ended (a break, Stop, or the end), however it ended. */
   onFocusChange: (running: boolean) => void = () => undefined
@@ -174,7 +183,7 @@ export class TrackerService {
     if (!activity) return this.saving
     this.saving = this.saving
       .then(() => this.storage.write(activityKey(activity.day), activity))
-      .catch((error) => console.error('Could not save activity', error))
+      .catch((error) => logError('Could not save activity', error))
     return this.saving
   }
 
@@ -323,8 +332,11 @@ export class TrackerService {
   private begin(run: FocusRun): void {
     this.clearFocusTimers()
     this.run = run
+    this.presence = { checked: run.checked ?? 0, present: run.present ?? 0 }
     void this.saveRun()
     const end = phaseEndsAt(run, this.minuteMs)
+    if (run.phase === 'focus')
+      this.presenceTimer = setInterval(() => this.checkMinute(run), this.minuteMs)
     if (end !== undefined) {
       this.focusTimer = setTimeout(() => void this.phaseEnded(run), Math.max(0, end - Date.now()))
       return
@@ -333,8 +345,25 @@ export class TrackerService {
     this.backTimer = setInterval(() => this.checkBack(run), BACK_CHECK_MS)
   }
 
+  /**
+   * A focus minute ended: was the user there? Only the system idle time is read (no keys, no
+   * window titles); minutes the app was closed are never checked, so they don't pay.
+   */
+  private checkMinute(run: FocusRun): void {
+    if (this.run !== run || run.phase !== 'focus' || this.presence.checked >= run.minutes) return
+    const present = presentNow(this.focusConfig, this.idleSeconds())
+    this.presence = {
+      checked: this.presence.checked + 1,
+      present: this.presence.present + (present ? 1 : 0),
+    }
+    void this.saveRun()
+  }
+
   private async phaseEnded(run: FocusRun): Promise<void> {
     if (this.run !== run) return
+    // The last minute's check may not have fired yet (both timers end together).
+    if (run.phase === 'focus' && this.presence.checked < run.minutes) this.checkMinute(run)
+    const done: FocusRun = { ...run, ...this.presence }
     this.clearFocusTimers()
     const now = Date.now()
     if (run.phase === 'focus') {
@@ -347,7 +376,7 @@ export class TrackerService {
     this.run = undefined
     if (run.phase === 'focus') {
       this.onFocusChange(false)
-      this.onFocusDone(run, setBonus(run, this.focusConfig.cycle))
+      this.onFocusDone(done, setBonus(run, this.focusConfig.cycle))
     }
     if (!next) {
       void this.saveRun()
@@ -373,16 +402,21 @@ export class TrackerService {
   private clearFocusTimers(): void {
     clearTimeout(this.focusTimer)
     clearInterval(this.backTimer)
+    clearInterval(this.presenceTimer)
     this.focusTimer = undefined
     this.backTimer = undefined
+    this.presenceTimer = undefined
   }
 
   private saveRun(): Promise<void> {
     const run = this.run
     const write = run
-      ? this.storage.write(FOCUS_STATE_KEY, run)
+      ? this.storage.write(
+          FOCUS_STATE_KEY,
+          run.phase === 'focus' ? { ...run, ...this.presence } : run,
+        )
       : this.storage.remove(FOCUS_STATE_KEY)
-    return write.catch((error) => console.error('Could not save the focus session', error))
+    return write.catch((error) => logError('Could not save the focus session', error))
   }
 
   /** The run as the Today screen shows it (its end time is real, even with dev-short minutes). */

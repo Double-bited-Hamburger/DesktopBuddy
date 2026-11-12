@@ -53,6 +53,15 @@ as each feature lands.
 - **Everything else (Settings > Danger zone):** "Export everything" saves every save file
   (settings, points history, items, quests, activity) as one JSON file the user picks. "Erase
   everything" (two clicks) deletes every save file and restarts the app as new (in dev it just quits).
+- **Log file (1.0.0):** `<userData>/logs/buddy.log` (Windows:
+  `%APPDATA%\desktop-buddy\logs\buddy.log`), at most ~256 KB plus one older copy
+  (`buddy.log.1`). It stays on this PC and is never sent anywhere. **What is in it:** the app
+  version and OS, start and quit, errors with their stack (your home folder is written as `~`),
+  a page or helper process that crashed and whether it was restarted, and the *name* of a save
+  file that could not be read or came from a newer version. **What is never in it:** window
+  titles, process/app names, anything typed (talk box, focus labels), the weather city or place
+  (a failed weather check logs only the kind of error), your name or the duck's, and points or
+  their history. "Erase everything" deletes the log too.
 - **Sounds** are generated in code (WebAudio oscillators); no microphone, no audio files.
 - Stored on disk, in `<userData>/data/` (Windows: `%APPDATA%\desktop-buddy\data\`).
 
@@ -89,4 +98,5 @@ as each feature lands.
 | `inventory`           | owned item ids, opens-without-a-hit per gift box, last free-gift time | Phase 5 |
 | `quests`              | progress per active quest: period, count, claimed                    | Phase 5 |
 | `activity-YYYY-MM-DD` | `day`; `apps` (process names seen, empty while app names are off); `minutes` as `[minute of day, app index or -1, active 1/0]`; `sessions` as `[start minute, length]` | Phase 6 |
-| `*-backup-<time>`     | a copy of a save file that failed validation, kept instead of deleted | Phase 4 |
+| `*-backup-<time>`     | a copy of a save file that failed validation, kept instead of deleted (since 1.0.0 `settings` too, and a file that isn't valid JSON is copied byte for byte) | Phase 4 |
+| `logs/buddy.log` (+ `.1`) | app lifecycle and errors only, see "Log file" above (next to `data/`, not in it) | 1.0.0 |

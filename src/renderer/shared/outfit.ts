@@ -15,6 +15,7 @@ export interface DressedDuck {
   readonly duck: Sprite
   readonly hat?: Frame
   readonly face?: Frame
+  readonly neck?: Frame
 }
 
 const skins = new Map<string, Promise<Sprite>>()
@@ -39,12 +40,13 @@ async function firstFrame(item: CatalogItem | undefined): Promise<Frame | undefi
 
 export async function loadDressedDuck(loadout: Loadout): Promise<DressedDuck> {
   const outfit = resolveOutfit(catalog, loadout)
-  const [duck, hat, face] = await Promise.all([
+  const [duck, hat, face, neck] = await Promise.all([
     loadSkin(outfit.skin),
     firstFrame(outfit.hat),
     firstFrame(outfit.face),
+    firstFrame(outfit.neck),
   ])
-  return { duck, hat, face }
+  return { duck, hat, face, neck }
 }
 
 /** Draws one duck frame (by name, falling back to the first) wearing the outfit, on the stage. */
@@ -52,7 +54,9 @@ export function drawDressed(dressed: DressedDuck, frameName: string): RgbaImage 
   const frame = dressed.duck.frames.find((f) => f.name === frameName) ?? dressed.duck.frames[0]
   if (!frame) return undefined
   const accessories: Accessory[] = []
-  // Glasses first, so a hat brim covers their top edge.
+  // The neck item first (glasses and hat sit above it), then glasses, so a hat brim covers
+  // their top edge.
+  if (dressed.neck) accessories.push({ frame: dressed.neck, slot: 'neck' })
   if (dressed.face) accessories.push({ frame: dressed.face, slot: 'face' })
   if (dressed.hat) accessories.push({ frame: dressed.hat, slot: 'head' })
   return dressDuck(frame, accessories)

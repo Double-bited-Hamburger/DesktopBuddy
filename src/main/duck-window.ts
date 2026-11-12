@@ -38,6 +38,7 @@ import type { Point, Rect } from '../core/types'
 import type { ChaseDirection, FallEvent, RocketPhase, WalkDirection } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
+import { reviveOnCrash } from './revive'
 import type { SnackSpot } from './snack-window'
 
 /**
@@ -60,6 +61,8 @@ const RESUME_MS = { land: 250, hurt: 2300 } as const
  * around the screen is cheap; the shell owns position, the renderer owns what is drawn.
  */
 export class DuckWindow {
+  /** Hidden from the tray for an hour ("Hide for 1 hour"). */
+  private away = false
   readonly window: BrowserWindow
   private scale: number
   private size: number
@@ -100,6 +103,11 @@ export class DuckWindow {
   /** Lying flat for a fullscreen video (see setLying). */
   private lying = false
   private rocketTimer: ReturnType<typeof setTimeout> | undefined
+  /**
+   * The duck page was reloaded after its renderer died (see revive.ts) and has its config again:
+   * main re-sends the rest of what it had told the page (focus headphones and so on).
+   */
+  onPageBack: () => void = () => undefined
   /** Called when the duck reaches the snack it was chasing. */
   onCaught: () => void = () => undefined
   /** A snack lying on a floor that the duck is going for. */
@@ -158,6 +166,18 @@ export class DuckWindow {
     screen.on('display-metrics-changed', () => this.snapToFloor())
     screen.on('display-added', () => this.snapToFloor())
     screen.on('display-removed', () => this.snapToFloor())
+    // A crashed page: stop walking for it and make the window click-through again (it may have
+    // died with the cursor over the duck), then reload it and tell it what it can't ask for.
+    this.window.webContents.on('render-process-gone', (_event, details) => {
+      if (details.reason === 'clean-exit' || this.window.isDestroyed()) return
+      this.walk(0)
+      if (SHAPED) this.window.setShape([{ x: 0, y: 0, width: 0, height: 0 }])
+      else this.window.setIgnoreMouseEvents(true, { forward: true })
+    })
+    reviveOnCrash(this.window, 'duck', () => {
+      if (this.lying) this.window.webContents.send(IPC.lie, true)
+      this.onPageBack()
+    })
     void loadPage(this.window, 'duck')
   }
 
@@ -472,9 +492,19 @@ export class DuckWindow {
     this.window.hide()
   }
 
+  /**
+   * "Hide for 1 hour" (tray): hidden, and nothing else (a fullscreen end, the break sign)
+   * brings it back until it is over. `show` false: over, but stay hidden (a game is on).
+   */
+  setAway(away: boolean, show = true): void {
+    this.away = away
+    if (away) this.hide()
+    else if (show) this.show()
+  }
+
   /** Back where it was, if it was hidden; off again after any snack it was going for. */
   show(): void {
-    if (this.window.isVisible()) return
+    if (this.away || this.window.isVisible()) return
     this.window.showInactive()
     this.resumeChase('land')
   }

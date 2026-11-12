@@ -99,3 +99,20 @@ describe('session history', () => {
     expect(recordSession(emptyDay(20261104), 660, 25).sessions).toEqual([[660, 25]])
   })
 })
+
+describe('focus presence (economy 2.0)', () => {
+  const config: CycleConfig = { breakMinutes: 5, longBreakMinutes: 15, longEvery: 4, bonus: 60 }
+
+  it('a saved run keeps its presence counts; a 0.9 run without them still loads', () => {
+    const run = { ...startRun(25, 0, true), checked: 10, present: 8 }
+    expect(FocusRunSchema.parse(JSON.parse(JSON.stringify(run)))).toEqual(run)
+    expect(FocusRunSchema.safeParse(startRun(25, 0, true)).success).toBe(true)
+  })
+
+  it('the break after a round starts the counts over', () => {
+    const run: FocusRun = { ...startRun(25, 0, true), checked: 25, present: 20 }
+    const pause = afterPhase(run, config, 25 * 60_000)
+    expect(pause?.checked).toBeUndefined()
+    expect(pause?.present).toBeUndefined()
+  })
+})

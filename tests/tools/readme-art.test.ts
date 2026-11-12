@@ -12,7 +12,13 @@ const catalog = parseCatalog(
 describe('README wardrobe picture', () => {
   it('shows every item of every kind', () => {
     const groups = wardrobeGroups(catalog)
-    const shown = [...groups.skins, ...groups.hats, ...groups.faces, ...groups.minis]
+    const shown = [
+      ...groups.skins,
+      ...groups.hats,
+      ...groups.faces,
+      ...groups.necks,
+      ...groups.minis,
+    ]
     expect(shown.length).toBe(catalog.items.length)
   })
 

@@ -8,6 +8,8 @@ import {
   coffeeAt,
   DRINK_MS,
   EMPTY_COFFEE_LOG,
+  FOAM_MS,
+  LAST_SIP_AT,
   LIFT_MS,
   loadCoffeeLog,
   msUntilCoffeeChange,
@@ -19,6 +21,8 @@ import {
   saveCoffeeLog,
   TIP_MS,
   TIRED_AFTER_COFFEES,
+  TWITCH_MS,
+  TWITCH_STEP_MS,
   tiredToday,
 } from '../../src/core/toys/coffee'
 import { PICKUP_MS } from '../../src/core/toys/snacks'
@@ -132,5 +136,27 @@ describe('saved coffee log', () => {
     expect(await loadCoffeeLog(storage)).toEqual(log)
     await storage.write(COFFEE_KEY, { version: 9, days: 'lots' })
     expect(await loadCoffeeLog(storage)).toEqual(EMPTY_COFFEE_LOG)
+  })
+})
+
+describe('after the last sip', () => {
+  it('wears a foam moustache with a happy puff of steam, the mug put away', () => {
+    const foam = coffeeAt(LAST_SIP_AT)
+    expect(foam).toMatchObject({ pose: 'foam', at: 'beak' })
+    expect(foam?.mug).toBeUndefined()
+    expect(foam?.steam).toBeDefined()
+    expect(coffeeAt(LAST_SIP_AT + FOAM_MS - 1)?.pose).toBe('foam')
+  })
+
+  it('then an eye twitches: wide, normal, wide, before the sparks', () => {
+    const start = LAST_SIP_AT + FOAM_MS
+    const poses = [0, 1, 2].map((n) => coffeeAt(start + n * TWITCH_STEP_MS))
+    expect(poses.map((v) => v?.pose)).toEqual(['wide', 'idle', 'wide'])
+    for (const view of poses) expect(view?.buzz).toBeUndefined()
+    expect(coffeeAt(start + TWITCH_MS)?.buzz).toBeDefined()
+  })
+
+  it('adds up to DRINK_MS', () => {
+    expect(DRINK_MS).toBe(LAST_SIP_AT + FOAM_MS + TWITCH_MS + AWAKE_MS)
   })
 })

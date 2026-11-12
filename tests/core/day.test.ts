@@ -92,3 +92,14 @@ describe('dailyPick', () => {
     expect(dailyPick(new Date(), 0)).toBe(1)
   })
 })
+
+describe('the new fidgets and the time of day', () => {
+  it('preens more in the morning, and not at all with fidgets off', () => {
+    const base = behaviorConfigFor({ wander: true, naps: true, chatter: true, fidget: true })
+    expect(dayBehaviorConfig(base, 'morning').next.idle.preen).toBeGreaterThan(
+      base.next.idle.preen ?? 0,
+    )
+    const calm = behaviorConfigFor({ wander: true, naps: true, chatter: true, fidget: false })
+    expect(dayBehaviorConfig(calm, 'morning').next.idle.preen).toBeUndefined()
+  })
+})

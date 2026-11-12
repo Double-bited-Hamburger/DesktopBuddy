@@ -5,7 +5,7 @@ import type { Translator } from '../../core/i18n/i18n'
 import type { BoxView, GiftResult, Loadout, StoreView } from '../../shared/ipc'
 import { ChipPlayer } from '../shared/chip-player'
 import { catalog } from '../shared/outfit'
-import { ItemPreview, RarityLabel, SpriteIcon } from './widgets'
+import { ItemPreview, RarityLabel, SpendButton, SpriteIcon } from './widgets'
 
 const itemById = (id: string): CatalogItem | undefined => catalog.items.find((i) => i.id === id)
 
@@ -159,16 +159,17 @@ export function Store({
   const [rolling, setRolling] = useState<BoxView['odds'] | undefined>()
   const [volume, setVolume] = useState(0.5)
   const [busy, setBusy] = useState(false)
+  /** The last spend failed (shown, never swallowed). */
+  const [failed, setFailed] = useState(false)
   /** Why the last Boost didn't start ('short' / 'busy'), shown under its card. */
   const [boostNote, setBoostNote] = useState<'short' | 'busy' | undefined>()
   useEffect(() => {
     window.buddy.panel.settings.get().then(
-      (settings) => setVolume(settings.volume),
+      (settings) => setVolume(settings.muted ? 0 : settings.volume),
       () => undefined,
     )
   }, [])
   const owned = new Set(view.owned)
-  const featured = view.featured && itemById(view.featured.id)
   const seasonal = view.seasonal && itemById(view.seasonal.item)
   const freeIn = view.freeGift.readyAt - now
 
@@ -178,11 +179,15 @@ export function Store({
     window.buddy.panel
       .openGift(box)
       .then((r) => {
+        setFailed(!r.ok)
         if (!r.ok) return
         setResult(r)
         setRolling(odds)
       })
-      .catch((error) => console.error('Gift failed', error))
+      .catch((error) => {
+        console.error('Gift failed', error)
+        setFailed(true)
+      })
       .finally(() => setBusy(false))
   }
 
@@ -256,33 +261,44 @@ export function Store({
         </div>
       )}
 
-      {view.featured && featured && (
-        <div class="card featured">
-          <ItemPreview item={featured} loadout={loadout} class="small" />
-          <div class="grow">
-            <span class="muted">{t('store.featured')}</span>
-            <strong>{t(`item.${featured.id}`)}</strong>
-            <RarityLabel t={t} item={featured} />
+      {view.shelf.length > 0 && <h3 class="store-head">{t('store.featured')}</h3>}
+      {view.shelf.map((offer) => {
+        const item = itemById(offer.id)
+        if (!item) return null
+        return (
+          <div key={offer.id} class="card featured">
+            <ItemPreview item={item} loadout={loadout} class="small" />
+            <div class="grow">
+              <strong>{t(`item.${item.id}`)}</strong>
+              <RarityLabel t={t} item={item} />
+            </div>
+            {owned.has(item.id) ? (
+              <span class="muted">{t('store.owned')}</span>
+            ) : (
+              <SpendButton
+                t={t}
+                cost={offer.price}
+                disabled={busy || points < offer.price}
+                title={points < offer.price ? t('store.short') : undefined}
+                onSpend={() => {
+                  setBusy(true)
+                  setFailed(false)
+                  window.buddy.panel
+                    .buyFeatured(item.id)
+                    .then((r) => setFailed(!r.ok && r.reason !== 'owned'))
+                    .catch((error) => {
+                      console.error('Buy failed', error)
+                      setFailed(true)
+                    })
+                    .finally(() => setBusy(false))
+                }}
+              >
+                {t('store.buy', { n: offer.price })}
+              </SpendButton>
+            )}
           </div>
-          {owned.has(featured.id) ? (
-            <span class="muted">{t('store.owned')}</span>
-          ) : (
-            <button
-              type="button"
-              disabled={busy || points < view.featured.price}
-              onClick={() => {
-                setBusy(true)
-                window.buddy.panel
-                  .buyFeatured()
-                  .catch((error) => console.error('Buy failed', error))
-                  .finally(() => setBusy(false))
-              }}
-            >
-              {t('store.buy', { n: view.featured.price })}
-            </button>
-          )}
-        </div>
-      )}
+        )
+      })}
 
       {view.boxes.map((box) => (
         <div key={box.id} class="card box">
@@ -296,14 +312,15 @@ export function Store({
                 : t('store.pity', { rarity: t(`rarity.${box.pity.rarity}`), n: box.pity.left })}
             </span>
           </div>
-          <button
-            type="button"
+          <SpendButton
+            t={t}
+            cost={box.price}
             disabled={busy || points < box.price}
             title={points < box.price ? t('store.short') : undefined}
-            onClick={() => open(box.id)}
+            onSpend={() => open(box.id)}
           >
             {t('store.open', { n: box.price })}
-          </button>
+          </SpendButton>
         </div>
       ))}
       <h3 class="store-head">{t('store.boost')}</h3>
@@ -316,11 +333,12 @@ export function Store({
           </span>
           {boostNote && <span class="muted warn">{t(`store.boost.${boostNote}`)}</span>}
         </div>
-        <button
-          type="button"
+        <SpendButton
+          t={t}
+          cost={view.rocket.price}
           disabled={busy || points < view.rocket.price}
           title={points < view.rocket.price ? t('store.short') : undefined}
-          onClick={() => {
+          onSpend={() => {
             setBusy(true)
             window.buddy.panel
               .buyBoost('rocket')
@@ -330,8 +348,13 @@ export function Store({
           }}
         >
           {t('store.buy', { n: view.rocket.price })}
-        </button>
+        </SpendButton>
       </div>
+      {failed && (
+        <p class="muted warn" role="alert">
+          {t('panel.failed')}
+        </p>
+      )}
       <p class="muted note">{t('store.note')}</p>
     </section>
   )

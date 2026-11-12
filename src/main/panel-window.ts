@@ -1,5 +1,5 @@
-import type { Rectangle, WebContents } from 'electron'
-import { BrowserWindow, screen } from 'electron'
+import type { Rectangle, SaveDialogOptions, SaveDialogReturnValue, WebContents } from 'electron'
+import { BrowserWindow, dialog, screen } from 'electron'
 import { clamp } from '../core/stage'
 import { loadPage, webPreferences } from './pages'
 
@@ -14,6 +14,8 @@ export class PanelWindow {
   private readonly anchor: () => Rectangle
   private win: BrowserWindow | null = null
   private pinned = false
+  /** Save dialogs open over the panel: losing focus to one must not close it. */
+  private dialogs = 0
 
   /** `anchor` returns the duck window bounds; the panel opens above it. */
   constructor(anchor: () => Rectangle) {
@@ -69,12 +71,30 @@ export class PanelWindow {
 
     win.once('ready-to-show', () => win.show())
     win.on('blur', () => {
-      if (!this.pinned) this.close()
+      if (!this.pinned && this.dialogs === 0) this.close()
+    })
+    // A crashed panel would stay blank: close it (the app log has why); it opens fresh next time.
+    win.webContents.on('render-process-gone', (_event, details) => {
+      if (details.reason !== 'clean-exit') this.close()
     })
     win.on('closed', () => {
       if (this.win === win) this.win = null
     })
     void loadPage(win, 'panel')
+  }
+
+  /**
+   * A save dialog (Export) owned by the panel, so it stays on top of it, and the panel stays open
+   * while it is up: the page is still there afterwards to say "Saved.".
+   */
+  async showSaveDialog(options: SaveDialogOptions): Promise<SaveDialogReturnValue> {
+    const win = this.win && !this.win.isDestroyed() ? this.win : undefined
+    this.dialogs++
+    try {
+      return await (win ? dialog.showSaveDialog(win, options) : dialog.showSaveDialog(options))
+    } finally {
+      this.dialogs--
+    }
   }
 
   close(): void {

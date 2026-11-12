@@ -10,8 +10,9 @@ export interface DisplayInfo {
 }
 
 /**
- * Everything the app needs from the operating system. `core` only ever sees this interface;
- * the Electron implementation lives in `src/main/platform`. A Tauri shell would provide its own.
+ * Everything the app needs from the operating system. `core` only ever sees this interface. No
+ * shell implements it yet (main reads displays and idle time directly; the unused Electron
+ * implementation was removed in 1.0.0 Stage 1). A Tauri shell would provide its own.
  */
 export interface PlatformAdapter {
   getDisplays(): DisplayInfo[]

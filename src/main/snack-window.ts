@@ -5,6 +5,7 @@ import { flightStep, releaseVelocity } from '../core/flight'
 import { clamp } from '../core/stage'
 import type { Snack } from '../core/toys/snacks'
 import { loadPage, webPreferences } from './pages'
+import { reviveOnCrash } from './revive'
 
 /** The snack page is an 8×8 logical-pixel stage, scaled like the duck. */
 export const SNACK_STAGE = 8
@@ -140,6 +141,7 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
       this.resting = undefined
       this.onGone()
     })
+    reviveOnCrash(win, 'snack') // it draws from its URL only: a reload is all it needs
     void loadPage(win, 'snack', this.offset ? `${this.kind}@${this.offset}` : this.kind)
     return win
   }

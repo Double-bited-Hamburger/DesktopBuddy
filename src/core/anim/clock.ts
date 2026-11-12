@@ -4,6 +4,19 @@ export interface Animation {
   /** Milliseconds each entry in `frames` is shown. */
   readonly frameMs: number
   readonly loop: boolean
+  /**
+   * With `loop`: the frames before this index play once (an intro, like sitting down), then the
+   * rest loops. Default 0: the whole clip loops.
+   */
+  readonly loopFrom?: number
+}
+
+/** Which entry of `anim.frames` is shown on step `step` (one step per `frameMs`). */
+export function frameIndex(anim: Animation, step: number): number {
+  const length = anim.frames.length
+  if (!anim.loop) return Math.min(step, length - 1)
+  const from = Math.min(Math.max(0, anim.loopFrom ?? 0), length - 1)
+  return step < from ? step : from + ((step - from) % (length - from))
 }
 
 export type AnimationSet = Readonly<Record<string, Animation>>
@@ -54,8 +67,7 @@ export class AnimationClock {
     for (let k = 1; k <= anim.frames.length; k++) {
       const next = step + k
       if (!anim.loop && next >= anim.frames.length) return Number.POSITIVE_INFINITY
-      if (anim.frames[next % anim.frames.length] !== now)
-        return next * anim.frameMs - this.elapsedMs
+      if (anim.frames[frameIndex(anim, next)] !== now) return next * anim.frameMs - this.elapsedMs
     }
     return Number.POSITIVE_INFINITY
   }
@@ -64,7 +76,6 @@ export class AnimationClock {
   get frameName(): string {
     const anim = this.animations[this.name] as Animation
     const step = Math.floor(this.elapsedMs / anim.frameMs)
-    const index = anim.loop ? step % anim.frames.length : Math.min(step, anim.frames.length - 1)
-    return anim.frames[index] as string
+    return anim.frames[frameIndex(anim, step)] as string
   }
 }

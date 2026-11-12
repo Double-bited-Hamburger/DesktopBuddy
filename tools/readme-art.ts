@@ -16,7 +16,7 @@ import { wardrobeCaption, wardrobeGroups } from './lib/wardrobe'
 /**
  * Renders the README pictures straight from the .pxl sources, so they always match the game:
  *   docs/media/duck-show.svg  an animated loop (idle, walk, quack, pet, eat, smoke, ouch)
- *   docs/media/wardrobe.svg   the whole catalog: skins, hats, glasses and mini friends
+ *   docs/media/wardrobe.svg   the whole catalog: skins, hats, glasses, neckwear and mini friends
  * Plain SVG rects + CSS steps: crisp at any size, animates on GitHub, honors reduced motion.
  * Usage: npm run readme-art
  */
@@ -113,7 +113,7 @@ function flipBook(shots: readonly Shot[], width: number, height: number, title: 
 }
 
 async function main(): Promise<void> {
-  const duck = await load('ducks/placeholder-duck')
+  const duck = await load('ducks/duck')
   const bubble = frameOf(await load('emotes/quack-bubble'), 'quack-bubble')
   const heart = frameOf(await load('emotes/heart'), 'heart')
   const digits = await load('ui/points-digits')
@@ -218,7 +218,11 @@ async function main(): Promise<void> {
   const cells: Frame[][] = []
   cells.push(groups.skins.map((skin) => asFrame(dressDuck(skinBody(skin), []))))
   const wearers = groups.skins
-  const worn = async (items: readonly CatalogItem[], slot: 'head' | 'face', shift: number) => {
+  const worn = async (
+    items: readonly CatalogItem[],
+    slot: 'head' | 'face' | 'neck',
+    shift: number,
+  ) => {
     const row: Frame[] = []
     for (const [i, item] of items.entries()) {
       const skin = wearers[(i + shift) % wearers.length]
@@ -229,6 +233,7 @@ async function main(): Promise<void> {
   }
   cells.push(await worn(groups.hats, 'head', 0))
   cells.push(await worn(groups.faces, 'face', 3))
+  cells.push(await worn(groups.necks, 'neck', 6))
   const mini = await load('companions/mini-duck')
   const miniIdle = frameOf(mini, 'idle')
   cells.push(

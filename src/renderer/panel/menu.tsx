@@ -2,7 +2,16 @@ import { useEffect, useState } from 'preact/hooks'
 import type { Translator } from '../../core/i18n/i18n'
 import { SpriteIcon } from './widgets'
 
-export const SCREENS = ['home', 'bag', 'store', 'quests', 'today', 'stats', 'settings'] as const
+export const SCREENS = [
+  'home',
+  'bag',
+  'store',
+  'quests',
+  'journey',
+  'today',
+  'stats',
+  'settings',
+] as const
 export type Screen = (typeof SCREENS)[number]
 
 /** Each section's pixel icon in `ui/menu-icons`. */
@@ -11,6 +20,7 @@ const ICON: Readonly<Record<Screen, string>> = {
   bag: 'bag',
   store: 'market',
   quests: 'flag',
+  journey: 'level',
   today: 'sun',
   stats: 'steps',
   settings: 'feather',
@@ -18,6 +28,9 @@ const ICON: Readonly<Record<Screen, string>> = {
 
 /** How many duck facts there are in the dictionaries (`fact.1` … `fact.N`). */
 export const FACT_COUNT = 14
+
+/** Icons drawn in `ui/journey-icons` (same outline color as the menu icons). */
+const JOURNEY_ICONS: ReadonlySet<string> = new Set(['level'])
 
 /** The outline color of the menu icons, and what it becomes on the dark panel so it shows. */
 const OUTLINE = '#2a1f2d'
@@ -27,7 +40,7 @@ const OUTLINE_DARK = '#f1e6d4'
 export function MenuIcon({ name, dark }: { name: string; dark: boolean }) {
   return (
     <SpriteIcon
-      sprite="ui/menu-icons"
+      sprite={JOURNEY_ICONS.has(name) ? 'ui/journey-icons' : 'ui/menu-icons'}
       frame={name}
       size={24}
       swap={dark ? [OUTLINE, OUTLINE_DARK] : undefined}
@@ -56,6 +69,7 @@ export function Menu({
   t,
   screen,
   questsReady,
+  journeyReady,
   freeGiftAt,
   fact,
   dark,
@@ -64,6 +78,8 @@ export function Menu({
   t: Translator
   screen: Screen
   questsReady: number
+  /** Journey rewards (levels, achievements, sets, stamps, eggs) waiting to be claimed. */
+  journeyReady: number
   /** When the free gift can be opened (epoch ms), undefined while the Store hasn't loaded. */
   freeGiftAt: number | undefined
   /** 1-based number of today's fact. */
@@ -74,7 +90,11 @@ export function Menu({
   const [open, setOpen] = useState(false)
   const now = useNow(freeGiftAt ?? 0)
   const giftReady = freeGiftAt !== undefined && freeGiftAt <= now
-  const waiting: Partial<Record<Screen, boolean>> = { quests: questsReady > 0, store: giftReady }
+  const waiting: Partial<Record<Screen, boolean>> = {
+    quests: questsReady > 0,
+    store: giftReady,
+    journey: journeyReady > 0,
+  }
   const anyWaiting = Object.values(waiting).some(Boolean)
 
   useEffect(() => {
@@ -125,6 +145,9 @@ export function Menu({
                 <span class="drawer-name">{t(`nav.${name}`)}</span>
                 {name === 'quests' && questsReady > 0 && (
                   <span class="dot" title={t('menu.questsReady', { n: questsReady })} />
+                )}
+                {name === 'journey' && journeyReady > 0 && (
+                  <span class="dot" title={t('menu.questsReady', { n: journeyReady })} />
                 )}
                 {name === 'store' && giftReady && <span class="dot" title={t('store.freeReady')} />}
               </button>

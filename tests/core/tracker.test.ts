@@ -11,7 +11,15 @@ import {
   recordMinute,
   recordSession,
 } from '../../src/core/tracker/activity'
-import { focusCountdown, focusEndsAt, focusLength, focusReward } from '../../src/core/tracker/focus'
+import {
+  focusCountdown,
+  focusCounts,
+  focusEndsAt,
+  focusLength,
+  focusPointsDue,
+  focusReward,
+  presentNow,
+} from '../../src/core/tracker/focus'
 import {
   BREAK_MINUTES,
   categoryOf,
@@ -169,6 +177,8 @@ describe('focus sessions', () => {
   const config = {
     lengths: [15, 25],
     pointsPerMinute: 2,
+    dailyCap: 100,
+    presenceIdleSeconds: 300,
     cycle: { breakMinutes: 5, longBreakMinutes: 15, longEvery: 4, bonus: 30 },
   }
   it('only offers configured lengths, ends on time, pays per minute', () => {
@@ -178,6 +188,31 @@ describe('focus sessions', () => {
     const session = { startedAt: 1000, minutes: 15 }
     expect(focusEndsAt(session)).toBe(1000 + 15 * 60_000)
     expect(focusReward(config, session)).toBe(30)
+  })
+
+  // Economy 2.0: presence and a daily cap.
+  it('pays only the minutes the user was there', () => {
+    const session = { startedAt: 0, minutes: 25 }
+    expect(focusPointsDue(config, session, 25, 0, 0)).toBe(50)
+    expect(focusPointsDue(config, session, 10, 0, 0)).toBe(20)
+    expect(focusPointsDue(config, session, 40, 0, 0)).toBe(50) // never more than the round
+    expect(focusPointsDue(config, session, 0, 30, 0)).toBe(0) // away all along: no bonus either
+    expect(focusPointsDue(config, session, 5, 30, 0)).toBe(40)
+  })
+
+  it('stops at the daily focus cap', () => {
+    const session = { startedAt: 0, minutes: 25 }
+    expect(focusPointsDue(config, session, 25, 0, 70)).toBe(30)
+    expect(focusPointsDue(config, session, 25, 0, 100)).toBe(0)
+    expect(focusPointsDue(config, session, 25, 0, 140)).toBe(0)
+  })
+
+  it('a minute is present after recent input; a round counts when half was', () => {
+    expect(presentNow(config, 10)).toBe(true)
+    expect(presentNow(config, 299)).toBe(true)
+    expect(presentNow(config, 300)).toBe(false)
+    expect(focusCounts({ startedAt: 0, minutes: 25 }, 13)).toBe(true)
+    expect(focusCounts({ startedAt: 0, minutes: 25 }, 12)).toBe(false)
   })
 
   it('counts down from 25:00 one second at a time, never above the length', () => {

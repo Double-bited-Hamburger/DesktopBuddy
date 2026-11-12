@@ -32,3 +32,20 @@ export function msUntilBreadChange(elapsedMs: number): number {
   if (elapsedMs < PICKUP_MS) return PICKUP_MS - elapsedMs
   return BREAD_BITE_MS - ((elapsedMs - PICKUP_MS) % BREAD_BITE_MS)
 }
+
+/**
+ * A handful: this many pieces of bread eaten within HANDFUL_WINDOW_MS of each other leaves the
+ * duck stuffed (it waddles about and burps; the `stuffed` state in behavior/machine.ts).
+ */
+export const HANDFUL_PIECES = 3
+export const HANDFUL_WINDOW_MS = 60_000
+
+/**
+ * Whether the meal just finished at `nowMs` makes a handful, given when the earlier pieces were
+ * finished (`eatenAtMs`, any order, same time base). Only the newest few count.
+ */
+export function isHandful(eatenAtMs: readonly number[], nowMs: number): boolean {
+  let recent = 1 // the piece just eaten
+  for (const at of eatenAtMs) if (at <= nowMs && nowMs - at <= HANDFUL_WINDOW_MS) recent++
+  return recent >= HANDFUL_PIECES
+}

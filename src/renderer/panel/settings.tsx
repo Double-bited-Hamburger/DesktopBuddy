@@ -57,8 +57,8 @@ type GroupId = (typeof GROUPS)[number]
 /** What the search looks through in each group, besides its title and summary. */
 const SEARCH_KEYS: Readonly<Record<GroupId, readonly string[]>> = {
   general: ['settings.language', 'settings.theme', 'settings.size', 'settings.pill'],
-  sounds: ['settings.volume', 'settings.soundsHint', 'settings.test'],
-  duck: DUCK_SWITCHES.map((name) => `settings.duck.${name}`),
+  sounds: ['settings.volume', 'settings.mute', 'settings.soundsHint', 'settings.test'],
+  duck: [...DUCK_SWITCHES.map((name) => `settings.duck.${name}`), 'settings.snow'],
   names: [
     'settings.names.duck',
     'settings.names.you',
@@ -111,7 +111,9 @@ function summary(t: Translator, view: SettingsView, id: GroupId): string {
     case 'general':
       return `${t(`settings.lang.${view.language}`)} · ${t(`settings.theme.${view.theme}`)} · ${view.scale}×`
     case 'sounds':
-      return view.volume === 0 ? t('settings.muted') : `${Math.round(view.volume * 100)}%`
+      return view.muted || view.volume === 0
+        ? t('settings.muted')
+        : `${Math.round(view.volume * 100)}%`
     case 'duck': {
       const on = DUCK_SWITCHES.filter((name) => view.duck[name]).length
       return t('settings.sum.count', { n: on, of: DUCK_SWITCHES.length })
@@ -323,11 +325,19 @@ export function Settings({ t, onChange }: SettingsProps) {
             onChange={(e) => set({ volume: Number(e.currentTarget.value) / 100 })}
           />
         </label>
+        <label class="row">
+          <span>{t('settings.mute')}</span>
+          <input
+            type="checkbox"
+            checked={view.muted}
+            onChange={(e) => set({ muted: e.currentTarget.checked })}
+          />
+        </label>
         <div class="row">
           <span class="muted">{t('settings.soundsHint')}</span>
           <button
             type="button"
-            disabled={view.volume === 0}
+            disabled={view.volume === 0 || view.muted}
             onClick={() => {
               player.current.volume = view.volume
               player.current.play('quack')
@@ -349,6 +359,14 @@ export function Settings({ t, onChange }: SettingsProps) {
             />
           </label>
         ))}
+        <label class="row">
+          <span>{t('settings.snow')}</span>
+          <input
+            type="checkbox"
+            checked={view.snow}
+            onChange={(e) => set({ snow: e.currentTarget.checked })}
+          />
+        </label>
       </Group>
 
       <Group id="names" {...group('names')}>

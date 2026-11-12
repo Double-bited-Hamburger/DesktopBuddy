@@ -48,6 +48,8 @@ describe('settings', () => {
       scale: 3,
       language: 'en',
       volume: 0.5,
+      muted: false,
+      snow: true,
       showPointsPill: false,
       theme: 'system',
       duck: { wander: true, naps: true, chatter: true, fidget: true },
@@ -62,25 +64,26 @@ describe('settings', () => {
       weatherCity: '', // no weather (and no network) until the user types a city
       weatherAlerts: true, // only matters once a city is typed
       fullscreen: { video: 'lie', games: 'hide' }, // lie flat over videos, leave for games
-      loadout: { skin: 'classic', hat: null, face: null },
+      loadout: { skin: 'classic', hat: null, face: null, neck: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
     })
   })
 
   it('loads defaults when nothing is saved', async () => {
-    expect(await loadSettings(new MemoryStorage())).toEqual(DEFAULT_SETTINGS)
+    expect(await loadSettings(new MemoryStorage(), 0)).toEqual(DEFAULT_SETTINGS)
   })
 
   it('fills missing fields from defaults', async () => {
     const storage = new MemoryStorage()
     await storage.write('settings', { scale: 4, loadout: { hat: 'green-bucket-hat' } })
-    const settings = await loadSettings(storage)
+    const settings = await loadSettings(storage, 0)
     expect(settings.scale).toBe(4)
     expect(settings.language).toBe('en')
     expect(settings.loadout).toEqual({
       skin: 'classic',
       hat: 'green-bucket-hat',
       face: null,
+      neck: null, // a 0.9 loadout: nothing on the neck
     })
     // The friend duck dresses in mint until it's given something else.
     expect(settings.friendLoadout).toEqual({ skin: 'mint', hat: null, face: null })
@@ -89,7 +92,7 @@ describe('settings', () => {
   it('falls back to defaults for invalid or unreadable data instead of throwing', async () => {
     const storage = new MemoryStorage()
     await storage.write('settings', { scale: 99 })
-    expect(await loadSettings(storage)).toEqual(DEFAULT_SETTINGS)
+    expect(await loadSettings(storage, 0)).toEqual(DEFAULT_SETTINGS)
 
     const broken = {
       read: () => Promise.reject(new Error('disk on fire')),
@@ -97,13 +100,32 @@ describe('settings', () => {
       remove: () => Promise.resolve(),
       list: () => Promise.resolve([]),
     }
-    expect(await loadSettings(broken)).toEqual(DEFAULT_SETTINGS)
+    expect(await loadSettings(broken, 0)).toEqual(DEFAULT_SETTINGS)
+  })
+
+  it('copies a settings file it cannot use aside before the defaults are saved over it', async () => {
+    const storage = new MemoryStorage()
+    await storage.write('settings', { version: 1, scale: 99, names: { duck: 'Quackers' } })
+    expect(await loadSettings(storage, 123)).toEqual(DEFAULT_SETTINGS)
+    expect(await storage.read('settings-backup-123')).toEqual({
+      version: 1,
+      scale: 99,
+      names: { duck: 'Quackers' },
+    })
+  })
+
+  it('copies a torn (unparseable) settings file aside byte for byte', async () => {
+    const storage = new MemoryStorage()
+    const torn = '{"scale": 4, "names": {"duck": "Qu'
+    storage.writeRaw('settings', torn)
+    expect(await loadSettings(storage, 7)).toEqual(DEFAULT_SETTINGS)
+    expect(storage.readRaw('settings-backup-7')).toBe(torn)
   })
 
   it('saves and reloads', async () => {
     const storage = new MemoryStorage()
     await saveSettings(storage, { ...DEFAULT_SETTINGS, language: 'it', volume: 0.2 })
-    const settings = await loadSettings(storage)
+    const settings = await loadSettings(storage, 0)
     expect(settings.language).toBe('it')
     expect(settings.volume).toBe(0.2)
   })

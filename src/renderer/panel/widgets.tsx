@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'preact/hooks'
+import type { ComponentChildren } from 'preact'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { CatalogItem } from '../../core/catalog/catalog'
 import type { Translator } from '../../core/i18n/i18n'
 import { composeLayers } from '../../core/sprite/compositor'
@@ -10,10 +11,10 @@ import { loadSpriteRef } from '../shared/sprites'
 /** A pixel-perfect thumbnail of the duck wearing `loadout`. */
 export function DuckPreview({ loadout, class: className }: { loadout: Loadout; class?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null)
-  const { skin, hat, face } = loadout
+  const { skin, hat, face, neck } = loadout
   useEffect(() => {
     let live = true
-    loadDressedDuck({ skin, hat, face })
+    loadDressedDuck({ skin, hat, face, neck })
       .then((dressed) => {
         const image = drawDressed(dressed, 'idle')
         const ctx = canvas.current?.getContext('2d')
@@ -28,7 +29,7 @@ export function DuckPreview({ loadout, class: className }: { loadout: Loadout; c
     return () => {
       live = false
     }
-  }, [skin, hat, face])
+  }, [skin, hat, face, neck])
   return (
     <canvas
       ref={canvas}
@@ -158,4 +159,51 @@ export function ItemPreview({
 
 export function RarityLabel({ t, item }: { t: Translator; item: CatalogItem }) {
   return <span class={`rarity rarity-${item.rarity}`}>{t(`rarity.${item.rarity}`)}</span>
+}
+
+/** Spending more than this asks "Sure?" first (a second click within a few seconds). */
+export const CONFIRM_ABOVE = 500
+const DISARM_MS = 4000
+
+/**
+ * A buy button. Above CONFIRM_ABOVE points the first click only arms it ("Sure?"); the second
+ * spends. It disarms by itself after a few seconds, so a stray click never spends.
+ */
+export function SpendButton({
+  t,
+  cost,
+  disabled,
+  title,
+  onSpend,
+  children,
+}: {
+  t: Translator
+  cost: number
+  disabled?: boolean
+  title?: string
+  onSpend: () => void
+  children: ComponentChildren
+}) {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const timer = setTimeout(() => setArmed(false), DISARM_MS)
+    return () => clearTimeout(timer)
+  }, [armed])
+  const click = () => {
+    if (cost > CONFIRM_ABOVE && !armed) return setArmed(true)
+    setArmed(false)
+    onSpend()
+  }
+  return (
+    <button
+      type="button"
+      class={armed ? 'armed' : undefined}
+      disabled={disabled}
+      title={title}
+      onClick={click}
+    >
+      {armed ? t('store.sure', { n: cost }) : children}
+    </button>
+  )
 }

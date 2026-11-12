@@ -1,6 +1,7 @@
 import koffi from 'koffi'
 import type { ForegroundSource } from './foreground'
 import { noForeground } from './foreground'
+import { logError } from './log'
 
 /** Enough to read the image path of a process, nothing more (no memory, no handles to its windows). */
 const PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
@@ -74,7 +75,7 @@ export function windowsForeground(): ForegroundSource {
     const current = async (): Promise<string | undefined> => win32.processOf(win32.window())
     return { available: true, current, stop: () => undefined }
   } catch (error) {
-    console.error('App names unavailable, tracking active/idle only', error)
+    logError('App names unavailable, tracking active/idle only', error)
     return noForeground
   }
 }

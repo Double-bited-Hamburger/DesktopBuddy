@@ -70,3 +70,30 @@ describe('AnimationClock', () => {
     expect(() => new AnimationClock(animations, 'fly')).toThrow(RangeError)
   })
 })
+
+describe('an intro, then a loop (loopFrom)', () => {
+  const nap: AnimationSet = {
+    nap: { frames: ['sit-down', 'out', 'out', 'in', 'in'], frameMs: 100, loop: true, loopFrom: 1 },
+  }
+
+  it('plays the intro once, then loops the rest', () => {
+    const clock = new AnimationClock(nap, 'nap')
+    const seen: string[] = []
+    for (let i = 0; i < 9; i++) {
+      seen.push(clock.frameName)
+      clock.advance(100)
+    }
+    expect(seen).toEqual(['sit-down', 'out', 'out', 'in', 'in', 'out', 'out', 'in', 'in'])
+  })
+
+  it('wakes only when the picture changes, across the loop point too', () => {
+    const clock = new AnimationClock(nap, 'nap')
+    expect(clock.msUntilFrameChange()).toBe(100)
+    clock.advance(100)
+    expect(clock.msUntilFrameChange()).toBe(200)
+    clock.advance(200)
+    expect(clock.msUntilFrameChange()).toBe(200) // in, in, then back to out
+    clock.advance(200)
+    expect(clock.frameName).toBe('out')
+  })
+})

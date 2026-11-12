@@ -1,6 +1,7 @@
 import type { WebContents } from 'electron'
 import { BrowserWindow, screen } from 'electron'
 import { loadPage, webPreferences } from './pages'
+import { reviveOnCrash } from './revive'
 
 const PILL_WIDTH = 120
 const PILL_HEIGHT = 32
@@ -54,6 +55,7 @@ export class PillWindow {
       screen.off('display-metrics-changed', this.reposition)
     })
     screen.on('display-metrics-changed', this.reposition)
+    reviveOnCrash(win, 'pill') // the page asks for the balance again on load
     void loadPage(win, 'pill')
   }
 

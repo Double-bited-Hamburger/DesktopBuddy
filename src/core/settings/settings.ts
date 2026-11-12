@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { FullscreenSettingsSchema } from '../care/fullscreen'
 import { CITY_MAX } from '../care/weather'
 import { isCleanName } from '../care/welcome'
+import type { Migrations } from '../storage/migrate'
+import { migrateSave } from '../storage/migrate'
 import type { StorageAdapter } from '../storage/storage'
 
 export const LoadoutSchema = z.object({
@@ -9,6 +11,8 @@ export const LoadoutSchema = z.object({
   skin: z.string().default('classic'),
   hat: z.string().nullable().default(null),
   face: z.string().nullable().default(null),
+  /** Scarf, bow tie, bell, medal (1.0.0); older saves have none and load with nothing worn. */
+  neck: z.string().nullable().default(null),
 })
 
 /** What the duck does on its own. Each switch removes that behavior from its idle choices. */
@@ -52,6 +56,10 @@ export const SettingsSchema = z.object({
   language: z.enum(['en', 'it']).default('en'),
   /** Sound volume, 0 = silent. */
   volume: z.number().min(0).max(1).default(0.5),
+  /** Mute (the tray or Settings): silent, but the volume is kept for when it is switched off. */
+  muted: z.boolean().default(false),
+  /** Snow falls around the duck in December (1.0.0). */
+  snow: z.boolean().default(true),
   /** The small points pill near the system tray. Off by default to stay unobtrusive. */
   showPointsPill: z.boolean().default(false),
   /** Panel colors; `system` follows the OS light/dark setting. */
@@ -114,18 +122,45 @@ export type Settings = z.infer<typeof SettingsSchema>
 
 export const DEFAULT_SETTINGS: Settings = SettingsSchema.parse({})
 
+/** The volume sounds actually play at: 0 while muted. */
+export function soundVolume(settings: Pick<Settings, 'volume' | 'muted'>): number {
+  return settings.muted ? 0 : settings.volume
+}
+
 export const SETTINGS_KEY = 'settings'
 
-/** Reads settings, falling back to defaults when missing or invalid (never throws). */
-export async function loadSettings(storage: StorageAdapter): Promise<Settings> {
+/** The settings file's version now, and the steps from older ones (none yet). */
+export const SETTINGS_VERSION = 1
+const SETTINGS_MIGRATIONS: Migrations = {}
+
+/**
+ * Reads settings, falling back to defaults when missing or invalid (never throws). A file that
+ * can't be used is first copied to `settings-backup-<now>` (byte for byte when it isn't even
+ * JSON), so the defaults saved later never silently replace someone's names, outfit or choices.
+ * A file from a NEWER version is left alone: defaults in memory, and nothing is saved over it
+ * this run (`StorageAdapter.keep`). Files from before `version` was written count as version 1.
+ */
+export async function loadSettings(storage: StorageAdapter, now: number): Promise<Settings> {
+  const backup = `${SETTINGS_KEY}-backup-${now}`
+  let raw: unknown
   try {
-    const raw = await storage.read(SETTINGS_KEY)
-    if (raw === undefined) return DEFAULT_SETTINGS
-    const parsed = SettingsSchema.safeParse(raw)
-    return parsed.success ? parsed.data : DEFAULT_SETTINGS
+    raw = await storage.read(SETTINGS_KEY)
   } catch {
+    await storage.copyAside?.(SETTINGS_KEY, backup).catch(() => undefined)
     return DEFAULT_SETTINGS
   }
+  if (raw === undefined) return DEFAULT_SETTINGS
+  const migrated = migrateSave(raw, SETTINGS_VERSION, SETTINGS_MIGRATIONS, { missingVersion: 1 })
+  if (migrated.kind === 'newer') {
+    storage.keep?.(SETTINGS_KEY)
+    return DEFAULT_SETTINGS
+  }
+  if (migrated.kind === 'ok') {
+    const parsed = SettingsSchema.safeParse(migrated.data)
+    if (parsed.success) return parsed.data
+  }
+  await storage.write(backup, raw).catch(() => undefined)
+  return DEFAULT_SETTINGS
 }
 
 /**
@@ -137,6 +172,8 @@ export const SettingsPatchSchema = z.strictObject({
   scale: SettingsSchema.shape.scale.unwrap().optional(),
   language: SettingsSchema.shape.language.unwrap().optional(),
   volume: SettingsSchema.shape.volume.unwrap().optional(),
+  muted: SettingsSchema.shape.muted.unwrap().optional(),
+  snow: SettingsSchema.shape.snow.unwrap().optional(),
   showPointsPill: SettingsSchema.shape.showPointsPill.unwrap().optional(),
   theme: SettingsSchema.shape.theme.unwrap().optional(),
   duck: z

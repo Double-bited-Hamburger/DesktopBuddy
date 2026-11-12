@@ -30,6 +30,9 @@ export interface FocusRun extends FocusSession {
   readonly focusMinutes: number
   /** What the user is working on ("Maths homework"), if they said. */
   readonly label?: string
+  /** Focus phase: minutes checked so far, and how many of them the user was at the PC. */
+  readonly checked?: number
+  readonly present?: number
 }
 
 export const FocusRunSchema = z.object({
@@ -40,6 +43,8 @@ export const FocusRunSchema = z.object({
   round: z.number().int().positive(),
   focusMinutes: z.number().int().positive(),
   label: z.string().max(80).optional(),
+  checked: z.number().int().nonnegative().optional(),
+  present: z.number().int().nonnegative().optional(),
 })
 
 /** The longest "what are you working on" label. */
@@ -78,8 +83,9 @@ export function afterPhase(run: FocusRun, config: CycleConfig, now: number): Foc
   if (run.phase === 'focus') {
     if (!run.cycle) return undefined
     const long = run.round % config.longEvery === 0
+    const { checked: _checked, present: _present, ...rest } = run
     return {
-      ...run,
+      ...rest,
       phase: long ? 'long-break' : 'break',
       startedAt: now,
       minutes: long ? config.longBreakMinutes : config.breakMinutes,

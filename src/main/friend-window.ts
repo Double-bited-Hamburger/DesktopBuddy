@@ -22,6 +22,7 @@ import { clamp, STAGE_SIZE, WALK_SPEED, walkStep } from '../core/stage'
 import type { Rect } from '../core/types'
 import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
+import { reviveOnCrash } from './revive'
 
 /** Same stride as the duck: 2 logical px, 6 times a second. */
 const STEP_PX = 2
@@ -207,6 +208,7 @@ export class FriendWindow {
       this.stopTimers()
       this.window = undefined
     })
+    reviveOnCrash(window, 'mini', () => this.tell()) // the reloaded page hears its state again
     void loadPage(window, 'friend', this.item.id)
   }
 

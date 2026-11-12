@@ -13,8 +13,10 @@ import {
   saveWeather,
   WEATHER_EVERY_MS,
 } from '../core/care/weather'
+import { errorName } from '../core/log/log'
 import type { StorageAdapter } from '../core/storage/storage'
 import type { WeatherView } from '../shared/ipc'
+import { logWarn } from './log'
 
 /** A request that hasn't answered in this long is given up (tried again next hour). */
 const REQUEST_TIMEOUT_MS = 10_000
@@ -181,10 +183,11 @@ export class WeatherService {
       this.save = save
       this.state = 'ok'
       await saveWeather(this.deps.storage, save).catch((error) =>
-        console.error('Could not save the weather', error),
+        logWarn(`Could not save the weather (${errorName(error)})`),
       )
     } catch (error) {
-      console.error('Weather check failed', error)
+      // Only the kind of error: a network message could name the city or the place.
+      logWarn(`Weather check failed (${errorName(error)})`)
       this.state = 'offline'
     } finally {
       if (this.deps.city() === city) {

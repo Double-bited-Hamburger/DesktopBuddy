@@ -35,7 +35,8 @@ possible if the RAM budget cannot be met.
 - **Floor:** `floorBounds(workArea, scale)` — the duck stands on the bottom of the work area; the
   window extends `FLOOR_INSET × scale` px below it (one empty sprite row under the feet).
 - **Persistence:** JSON files in `<userData>/data/<key>.json` via `FileStorage` (temp file +
-  rename). Everything read is validated with zod; invalid → defaults, never a crash.
+  rename). Everything read is validated with zod; invalid → defaults, never a crash (see
+  Reliability for what happens to the bad file).
 - **Points:** the duck page detects clicks and pets (core `PetDetector`, local, no IPC per
   pointer move) and sends `earn('click' | 'pet')`; main detects throws (`play`) itself. Main owns
   the `PointsLedger`, applies cooldowns and daily caps from `economy.json`, saves `ledger.json`
@@ -79,6 +80,44 @@ possible if the RAM budget cannot be met.
   only while that screen is open. A focus session is one main-process timeout.
 - **IPC:** contract in `src/shared/ipc.ts`; each handler in `src/main/ipc.ts` checks the sender
   window and payload. The panel cannot drive the duck and vice versa.
+
+## Reliability (1.0.0 Stage 1)
+
+- **Log file:** `main/log.ts` appends to `<userData>/logs/buddy.log` (synchronous, so a line
+  written just before `app.exit` or a crash is on disk; rotated once to `buddy.log.1` at 256 KB;
+  never throws). Line format, rotation and the restart guard are pure (`core/log/log.ts`). It gets
+  start and quit, `uncaughtException` / `unhandledRejection` (logged; the app carries on),
+  `render-process-gone` / `child-process-gone`, and every error main used to swallow with
+  `console.error` (still echoed to the console in dev). Privacy limits: docs/PRIVACY.md.
+- **Crashed pages come back:** `main/revive.ts` reloads a page whose renderer died (anything but
+  `clean-exit`), at most 3 times in 10 minutes, then leaves it and logs. Used by the duck, pill,
+  minis and snacks/ball. The duck page re-reads `getConfig` on load (scale, loadout, prefs, theme,
+  weather, tired…); main re-sends what the page can't ask for (lying flat, focus headphones) and
+  resets the walk, click-through and the asleep flag. A crashed panel just closes.
+- **Startup failure:** logged, then `dialog.showErrorBox` with the log path (English: the
+  settings, and so the language, may be what failed), then `app.exit(1)`.
+- **Bad save files:** `loadSave` and `loadSettings` go through `core/storage/migrate.ts`. A file
+  that isn't JSON is copied aside byte for byte (`StorageAdapter.copyAside`); one that doesn't
+  validate is copied to `<key>-backup-<time>`; then defaults are used. A file whose `version` is
+  **newer** than this app knows is held (`StorageAdapter.keep`): left untouched, the app runs on
+  defaults in memory for that key and skips every write to it for the rest of the run, so an
+  older build never overwrites a newer build's save (Erase everything still deletes it). No
+  migration steps exist yet: every save is version 1 and loads exactly as in 0.9.0.
+- **Export dialogs** belong to the panel (`PanelWindow.showSaveDialog`), which doesn't close on
+  blur while one is open, so the page is still there to say "Saved.".
+
+## Duck animation (1.0.0 Stage 3)
+
+- **Clips are data:** `core/anim/clips.ts` maps each behavior state to its frames; overlay positions
+  are in `core/anim/spots.ts`. `tests/core/clips.test.ts` checks every frame exists and every
+  spot stays on the stage.
+- **Motion layer:** `core/anim/motion.ts` returns a whole-pixel offset for the dressed duck. The
+  page draws layer 0 at that offset and puts it in the redraw key.
+- **Event-driven:** every timed effect (motion, sparkle, notes, twirl, lying blink) adds its own
+  wake time in `renderer/duck/loop.ts` `schedule()`; nothing ticks on a fixed beat.
+- **Lying flat** now keeps one timer: a slow blink every 5 s (it used to keep none).
+- **Accessories:** `NO_FACE_POSES` drop the glasses (preen), `NO_OUTFIT_POSES` drop hat and
+  glasses (front, back).
 
 ## Performance budget and baseline
 
@@ -337,9 +376,9 @@ Same method (built app, throwaway folder, two samples 10 s apart after 50 s):
   sandboxed preload needs) — no top-level `await` or `import.meta` in `tools/`.
 - **`zod` is bundled into the duck renderer** (≈190 kB bundle) just to validate the sprite
   manifest. Candidate for `zod/mini` or a hand-written check (perf-guardian).
-- **`ElectronPlatform`** (`src/main/platform.ts`) exists but is not wired yet: Phase 6 (idle
-  time). Displays are read directly in `DuckWindow` (work areas cached, refreshed on drops and
-  display add/remove/metrics events).
+- **No `PlatformAdapter` implementation:** the unused `ElectronPlatform` was removed in 1.0.0
+  Stage 1. Displays are read directly in `DuckWindow` (work areas cached, refreshed on drops and
+  display add/remove/metrics events), idle time through `powerMonitor` in main.
 - **Flights run at 30 fps in main**, above the 12 fps tick budget: a throw or fall lasts a second
   or two, and 12 fps made it look like a slideshow. The timer exists only while airborne.
 - **Main owns all window motion** (walk steps, flights, drags); the renderer sends intent

@@ -4,7 +4,7 @@ export const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'exo
 export type Rarity = (typeof RARITIES)[number]
 
 /** What the duck can wear. */
-export const SLOTS = ['skin', 'hat', 'face'] as const
+export const SLOTS = ['skin', 'hat', 'face', 'neck'] as const
 export type Slot = (typeof SLOTS)[number]
 /**
  * Every kind of item: the wearables, plus the mini friend ducks (slot `friend`: found like any
@@ -76,6 +76,8 @@ export interface LoadoutIds {
   readonly skin: string
   readonly hat: string | null
   readonly face: string | null
+  /** Added in 1.0.0: older loadouts have none (nothing worn). */
+  readonly neck?: string | null
 }
 
 /**
@@ -102,6 +104,7 @@ export interface Outfit {
   readonly skin: CatalogItem
   readonly hat?: CatalogItem
   readonly face?: CatalogItem
+  readonly neck?: CatalogItem
 }
 
 /**
@@ -110,7 +113,12 @@ export interface Outfit {
  */
 export function resolveOutfit(
   catalog: Catalog,
-  loadout: { readonly skin: string; readonly hat: string | null; readonly face: string | null },
+  loadout: {
+    readonly skin: string
+    readonly hat: string | null
+    readonly face: string | null
+    readonly neck?: string | null
+  },
 ): Outfit {
   const skin =
     findItem(catalog, 'skin', loadout.skin) ?? (itemsForSlot(catalog, 'skin')[0] as CatalogItem)
@@ -118,5 +126,6 @@ export function resolveOutfit(
     skin,
     hat: findItem(catalog, 'hat', loadout.hat),
     face: findItem(catalog, 'face', loadout.face),
+    neck: findItem(catalog, 'neck', loadout.neck ?? null),
   }
 }

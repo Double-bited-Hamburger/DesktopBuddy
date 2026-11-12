@@ -10,6 +10,7 @@ const FRAMES = {
   cigar: 'cigar',
   coffee: 'coffee-full',
   quack: 'quack-full',
+  seeds: 'seeds-3',
   ball: 'ball',
 } as const
 

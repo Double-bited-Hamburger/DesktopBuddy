@@ -1,7 +1,8 @@
 import { BREAD_BITE_MS, MEAL_MS } from './bread'
 import { PUFF_CYCLE_MS, SMOKE_MS } from './cigar'
-import { COFFEE_SIPS, DRINK_MS, LIFT_MS, SIP_MS } from './coffee'
-import { CHUG_MS, GULP_MS, OPEN_MS, QUACK_GULPS } from './quack'
+import { COFFEE_SIPS, DRINK_MS, LAST_SIP_AT, LIFT_MS, SIP_MS } from './coffee'
+import { CHUG_MS, GULP_MS, LAST_GULP_AT, OPEN_MS, QUACK_GULPS } from './quack'
+import { SEED_PECK_MS, SEEDS_MS } from './seeds'
 import type { Snack } from './snacks'
 import { PICKUP_MS } from './snacks'
 
@@ -19,6 +20,7 @@ export const TREAT_MS: Readonly<Record<Snack, number>> = {
   cigar: SMOKE_MS,
   coffee: DRINK_MS,
   quack: CHUG_MS,
+  seeds: SEEDS_MS,
 }
 
 /** Where a dropped meal can start again: the start of each bite, sip, puff or gulp. */
@@ -36,14 +38,16 @@ const RESUME_POINTS: Readonly<Record<Snack, readonly number[]>> = {
   quack: Array.from({ length: QUACK_GULPS }, (_, gulp) =>
     gulp === 0 ? 0 : PICKUP_MS + OPEN_MS + gulp * GULP_MS,
   ),
+  seeds: [0, PICKUP_MS + SEED_PECK_MS, PICKUP_MS + 2 * SEED_PECK_MS],
 }
 
 /** Past this point the snack is all gone (only the happy end is left): it counts as eaten. */
 const EATEN_AT: Readonly<Record<Snack, number>> = {
   bread: MEAL_MS,
-  coffee: PICKUP_MS + LIFT_MS + COFFEE_SIPS * SIP_MS,
+  coffee: LAST_SIP_AT,
   cigar: SMOKE_MS,
-  quack: PICKUP_MS + OPEN_MS + QUACK_GULPS * GULP_MS,
+  quack: LAST_GULP_AT,
+  seeds: SEEDS_MS,
 }
 
 /**
@@ -87,5 +91,6 @@ export function pieceFrame(kind: Snack, offset: number): string {
   if (kind === 'coffee')
     return (['coffee-full', 'coffee-half', 'coffee-low'] as const)[step] ?? 'coffee-full'
   if (kind === 'quack') return 'quack-full'
+  if (kind === 'seeds') return (['seeds-3', 'seeds-2', 'seeds-1'] as const)[step] ?? 'seeds-3'
   return 'cigar'
 }

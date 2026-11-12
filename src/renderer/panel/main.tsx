@@ -9,9 +9,10 @@ import { createTranslator } from '../../core/i18n/i18n'
 import type { Theme } from '../../core/settings/settings'
 import type { Snack } from '../../core/toys/snacks'
 import { SNACKS } from '../../core/toys/snacks'
-import type { Loadout, SettingsView, StoreView } from '../../shared/ipc'
+import type { Loadout, ProgressionView, SettingsView, StoreView } from '../../shared/ipc'
 import { Bag } from './bag'
 import { Home } from './home'
+import { Journey } from './journey'
 import type { Screen } from './menu'
 import { FACT_COUNT, Menu, MenuIcon } from './menu'
 import { Quests } from './quests'
@@ -96,6 +97,18 @@ function FeedMenu({ t, dark }: { t: Translator; dark: boolean }) {
   )
 }
 
+/** How many Journey rewards wait for a Claim (the menu's red dot). */
+function journeyReady(view: ProgressionView): number {
+  return (
+    view.levels.filter((l) => l.reached && !l.claimed).length +
+    view.achievements.filter((a) => a.done && !a.claimed).length +
+    view.sets.filter((s) => s.complete && !s.claimed).length +
+    view.stamps.claimable +
+    view.eggs.list.filter((e) => e.ready).length +
+    (view.earlyBird.eligible && !view.earlyBird.claimed ? 1 : 0)
+  )
+}
+
 function App() {
   const [t, setT] = useState<Translator>(() => createTranslator('en', dictionaries))
   const [pinned, setPinned] = useState(false)
@@ -105,6 +118,7 @@ function App() {
   const [screen, setScreen] = useState<Screen>('home')
   const [store, setStore] = useState<StoreView | undefined>()
   const [theme, setTheme] = useState<Theme>('system')
+  const [progression, setProgression] = useState<ProgressionView | undefined>()
   const dark = useTheme(theme)
 
   useEffect(() => {
@@ -121,10 +135,26 @@ function App() {
       .catch((error) => console.error('Store failed', error))
     const offStore = window.buddy.panel.onStore(setStore)
     const offPoints = window.buddy.onPoints(({ balance }) => setPoints(balance))
+    window.buddy.panel
+      .progression()
+      .then((view) => setProgression((shown) => shown ?? view))
+      .catch((error) => console.error('Progression failed', error))
+    const offProgression = window.buddy.panel.onProgression(setProgression)
     return () => {
       offStore()
       offPoints()
+      offProgression()
     }
+  }, [])
+
+  // Esc closes the panel (when the menu drawer is open, Esc closes just the drawer).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || document.querySelector('.drawer')) return
+      window.buddy.panel.close()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [])
 
   const togglePin = () => {
@@ -166,6 +196,7 @@ function App() {
           t={t}
           screen={screen}
           questsReady={ready}
+          journeyReady={progression ? journeyReady(progression) : 0}
           freeGiftAt={store?.freeGift.readyAt}
           fact={dailyPick(new Date(), FACT_COUNT)}
           dark={dark}
@@ -207,6 +238,7 @@ function App() {
         />
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}
+      {screen === 'journey' && <Journey t={t} language={language} />}
       {screen === 'today' && <Today t={t} />}
       {screen === 'stats' && <Stats t={t} language={language} onGo={setScreen} />}
       {screen === 'settings' && <Settings t={t} onChange={settingsChanged} />}

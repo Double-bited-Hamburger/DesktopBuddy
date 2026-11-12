@@ -3,9 +3,14 @@ import type { DayForecast, RainAlert } from '../core/care/forecast'
 import type { FriendState } from '../core/care/friend'
 import type { WeatherKind } from '../core/care/weather'
 import type { Rarity, Slot } from '../core/catalog/catalog'
+import type { AchievementView } from '../core/economy/achievements'
 import type { CapBar, EarnLogEntry } from '../core/economy/earn-log'
+import type { MiniChance } from '../core/economy/eggs'
 import type { RarityChance } from '../core/economy/gifts'
+import type { LevelProgress } from '../core/economy/levels'
 import type { QuestView } from '../core/economy/quests'
+import type { Reward } from '../core/economy/rewards'
+import type { AlbumSetView } from '../core/economy/sets'
 import type {
   Breaks,
   DuckPrefs,
@@ -57,6 +62,10 @@ export const IPC = {
   buyFeatured: 'panel:buy-featured',
   claimSeasonal: 'panel:claim-seasonal',
   claimQuest: 'panel:claim-quest',
+  progression: 'panel:progression',
+  progressionChanged: 'panel:progression-changed',
+  claimReward: 'panel:claim-reward',
+  hatchEgg: 'panel:hatch-egg',
   activityToday: 'panel:activity-today',
   activityStats: 'panel:activity-stats',
   activityScreenTime: 'panel:activity-screen-time',
@@ -112,6 +121,8 @@ export interface AppConfig {
   readonly tired: boolean
   /** Dev only: snow even when it isn't December (`BUDDY_SNOW=1`). */
   readonly snow: boolean
+  /** The Settings switch: snow in December (off: never). */
+  readonly decemberSnow: boolean
   /**
    * Linux: click-through works by shaping the duck window to its pixels (`duck.setShape`), since
    * mouse forwarding is Windows/macOS only. False on Windows, which uses `setIgnoreMouse`.
@@ -177,6 +188,12 @@ export interface BoxView {
   readonly price: number
   readonly odds: readonly RarityChance[]
   readonly pity: { readonly rarity: Rarity; readonly left: number }
+  /** The longer guarantee for the top rarity (royal: exotic within N opens), if the box has one. */
+  readonly jackpot?: { readonly rarity: Rarity; readonly left: number }
+  /** Chance (0..1) that an open also holds an egg. */
+  readonly egg?: number
+  /** Items of the rolled rarity you don't own yet come first. */
+  readonly newFirst?: boolean
 }
 
 /** Everything the Store, Quests and Bag screens need. Main sends a fresh one on every change. */
@@ -186,8 +203,10 @@ export interface StoreView {
   readonly boxes: readonly BoxView[]
   /** The free gift opens this box; ready from `readyAt` (epoch ms, 0 = now). */
   readonly freeGift: { readonly box: string; readonly readyAt: number }
-  /** Today's featured item and its fixed price. */
+  /** The first item on today's shelf (kept for older screens: use `shelf`). */
   readonly featured?: { readonly id: string; readonly price: number }
+  /** Today's shelf: one common–uncommon, one rare and one epic item, at fixed prices. */
+  readonly shelf: readonly { readonly id: string; readonly price: number }[]
   /** This month's free seasonal item (the Christmas skin in December), while not owned. */
   readonly seasonal?: { readonly id: string; readonly item: string }
   /** The Rocket Boost: its price and what each edge hit pays, up to `maxHits` hits. */
@@ -209,12 +228,80 @@ export type GiftResult =
       readonly refund: number
       /** The pity guarantee decided this one. */
       readonly pity: boolean
+      /** The box also held an egg (it is warming up now). */
+      readonly egg?: boolean
     }
   | { readonly ok: false; readonly reason: 'points' | 'not-ready' }
 
 export type BuyResult =
   | { readonly ok: true; readonly item: string }
   | { readonly ok: false; readonly reason: 'points' | 'owned' }
+
+/** What can be claimed on the progression screens (economy 2.0). */
+export type RewardKind = 'level' | 'achievement' | 'set' | 'stamps' | 'early-bird'
+
+/** What a claim paid out. */
+export type ClaimResult =
+  | {
+      readonly ok: true
+      readonly points: number
+      /** Boxes the reward opened, as the Store shows an open. */
+      readonly gifts: readonly Extract<GiftResult, { ok: true }>[]
+      readonly eggs: number
+      /** An exclusive item or `trick:<name>` (an item arrives once an update adds it). */
+      readonly unlock?: string
+    }
+  | { readonly ok: false; readonly reason: 'not-ready' | 'claimed' | 'unknown' }
+
+export type HatchResult =
+  | { readonly ok: true; readonly item?: string; readonly points: number }
+  | { readonly ok: false; readonly reason: 'not-ready' | 'unknown' }
+
+/** Bond level, achievements, album sets, stamp card, eggs and the early-bird gift. */
+export interface ProgressionView {
+  readonly level: LevelProgress
+  /** Every level's reward: reached (claimable) or not, and claimed. */
+  readonly levels: readonly {
+    readonly level: number
+    readonly xp: number
+    readonly reward: Reward
+    readonly reached: boolean
+    readonly claimed: boolean
+  }[]
+  readonly achievements: readonly AchievementView[]
+  readonly sets: readonly AlbumSetView[]
+  readonly stamps: {
+    /** Stamps so far (lifetime; one per day the app was opened). */
+    readonly count: number
+    readonly every: number
+    /** Full cards not claimed yet. */
+    readonly claimable: number
+    /** The reward of the next card to claim (or to fill). */
+    readonly next: Reward
+  }
+  readonly eggs: {
+    readonly list: readonly {
+      readonly id: number
+      readonly minutes: number
+      readonly ready: boolean
+    }[]
+    readonly hatchMinutes: number
+    /** What an egg would hatch into now, with the exact chances (empty: every mini owned). */
+    readonly odds: readonly MiniChance[]
+    /** Paid instead when every mini is owned. */
+    readonly allOwnedPoints: number
+  }
+  /** For players from before 1.0.0. */
+  readonly earlyBird: {
+    readonly eligible: boolean
+    readonly claimed: boolean
+    readonly reward: Reward
+  }
+  /** Exclusive items and tricks claimed so far. */
+  readonly unlocks: readonly string[]
+  /** Lifetime counters (pets, naps, focus sessions…). */
+  readonly counters: Readonly<Record<string, number>>
+}
 
 /** The Today screen: tracking state, today's summary and the focus session. */
 export interface TodayView {
@@ -296,8 +383,11 @@ export interface ScreenTimeView extends ScreenTimeDay {
 export interface DuckLivePrefs {
   /** Pixel scale now in effect (the window was resized by main). */
   readonly scale: number
+  /** What sounds play at (0 while muted). */
   readonly volume: number
   readonly duck: DuckPrefs
+  /** Snow in December. */
+  readonly snow: boolean
 }
 
 /** The Settings screen. Every change applies right away. */
@@ -305,6 +395,8 @@ export interface SettingsView {
   readonly scale: number
   readonly language: Settings['language']
   readonly volume: number
+  readonly muted: boolean
+  readonly snow: boolean
   readonly showPointsPill: boolean
   readonly theme: Theme
   readonly duck: DuckPrefs
@@ -538,14 +630,25 @@ export interface BuddyApi {
     onStore(listener: (view: StoreView) => void): () => void
     /** Opens a gift box by id, or the free gift ('free'). Main charges and rolls. */
     openGift(box: string): Promise<GiftResult>
-    /** Buys today's featured item at its fixed price. */
-    buyFeatured(): Promise<BuyResult>
+    /** Buys an item on today's shelf at its fixed price (the first one without an id). */
+    buyFeatured(id?: string): Promise<BuyResult>
     /** Takes this month's free seasonal item. */
     claimSeasonal(): Promise<BuyResult>
     /** Buys a boost (the rocket) and sets it off right away; nothing is spent if it can't go. */
     buyBoost(id: 'rocket'): Promise<BoostResult>
     /** Claims a finished quest; resolves to the points paid (0 if it couldn't be claimed). */
     claimQuest(id: string): Promise<number>
+    /** Bond level, achievements, album sets, stamps, eggs (economy 2.0). */
+    progression(): Promise<ProgressionView>
+    /** The progression view changed. Returns unsubscribe. */
+    onProgression(listener: (view: ProgressionView) => void): () => void
+    /**
+     * Claims a reward: a level (`id` = the level number), an achievement or album set (its id),
+     * the next full stamp card or the early-bird gift (no id). Main checks it is due.
+     */
+    claimReward(kind: RewardKind, id?: string | number): Promise<ClaimResult>
+    /** Hatches a ready egg into a mini (by the odds shown). */
+    hatchEgg(id: number): Promise<HatchResult>
     /** Opt-in activity tracking and focus sessions (Today / Stats). */
     activity: {
       today(): Promise<TodayView>
