@@ -894,6 +894,23 @@ handful piece is still its own window (about 430 MB for a bread handful in dev).
 the problem, since one seeds snack is one window. Rewriting the pile into a single window means
 reworking the snack windows' physics and click-through; it should be its own task.
 
+## 1.0.0 — Stage 9 (release) (2026-11-12)
+
+- Version 1.0.0; README feature table and roadmap updated; `CREDITS.md`; a Windows CI workflow
+  (check + build on every push; the installer is still built and uploaded by hand).
+- Quick perf check (ARCHITECTURE "Quick check before 1.0.0"): idle 0.56%, sleep 0.81%, RAM
+  90 MB. **Walking 3.13%, just over the 3% budget** (2.39% before): follow-up below.
+- Installer built with `npm run dist` and published as the v1.0.0 GitHub release; the Linux
+  workflow attaches the Linux packages to it.
+
+**Not verified:** installing over 0.9.0 on the owner's PC (left to the owner: Settings ›
+Updates, or the installer; the app backs up the saves before a new version's first run), the
+packaged app started on this PC (it would share the real saves with the running copy), the
+Linux 1.0 packages on real desktops, code-signing (none), the README trailer (not made).
+
+**Follow-ups after 1.0.0:** walking under 3% again (fewer redraws), the one-window bread/seed
+pile, Friends between two real PCs, a README GIF/trailer.
+
 ## 1.0.0 — Stage 8 (Friends) (built 2026-11-12)
 
 Design and security review: [FRIENDS.md](FRIENDS.md). Owner chose a Cloudflare relay, short

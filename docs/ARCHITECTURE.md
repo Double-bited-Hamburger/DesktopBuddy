@@ -366,6 +366,23 @@ Same method (built app, throwaway folder, two samples 10 s apart after 50 s):
   and once a minute.
 - CPU: not measured (no long perf runs).
 
+### Quick check before 1.0.0 (2026-11-12, owner's PC in light use)
+
+`npm run perf`, one 30 s run per state, production build, fresh data folder each run.
+
+| State | 10 s warm-up | 60 s warm-up | Budget |
+| --- | ---: | ---: | --- |
+| idle | 2.44% · 104 MB | **0.56% · 90 MB** | < 1% ✅ |
+| walk | 3.13% · 95 MB | **3.13% · 90 MB** (main 0.66, gpu 1.31, renderer 1.16) | ≤ 3% ⚠️ just over |
+| sleep | 1.31% · 94 MB | **0.81% · 90 MB** | ≤ 2 fps ✅ |
+
+- With a 10 s warm-up the first minute is measured: a fresh folder is a first run (backups,
+  migrations, the first-run tip bubble at 4 s). Steady state is the 60 s column.
+- **Walking is 3.13%, just over the 3% budget** (2.39% on 2026-10-30): the 1.0 waddle and the
+  motion layer redraw more often. One run, PC not idle: noisy. Not fixed before the release;
+  a follow-up (fewer redraws while walking) is noted in ROADMAP.
+- RAM 90 MB, well under 120 MB. Not measured: Friends on, minis out, a handful of bread.
+
 ## Decisions that differ from the original plan
 
 - **Baked sheets are RGBA PNG, not indexed PNG** — `pngjs` can't write palette PNGs. Sheets use the

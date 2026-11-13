@@ -6,18 +6,18 @@ points when you pet and play with it or finish quests, and spends them in a stor
 focus tracking (Today/Stats), Settings with chip sounds, and a Windows installer. Friends comes
 last. It must stay **cheap on CPU and RAM**.
 
-Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **0.9.0**.
+Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **1.0.0** (released 2026-11-12).
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user asks (Check for updates, the opt-in daily check, or later Friends), no dark
 patterns (pressure timers, hidden odds).
 
-## Where things stand (2026-10-28)
+## Where things stand (2026-11-12)
 
 | Phase | What | State |
 | --- | --- | --- |
 | 0 | Foundation, security baseline, `.pxl` sprite pipeline | ✅ |
-| 1 | Hand-drawn duck replacing the placeholder | 🎨 open — the duck is still placeholder art |
+| 1 | Hand-drawn duck replacing the placeholder | ✅ redrawn for 1.0.0 (59 frames, body zones) |
 | 2 | Walk, quack, throw, bounce, fall, multi-monitor | ✅ |
 | 3 | Skins, hats, glasses, Bag panel | ✅ |
 | 4 | Petting, points & caps, bread + cigar snacks, points pill | ✅ |
@@ -31,12 +31,12 @@ patterns (pressure timers, hidden odds).
 | 8b | A local friend duck on the same PC (play, dance, tag) | ✅ built 2026-11-04; in 0.8.0 replaced by 16×16 **mini friends** (8 looks, a points bonus each, up to 2 out) |
 | 8c | 0.8.0 tester feedback: meal/chase fixes, wall-hit points, forecast + rain alerts + Home tab, umbrella float, gift reel, Rocket Boost, Christmas skin, fullscreen modes, update bubble | ✅ built 2026-11-05 (two minis = ~130 MB RAM: owner raised the budget to 140 MB with minis out) |
 | 8d | 0.9.0: holes fixed (drop points, rain line, minis on 2 screens, rocket refund), draggable minis, hamburger menu with duck names, duck-head tray icon, Home points dashboard, Stats graphs, folding Settings, 7 new quests | ✅ built 2026-11-06 |
-| 9 | Friends (opt-in, self-hostable relay) — **the last phase** | not started |
+| 1.0 | One big release: real duck, livelier animations, seeds, economy 2.0 (Journey: levels, achievements, sets, stamps, eggs), neck slot, panel polish, first run, snow/mute/hide | ✅ released 2026-11-12 (docs/ROADMAP.md "1.0.0" sections) |
+| 9 | Friends: encrypted, opt-in, Cloudflare relay (relay/, docs/FRIENDS.md) | ✅ in 1.0.0; relay deployed on the owner's Cloudflare account |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
-What's next: hear back from the Linux testers (Fedora, Ubuntu), finish the friend duck →
-CI + Releases →
-CONTRIBUTING/licenses → Linux ([docs/LINUX.md](docs/LINUX.md)) → local friend duck → Friends.
+What's next after 1.0.0: feedback from players and the Linux testers, Friends between real PCs,
+the one-window bread/seed pile (asked to wait), code-signing (owner's call), a README trailer.
 New fun features are cosmetic and kind: no penalties, the duck never gets sick or dies, care
 features can be switched off and never lock the PC or interrupt fullscreen apps and calls.
 

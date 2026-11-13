@@ -122,6 +122,9 @@ tray items by hand, and claims/hatching with a save that has some.
 See docs/FRIENDS.md. The relay runs on the owner's Cloudflare account and is the app's default
 (`DEFAULT_RELAY` in `src/main/relay-url.ts`). Next is Stage 9, the release.
 
+### 6b. Stage 9 release: DONE (2026-11-12)
+v1.0.0 is published. Follow-ups are listed at the end of ROADMAP "Stage 9 (release)".
+
 ### 6. Later (ask the owner first)
 - Stage 8 Friends and Stage 9 release are big. See `docs/HANDOFF-1.0.md` and the plan file named
   there.

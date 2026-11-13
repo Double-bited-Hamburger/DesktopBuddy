@@ -39,15 +39,17 @@ throw it, dress it up. Free and open source, with no paywalls.
 | **stroke** it (mouse back and forth)   | closes its eyes happily, a heart pops up   |     **+2** |
 | **throw** it (drag fast, let go)       | flies, bounces off the screen edges (in the rain it opens an umbrella and floats down) | **+3** per wall hit |
 | drop it from high up                   | lands on its bottom and sees stars ✨      |          — |
-| **feed** it bread or a cigar 🚬        | runs/flies to where you drop it, pecks it up, eats or smokes it |     **+3** |
+| **feed** it bread, seeds 🌱, coffee ☕, a QUACK can or a cigar 🚬 | runs/flies to where you drop it, pecks it up; coffee gives it a foam moustache, QUACK sends it zooming, then a sugar crash |     **+3** |
 | throw it the **ball** 🏐             | chases it and headbutts it along the taskbar | **+2** a kick |
 | buy a **Rocket Boost** 🚀 (Store)      | stares at you in shock, blasts off, explodes, bounces round the screen, then floats down in sunglasses | spend 200, **+3** per hit |
-| let out **mini friends** (up to 2)     | tiny ducks that walk (or fly, the ghost) beside yours | playing pays **×1.5…×6** |
-| finish **quests** (3 a day + weekly)   | —                                          | **+30…600** |
-| open **gifts** in the Store            | new skins, hats, glasses (odds shown, pity) | spend 80–700 |
+| let out **mini friends** (up to 2)     | tiny ducks that walk (or fly, the ghost) beside yours | playing pays up to **×1.9** |
+| finish **quests** (3 a day + 4 a week) | —                                          | **+30…350** |
+| grow your **bond** (Journey)           | levels, 30+ achievements, album sets, a stamp card, eggs that hatch into minis | rewards, tricks, exclusive items |
+| open **gifts** in the Store            | new skins, hats, glasses, neckwear (odds shown, pity) | spend 150 / 500 / 1500 |
 | open the **Bag** (right-click)         | wears what you've found, live              |          — |
 | run a **focus session** (15/25/50 min, or Pomodoro with breaks) | keeps time while you work, naps on your breaks | **+3/min** |
 | type a **city** (Settings, optional)   | Home shows a 7-day forecast; the duck tells you when rain is coming | — |
+| turn on **Friends** (optional)         | see friends' ducks live (at the PC, focusing, ♪ music), wave, write, and have a friend's duck visit your taskbar. End-to-end encrypted, off by default | — |
 
 <div align="center">
 <img src="docs/media/wardrobe.svg" alt="Every duck skin, hat, pair of glasses and mini friend in the game" width="720">
@@ -58,11 +60,11 @@ Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets
 
 ```mermaid
 pie showData title Most points a day from each source
-    "click (1 pt, 0.25 s cooldown)" : 300
-    "pet (2 pts, 0.7 s cooldown)" : 240
-    "wall hits (3 pts each)" : 450
-    "snacks (3 pts each)" : 300
-    "ball (2 pts a kick)" : 300
+    "click (1 pt, 0.25 s cooldown)" : 150
+    "pet (2 pts, 0.7 s cooldown)" : 250
+    "wall hits (3 pts each)" : 200
+    "snacks (3 pts each)" : 200
+    "ball (2 pts a kick)" : 200
 ```
 
 ## 🚀 Install
@@ -261,18 +263,20 @@ palette:
 
 ## 🗺️ Roadmap
 
+**1.0.0 is out** (2026-11-12): every phase is done.
+
 | Phase                                   | Status |
 | --------------------------------------- | :----: |
 | 0 · Foundation, security, sprite pipeline | ✅ |
+| 1 · The real hand-drawn duck            | ✅ |
 | 2 · Walk, quack, throw, bounce, fall, multi-monitor | ✅ |
-| 3 · Skins, hats, glasses, Bag panel     | ✅ |
-| 4 · Petting, points & caps, bread, points pill | ✅ |
-| 1 · Hand-drawn duck to replace the placeholder | 🎨 |
-| 5 · Store, gift boxes (visible odds + pity), quests | ✅ |
+| 3 · Skins, hats, glasses, neckwear, Bag | ✅ |
+| 4 · Petting, points & caps, snacks, seeds | ✅ |
+| 5 · Store, gift boxes (visible odds + pity), quests, Journey | ✅ |
 | 6 · Opt-in, local focus tracking (Today / Stats) | ✅ |
-| 7 · Settings, chiptune sounds, polish   | 🚧 (perf pass left) |
-| 8 · Installer, auto-update, contributor guides | 🔜 |
-| 9 · Friends (opt-in, self-hostable) — last | 🔜 |
+| 7 · Settings, chiptune sounds, first-run tips, polish | ✅ |
+| 8 · Installer, updates, Linux packages  | ✅ (not code-signed) |
+| 9 · Friends (opt-in, encrypted, self-hostable) | ✅ |
 
 Details and what's still unverified: [docs/ROADMAP.md](docs/ROADMAP.md).
 

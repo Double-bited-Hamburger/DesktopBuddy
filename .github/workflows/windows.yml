@@ -1,0 +1,30 @@
+# Windows: typecheck, lint, tests and a production build on every push and pull request.
+# The Windows installer for a release is built and uploaded by hand (`npm run dist`), so nothing
+# is published from here.
+name: Windows
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run bake
+      - run: npm run check
+      - run: npm run build
