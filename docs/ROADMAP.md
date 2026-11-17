@@ -778,6 +778,26 @@ from one screen onto a lower or higher one with the eyes (unit-tested lane math 
 icon at 125/150% scaling, the MAX popup seen on screen, the new quests counting in a real play
 session (unit-tested), the light theme screenshots, Linux.
 
+## 1.0.1 — Linux startup fix (2026-11-17)
+
+Reported in issue #2 and fixed in PR #3 by mirkosio (Fedora 44, KDE Plasma, Wayland): the .rpm
+started but no duck appeared, and the GPU process crashed three times.
+
+- **X11 for real:** `appendSwitch('ozone-platform', 'x11')` was too late (Electron picks its
+  platform before main runs), so the app ran on native Wayland. Now on a Wayland session it
+  restarts once with `--ozone-platform=x11` (an env marker stops loops; `BUDDY_WAYLAND` still
+  opts out). Added on top of the PR: the .deb/.rpm menu entries and the autostart file pass the
+  switch already (no restart), the AppImage restarts through the `.AppImage` file (its mount
+  goes away with the old copy), and dev builds don't relaunch (electron-vite trap) but say to
+  use the new `npm run dev:x11`.
+- **Startup race:** the duck and pill pages asked for `getConfig` before main registered its
+  handlers, failed, and the duck never showed. The preload now retries for up to 4 s while the
+  only error is `No handler registered`.
+
+Verified by mirkosio on Fedora 44 (their PR build). **Not verified here:** our 1.0.1 packages on
+a real Linux desktop, the AppImage restart, the menu entries' new Exec line, the autostart file
+with the switch.
+
 ## 1.0.0 — Stage 1 (reliability) (built 2026-11-11)
 
 - **Local log file** `<userData>/logs/buddy.log` (256 KB, one rotation): lifecycle and errors

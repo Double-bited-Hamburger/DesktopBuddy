@@ -74,6 +74,7 @@ import type {
 } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
+import { X11_SWITCH } from './autostart'
 import { BallPlay } from './ball-play'
 import { BreakBuddy } from './break-buddy'
 import { BubbleWindow } from './bubble-window'
@@ -1187,11 +1188,40 @@ app.on('child-process-gone', (_event, details) => {
 app.setAppUserModelId('dev.desktopbuddy.app')
 
 // Linux: run on X11 (XWayland on Wayland desktops such as Fedora's and Ubuntu's). Under native
-// Wayland an app can't place its own windows or keep them on top, which the duck needs.
-if (process.platform === 'linux' && !process.env.BUDDY_WAYLAND)
-  app.commandLine.appendSwitch('ozone-platform', 'x11')
+// Wayland an app can't place its own windows, keep them on top or read the cursor, which the duck
+// needs. Electron chooses its Ozone platform before the main script runs, so appendSwitch() is too
+// late (Electron 45 still starts on Wayland, where the GPU process can crash on some drivers).
+// The .deb/.rpm menu entry and the autostart file already pass the switch; anything else (a
+// terminal, an AppImage, a 1.0.0 autostart file) restarts once with it on the command line.
+let restartingOnX11 = false
+if (
+  process.platform === 'linux' &&
+  !process.env.BUDDY_WAYLAND &&
+  (process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === 'wayland') &&
+  !process.argv.includes(X11_SWITCH) &&
+  !process.env.BUDDY_X11_RELAUNCHED
+) {
+  if (app.isPackaged) {
+    logInfo('Wayland session: restarting on X11')
+    restartingOnX11 = true
+    process.env.BUDDY_X11_RELAUNCHED = '1' // the new copy inherits it, so this can't loop
+    app.relaunch({
+      // An AppImage's own files vanish when this copy exits (its mount goes), so restart the
+      // .AppImage file itself, which mounts afresh.
+      execPath: process.env.APPIMAGE || process.execPath,
+      args: [...process.argv.slice(1), X11_SWITCH],
+    })
+    app.exit(0)
+  } else {
+    // A relaunched dev copy would escape electron-vite and keep the single-instance lock.
+    logWarn('Wayland session: run `npm run dev:x11` so the duck can place its windows')
+  }
+}
 
-if (app.requestSingleInstanceLock()) {
+// app.exit() returns before this copy is gone: it must not take the lock or start the duck.
+if (restartingOnX11) {
+  // the X11 copy takes over
+} else if (app.requestSingleInstanceLock()) {
   start().catch((error) => {
     logError('DesktopBuddy failed to start', error)
     // Not a silent exit: say so, plainly, and where the details are. (English: the settings,

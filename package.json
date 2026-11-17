@@ -1,6 +1,6 @@
 {
   "name": "desktop-buddy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "An open-source 16-bit pixel-art desktop duck: skins, accessories, quests and a points store.",
   "license": "MIT",
@@ -8,6 +8,7 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:x11": "npm run dev -- -- --ozone-platform=x11",
     "predev": "npm run bake",
     "build": "electron-vite build",
     "prebuild": "npm run bake",

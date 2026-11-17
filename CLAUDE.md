@@ -6,7 +6,7 @@ points when you pet and play with it or finish quests, and spends them in a stor
 focus tracking (Today/Stats), Settings with chip sounds, and a Windows installer. Friends comes
 last. It must stay **cheap on CPU and RAM**.
 
-Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **1.0.0** (released 2026-11-12).
+Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **1.0.1** (2026-11-17: Linux startup fix; 1.0.0 released 2026-11-12).
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user asks (Check for updates, the opt-in daily check, or later Friends), no dark

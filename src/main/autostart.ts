@@ -16,6 +16,9 @@ export interface Autostart {
 
 const LINUX = process.platform === 'linux'
 
+/** Runs the app on X11/XWayland, which the duck needs on Linux (see main/index.ts). */
+export const X11_SWITCH = '--ozone-platform=x11'
+
 function linuxFile(): string {
   const config = process.env.XDG_CONFIG_HOME || join(app.getPath('home'), '.config')
   return join(config, 'autostart', 'desktopbuddy.desktop')
@@ -25,7 +28,7 @@ function linuxFile(): string {
 function linuxExec(): string {
   const path = process.env.APPIMAGE || process.execPath
   // Desktop Entry spec: quote the path, escaping the characters that are special inside quotes.
-  return `"${path.replace(/[\\"`$]/g, (c) => `\\${c}`)}"`
+  return `"${path.replace(/[\\"`$]/g, (c) => `\\${c}`)}" ${X11_SWITCH}`
 }
 
 export const autostart: Autostart = {

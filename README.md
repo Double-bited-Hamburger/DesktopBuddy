@@ -156,6 +156,8 @@ Needs **Node 24+** and npm (no pnpm/yarn). Works on Windows 10/11 and Linux; mac
 
 On Linux:
 
+- **On a Wayland desktop** (Fedora, Ubuntu…) start it with `npm run dev:x11` instead, so the
+  duck runs on XWayland and can place its windows.
 - **"Error: Electron uninstall"** when starting `npm run dev`: Electron's own download, which
   `npm install` normally does, didn't happen (a blocked download, `--ignore-scripts`, or a
   `node_modules` copied from another PC). Fetch it with `node node_modules/electron/install.js`,
