@@ -1187,9 +1187,22 @@ app.on('child-process-gone', (_event, details) => {
 app.setAppUserModelId('dev.desktopbuddy.app')
 
 // Linux: run on X11 (XWayland on Wayland desktops such as Fedora's and Ubuntu's). Under native
-// Wayland an app can't place its own windows or keep them on top, which the duck needs.
-if (process.platform === 'linux' && !process.env.BUDDY_WAYLAND)
-  app.commandLine.appendSwitch('ozone-platform', 'x11')
+// Wayland an app can't place its own windows, keep them on top or read the cursor, which the duck
+// needs. Electron chooses its Ozone platform before the main script runs, so appendSwitch() is too
+// late (Electron 45 still starts on Wayland, where the GPU process can crash on some drivers):
+// restart once with the switch on the command line, which every launcher then keeps.
+const X11_SWITCH = '--ozone-platform=x11'
+if (
+  process.platform === 'linux' &&
+  !process.env.BUDDY_WAYLAND &&
+  (process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === 'wayland') &&
+  !process.argv.includes(X11_SWITCH) &&
+  !process.env.BUDDY_X11_RELAUNCHED
+) {
+  process.env.BUDDY_X11_RELAUNCHED = '1'
+  app.relaunch({ args: [...process.argv.slice(1), X11_SWITCH] })
+  app.exit(0)
+}
 
 if (app.requestSingleInstanceLock()) {
   start().catch((error) => {

@@ -34,10 +34,24 @@ function isLoadout(value: unknown): value is Loadout {
   return typeof skin === 'string' && idOrNull(hat) && idOrNull(face) && idOrNull(neck ?? null)
 }
 
+// The duck page loads while main is still loading saves and registering its handlers. On a fast
+// start the first getConfig can beat them, so wait briefly instead of failing to start for good.
+async function getConfigWhenReady(): Promise<AppConfig> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await ipcRenderer.invoke(IPC.getConfig)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (attempt >= 40 || !message.includes('No handler registered')) throw error
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+  }
+}
+
 // The renderers only ever see this object. Every call maps to one fixed channel;
 // the main process validates the sender and the payload.
 const api: BuddyApi = {
-  getConfig: (): Promise<AppConfig> => ipcRenderer.invoke(IPC.getConfig),
+  getConfig: getConfigWhenReady,
   onPoints: (listener) => {
     const handler = (_event: unknown, points: PointsEvent) =>
       listener({ source: points.source, granted: points.granted, balance: points.balance })
