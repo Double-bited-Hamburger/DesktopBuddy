@@ -80,6 +80,20 @@ export const PAPER_SPOT: Point = { x: 24, y: 20 }
 /** Rubber-duck mode: the armchair sits where the sofa does, the notebook low on the chest. */
 export const ARMCHAIR_SPOT: Point = { x: 4, y: 9 }
 export const NOTEBOOK_SPOT: Point = { x: 26, y: 21 }
+/**
+ * A flower grown from a seed left behind (core/toys/garden.ts): on the ground just in front of
+ * the beak, so the sniffing duck's beak touches its bloom. It stays FLOWER_MS from the start of
+ * the sniff, blinking out over its last FLOWER_BLINKS steps (no partial alpha, so no real fade).
+ */
+export const FLOWER_SPOT: Point = { x: 33, y: 32 }
+export const FLOWER_MS = 8000
+export const FLOWER_BLINK_MS = 250
+export const FLOWER_BLINKS = 6
+/**
+ * Soap bubbles (core/toys/bubbles.ts): the wand's stick is held in the beak, its ring up in front
+ * of the head. The bubbles' own window sits on the ring (SOAP_FROM there).
+ */
+export const WAND_SPOT: Point = { x: 30, y: 8 }
 /** The +N popup: its baseline row, and how far from the edge behind the duck it starts. */
 export const POPUP_Y = 10
 export const POPUP_INSET = 1
@@ -152,6 +166,8 @@ export const SPOT_SPRITES: readonly { spot: Point; sprite: string }[] = [
   { spot: SHOUT_SPOT, sprite: 'emotes/shout' },
   { spot: SPEED_LINES_SPOT, sprite: 'emotes/speed-lines' },
   { spot: DUST_SPOT, sprite: 'emotes/dust' },
+  { spot: FLOWER_SPOT, sprite: 'toys/flower' },
+  { spot: WAND_SPOT, sprite: 'toys/bubble-wand' },
 ]
 
 /**

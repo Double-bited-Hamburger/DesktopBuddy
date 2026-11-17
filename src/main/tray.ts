@@ -10,8 +10,12 @@ interface TrayActions {
   feedHandful(): void
   /** Puts the ball in the hand. */
   throwBall(): void
+  /** The duck blows soap bubbles to pop. */
+  blowBubbles(): void
   /** Opens the talk box (rubber-duck mode). */
   talk(): void
+  /** The learned tricks, in order (none: no Tricks menu at all). Disabled ones say why. */
+  tricks: readonly { readonly label: string; readonly enabled: boolean; run(): void }[]
   /** Whether the points pill is on now, and how to switch it. */
   pillShown: boolean
   setPill(shown: boolean): void
@@ -73,6 +77,19 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
       { label: t('tray.coffee'), click: () => actions.feed('coffee') },
       { label: t('tray.quack'), click: () => actions.feed('quack') },
       { label: t('tray.ball'), click: actions.throwBall },
+      { label: t('tray.bubbles'), click: actions.blowBubbles },
+      ...(actions.tricks.length > 0
+        ? [
+            {
+              label: t('tray.tricks'),
+              submenu: actions.tricks.map((trick) => ({
+                label: trick.label,
+                enabled: trick.enabled,
+                click: () => trick.run(),
+              })),
+            },
+          ]
+        : []),
       {
         label: t('tray.pill'),
         type: 'checkbox',

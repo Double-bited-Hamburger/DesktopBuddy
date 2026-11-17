@@ -1,0 +1,20 @@
+# A yellow hard hat with a raised ridge and a brim that sticks out further at the front.
+name: hard-hat
+size: 18x8
+anchor: head 8 6
+palette:
+  K #2a1f2d
+  l #fff08a
+  Y #f5c518
+  y #c8901a
+  d #8a5a10
+
+@frame hard-hat
+......KKKKK.......
+....KKllYYYKK.....
+...KllYYlYYYyK....
+..KlYYYYlYYYYyK...
+..KYYYYYlYYYYyK...
+.KKyyyyyyyyyyyKKK.
+KyyyyyyyyyyyyyyyyK
+.KKKKKKKKKKKKKKKK.

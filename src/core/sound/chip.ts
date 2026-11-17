@@ -27,6 +27,7 @@ export const SOUND_NAMES = [
   'tada',
   'boom',
   'whoosh',
+  'pop',
 ] as const
 export type SoundName = (typeof SOUND_NAMES)[number]
 
@@ -88,6 +89,8 @@ export const SOUNDS: Readonly<Record<SoundName, readonly Tone[]>> = {
   ],
   /** The rocket takes off. */
   whoosh: [{ wave: 'sawtooth', from: 90, to: 320, ms: 750, gain: 0.2 }],
+  /** A soap bubble pops: a soft, very short upward blip. */
+  pop: [{ wave: 'triangle', from: 900, to: 1700, ms: 40, gain: 0.22 }],
 }
 
 export function isSoundName(value: unknown): value is SoundName {

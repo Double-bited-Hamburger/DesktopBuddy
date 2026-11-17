@@ -707,6 +707,348 @@
       }
     },
     {
+      "id": "coffee-stain",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#fdf3e0",
+        "A": "#efdcba",
+        "W": "#eddab6",
+        "S": "#c9a67a",
+        "C": "#f7e8cb",
+        "G": "#a8744a",
+        "V": "#6e4424",
+        "T": "#8a5a34"
+      }
+    },
+    {
+      "id": "light-mode",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#3c3c46",
+        "E": "#202028",
+        "H": "#fcfcfa",
+        "A": "#f0f0ec",
+        "W": "#f2f2ee",
+        "S": "#c6c6c0",
+        "C": "#f8f8f5",
+        "G": "#e2e2dc",
+        "V": "#2f7cf6",
+        "T": "#4a90f8"
+      }
+    },
+    {
+      "id": "bug-red",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#1a0f14",
+        "E": "#f4ede4",
+        "H": "#4c4652",
+        "A": "#28232d",
+        "W": "#d8262e",
+        "S": "#8f141e",
+        "C": "#322c38",
+        "G": "#e8343c",
+        "V": "#16121a",
+        "T": "#201b25"
+      }
+    },
+    {
+      "id": "dark-mode",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#0e1016",
+        "E": "#e6edf5",
+        "H": "#4c5262",
+        "A": "#2d313c",
+        "W": "#30343f",
+        "S": "#1e2129",
+        "C": "#3b404d",
+        "G": "#282c36",
+        "V": "#b07ae8",
+        "T": "#5aa8f0"
+      }
+    },
+    {
+      "id": "retro-amber",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#140a02",
+        "E": "#ffe0a0",
+        "H": "#ffc24a",
+        "A": "#3d2408",
+        "W": "#40270a",
+        "S": "#2a1804",
+        "C": "#5a360e",
+        "G": "#36200a",
+        "V": "#ffa62e",
+        "T": "#4c2e0c",
+        "O": "#e89418",
+        "D": "#9a5e0a"
+      }
+    },
+    {
+      "id": "merge-conflict",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#1a1a24",
+        "H": "#8aeaa0",
+        "A": "#2fb85a",
+        "W": "#e0443e",
+        "S": "#9a2622",
+        "C": "#fff0a8",
+        "G": "#f2c94a",
+        "V": "#b8901a",
+        "T": "#2a9a4a"
+      }
+    },
+    {
+      "id": "new-year",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#0e0f24",
+        "E": "#fff4c8",
+        "H": "#5a62aa",
+        "A": "#262a5c",
+        "W": "#2a2e62",
+        "S": "#181a40",
+        "C": "#c8ccda",
+        "G": "#e0b030",
+        "V": "#9a7418",
+        "T": "#f2d466"
+      }
+    },
+    {
+      "id": "carnival",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#1e1230",
+        "H": "#c08af0",
+        "A": "#8a3ad0",
+        "W": "#1fb0a0",
+        "S": "#12786e",
+        "C": "#ff5aa0",
+        "G": "#f2b632",
+        "V": "#b07a12",
+        "T": "#ff5a3a"
+      }
+    },
+    {
+      "id": "clover",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#8ad87a",
+        "A": "#3e9a3a",
+        "W": "#41a03e",
+        "S": "#2a6e2a",
+        "C": "#9ade86",
+        "G": "#358a34",
+        "V": "#1f5a20",
+        "T": "#4caa46"
+      }
+    },
+    {
+      "id": "daisy",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffe27a",
+        "A": "#f5c02a",
+        "W": "#fbf8f0",
+        "S": "#d8d2c2",
+        "C": "#fffcf4",
+        "G": "#f2eee2",
+        "V": "#c2bca8",
+        "T": "#5aa840"
+      }
+    },
+    {
+      "id": "seaside",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#4a6ab2",
+        "A": "#2a4a8c",
+        "W": "#f6f8fa",
+        "S": "#b8c8d8",
+        "C": "#e84a4a",
+        "G": "#3a7ad0",
+        "V": "#dfe8f2",
+        "T": "#e8c890"
+      }
+    },
+    {
+      "id": "watermelon",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ff9aa8",
+        "A": "#f2566a",
+        "W": "#2e8a3a",
+        "S": "#1e5e28",
+        "C": "#ff7a8a",
+        "G": "#f4606f",
+        "V": "#1a1418",
+        "T": "#9ae07a"
+      }
+    },
+    {
+      "id": "firefly",
+      "slot": "skin",
+      "rarity": "epic",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#0e0a14",
+        "E": "#f0f4c8",
+        "H": "#f07a4a",
+        "A": "#c8462a",
+        "W": "#3a2e46",
+        "S": "#221a2c",
+        "C": "#4a3e58",
+        "G": "#7a6a52",
+        "V": "#4a3e2c",
+        "T": "#dcff4a",
+        "O": "#3e3446",
+        "D": "#241c2a"
+      }
+    },
+    {
+      "id": "pencil",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffc6cf",
+        "A": "#f29aa8",
+        "W": "#f6c431",
+        "S": "#c8961a",
+        "C": "#f0d0a0",
+        "G": "#e8b42a",
+        "V": "#a87a10",
+        "T": "#b8bcc4",
+        "O": "#e8c49a",
+        "D": "#4a4650"
+      }
+    },
+    {
+      "id": "autumn-leaf",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#3a1a0a",
+        "H": "#ffd47a",
+        "A": "#e8a028",
+        "W": "#9a4626",
+        "S": "#682414",
+        "C": "#f0b048",
+        "G": "#c85a24",
+        "V": "#5a2c12",
+        "T": "#6a4a22"
+      }
+    },
+    {
+      "id": "toast",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#f8e0b0",
+        "A": "#e8c486",
+        "W": "#c8884a",
+        "S": "#9a5e2a",
+        "C": "#f6dfae",
+        "G": "#d89a58",
+        "V": "#a8662e",
+        "T": "#b87a3e"
+      }
+    },
+    {
+      "id": "lemon",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#f8ffa0",
+        "A": "#e4f04a",
+        "W": "#e2ee48",
+        "S": "#b8c42a",
+        "C": "#f0f88a",
+        "G": "#d6e43a",
+        "V": "#9aa820",
+        "T": "#7ab83a"
+      }
+    },
+    {
+      "id": "matcha",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#d8e8b0",
+        "A": "#9ab86a",
+        "W": "#98b468",
+        "S": "#6e8a48",
+        "C": "#f0ecd6",
+        "G": "#88a85a",
+        "V": "#5a7438",
+        "T": "#b8cc8a"
+      }
+    },
+    {
+      "id": "cherry",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#2a0a10",
+        "H": "#e8506a",
+        "A": "#a8182e",
+        "W": "#a61a30",
+        "S": "#6a0c1c",
+        "C": "#c8283e",
+        "G": "#94142a",
+        "V": "#5a0814",
+        "T": "#4a9a3a"
+      }
+    },
+    {
+      "id": "muffin",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#f2cf96",
+        "A": "#d9a35e",
+        "W": "#f0a0b4",
+        "S": "#c8708a",
+        "C": "#f8c0cc",
+        "G": "#d4a060",
+        "V": "#4a2a1a",
+        "T": "#e0aa68"
+      }
+    },
+    {
       "id": "propeller-cap",
       "slot": "hat",
       "rarity": "common",
@@ -813,6 +1155,48 @@
       "slot": "neck",
       "rarity": "rare",
       "sprite": "neck/medal"
+    },
+    {
+      "id": "hard-hat",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/hard-hat"
+    },
+    {
+      "id": "beret",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/beret"
+    },
+    {
+      "id": "grad-cap",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/grad-cap"
+    },
+    {
+      "id": "moustache",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/moustache"
+    },
+    {
+      "id": "necktie",
+      "slot": "neck",
+      "rarity": "common",
+      "sprite": "neck/necktie"
+    },
+    {
+      "id": "bandana",
+      "slot": "neck",
+      "rarity": "common",
+      "sprite": "neck/bandana"
+    },
+    {
+      "id": "cape",
+      "slot": "neck",
+      "rarity": "epic",
+      "sprite": "neck/cape"
     }
   ]
 }

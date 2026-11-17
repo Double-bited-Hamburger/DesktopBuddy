@@ -8,7 +8,8 @@ import { RewardSchema } from './rewards'
  * - `pet-night`: pets between `nightHours` (local time),
  * - `free-gift`: free gifts opened (`gift` counts only bought boxes),
  * - `days`: days the app was opened (the stamps), `owned`: items owned, `level`: bond level,
- *   `sets`: album sets completed, `eggs`: eggs hatched.
+ *   `sets`: album sets completed, `eggs`: eggs hatched,
+ * - `flowers`: flowers grown from a seed left behind (counted when one blooms, core/toys/garden.ts).
  */
 export const ACHIEVEMENT_STATS = [
   ...QUEST_EVENTS,
@@ -19,6 +20,7 @@ export const ACHIEVEMENT_STATS = [
   'level',
   'sets',
   'eggs',
+  'flowers',
 ] as const
 export type AchievementStat = (typeof ACHIEVEMENT_STATS)[number]
 

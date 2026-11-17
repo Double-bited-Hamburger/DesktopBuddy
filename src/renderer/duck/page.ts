@@ -1,6 +1,8 @@
 import { DUCK_CLIPS } from '../../core/anim/clips'
 import { AnimationClock } from '../../core/anim/clock'
 import type { MotionInput } from '../../core/anim/motion'
+import type { TrickId, TrickPose } from '../../core/anim/tricks'
+import { trickPoseAt } from '../../core/anim/tricks'
 import type { Dream } from '../../core/behavior/dream'
 import type { BehaviorConfig, BehaviorPrefs, BehaviorState } from '../../core/behavior/machine'
 import {
@@ -8,6 +10,7 @@ import {
   behaviorConfigFor,
   pinnedBehaviorConfig,
   tiredBehaviorConfig,
+  trickOf,
 } from '../../core/behavior/machine'
 import { PetDetector } from '../../core/behavior/pet'
 import { dayBehaviorConfig, isDecember, partOfDay } from '../../core/care/day'
@@ -101,6 +104,10 @@ export interface DuckPage {
   breadEatenAt: number[]
   /** The pose last checked for a sound (FRAME_SOUNDS), and the QUACK can whose shout was heard. */
   cuedPose: string
+  /** The trick pose last checked for its sound (each pose plays its sound once). */
+  cuedMove: TrickPose | undefined
+  /** The tricks it may do by itself after being happy (main sends them: learned, minis out). */
+  tricks: readonly TrickId[]
   shoutedFor: number | undefined
   /** Refilled before every draw for core/anim/motion.ts (one object, no per-tick garbage). */
   readonly motion: MotionInput
@@ -126,6 +133,11 @@ export interface DuckPage {
   walkingAs: WalkDirection
   walkingStride: number
   toldAsleep: boolean
+  /**
+   * A flower grew (main sent `bloom`): waiting for a calm moment (`since` unset), then shown from
+   * the start of the sniff. `told`: main heard `sniffed`. Undefined when there is none.
+   */
+  flower: { since: number | undefined; told: boolean } | undefined
 }
 
 /** The local clock shifts the mood: sleepy at night, stretchy in the morning (core/care/day). */
@@ -139,6 +151,16 @@ export function behaviorFor(page: DuckPage): BehaviorConfig {
 
 /** Held, falling or lying: main/the user moves the duck and the behavior clock is paused. */
 export const busy = (page: DuckPage): boolean => page.dragging || page.falling || page.lying
+
+/**
+ * The trick pose to draw at `now`, or undefined when no trick is on (or the duck is being moved).
+ * The machine's clock only moves on ticks, so the time since the last one is added.
+ */
+export function trickPose(page: DuckPage, now: number): TrickPose | undefined {
+  const trick = trickOf(page.machine.state)
+  if (!trick || busy(page)) return undefined
+  return trickPoseAt(trick, page.machine.stateMs + Math.max(0, now - page.lastTick))
+}
 
 /** Where the treat is on its meal's timeline (a half-eaten one skips what was eaten). */
 export const treatAt = (page: DuckPage, now: number): number =>
@@ -202,6 +224,8 @@ export async function createPage(): Promise<DuckPage> {
     dream: undefined,
     breadEatenAt: [],
     cuedPose: '',
+    cuedMove: undefined,
+    tricks: config.tricks ?? [],
     shoutedFor: undefined,
     motion: { state: machine.state, sinceStateMs: 0, buzzMs: -1, landedMs: -1, snowMs: -1 },
     rocket: undefined,
@@ -218,5 +242,6 @@ export async function createPage(): Promise<DuckPage> {
     walkingAs: 0,
     walkingStride: 1,
     toldAsleep: false,
+    flower: undefined,
   }
 }

@@ -8,6 +8,7 @@ import {
   SCRATCH_MS,
   SHAKE_MS,
   SNEEZE_MS,
+  SNIFF_MS,
   SONG_MS,
   STRETCH_MS,
   STUFFED_MS,
@@ -26,6 +27,8 @@ import { TREAT_MS } from '../toys/meal'
 import { HIC_MS, HICCUP_MS, HICCUPS, WOBBLE_MS } from '../toys/quack'
 import { SEED_TAP_MS } from '../toys/seeds'
 import type { Animation } from './clock'
+import type { TrickId } from './tricks'
+import { TRICK_IDS, TRICK_MS, trickFrameNames, trickPoseAt } from './tricks'
 
 /**
  * Which duck frames each behavior state plays, and how fast. The frames themselves are drawn in
@@ -43,6 +46,13 @@ export const RUN_FRAME_MS = 90
 export const TURBO_FRAME_MS = 84
 /** The sugar crash is drawn in steps this long. */
 const CRASH_STEP_MS = 100
+
+/** A trick's clip only holds its first pose: the page draws trickPoseAt (core/anim/tricks.ts). */
+const trickClip = (id: TrickId): Animation => ({
+  frames: [trickPoseAt(id, 0).frame],
+  frameMs: TRICK_MS[id],
+  loop: false,
+})
 
 const blinkCycle = [...Array.from({ length: 11 }, () => 'idle'), 'blink']
 const times = (n: number, frame: string): string[] => Array.from({ length: n }, () => frame)
@@ -216,6 +226,15 @@ export const DUCK_CLIPS: Readonly<Record<BehaviorState, Animation>> = {
   wink: { frames: ['wink', 'wink', 'idle'], frameMs: WINK_MS / 3, loop: false },
   // Seeds: a machine-gun peck at the pile on the ground (core/toys/seeds.ts).
   nibble: { frames: ['peck', 'peck-fast'], frameMs: SEED_TAP_MS, loop: true },
+  ...(Object.fromEntries(TRICK_IDS.map((id) => [id, trickClip(id)])) as Record<TrickId, Animation>),
+  // A flower bloomed (core/toys/garden.ts): down to it, a few quick sniffs, then eyes shut, happy.
+  sniff: {
+    frames: ['peck', 'peck', 'peck-fast', 'peck', 'peck-fast', 'peck', 'happy', 'happy'],
+    frameMs: SNIFF_MS / 8,
+    loop: false,
+  },
+  // Soap bubbles (core/toys/bubbles.ts): the wand at the beak, eyes shut, a breath in, a long puff.
+  blow: { frames: ['happy', 'sing', 'sing', 'sing'], frameMs: 300, loop: true },
 }
 
 /** The twirl's step that faces the other way (the duck turning round). */
@@ -308,5 +327,6 @@ export function clipFrameNames(): ReadonlySet<string> {
     ...Object.values(TIRED_POSES),
   ])
   for (const clip of Object.values(DUCK_CLIPS)) for (const frame of clip.frames) names.add(frame)
+  for (const frame of trickFrameNames()) names.add(frame)
   return names
 }

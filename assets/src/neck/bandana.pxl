@@ -1,0 +1,20 @@
+# A teal bandana with cream dots: knotted at the back of the neck, the point on the chest.
+name: bandana
+size: 13x8
+anchor: neck 9 2
+palette:
+  K #2a1f2d
+  L #6fd6c8
+  B #2a9d8f
+  b #1d6f66
+  I #f4ede0
+
+@frame bandana
+KK...........
+KLKKKKKKKKKK.
+.KKLLLLLLLLLK
+KbKBBIBBBIBK.
+.K..KBBBIBBK.
+.....KBIBBK..
+......KBBK...
+.......KK....

@@ -1,0 +1,19 @@
+# A soft wine-red beret slouching to the back, with a little stalk on top.
+name: beret
+size: 16x8
+anchor: head 8 5
+palette:
+  K #2a1f2d
+  L #c85a7a
+  R #9a2f4f
+  r #6a1f38
+
+@frame beret
+.........K......
+......KKKKKKK...
+...KKKLLLRRRRKK.
+.KKLLLRRRRRRRRRK
+KLLRRRRRRRRRRRrK
+KrRRRRRRRRRRRrK.
+.KKrrrrrrrrrKK..
+...KKKKKKKKK....

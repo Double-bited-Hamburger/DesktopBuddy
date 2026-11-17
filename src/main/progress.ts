@@ -20,7 +20,7 @@ import {
   shopCatalog,
 } from '../core/economy/inventory'
 import { localDayKey } from '../core/economy/ledger'
-import type { QuestEvent } from '../core/economy/quests'
+import type { QuestEvent, QuestFeatures } from '../core/economy/quests'
 import { QuestBook, QuestSaveSchema } from '../core/economy/quests'
 import { INVENTORY_KEY, loadSave, QUESTS_KEY } from '../core/economy/save'
 import { seasonalOffer } from '../core/economy/seasonal'
@@ -41,10 +41,10 @@ export interface Wallet {
 }
 
 /**
- * Quests with `requires` wait for that feature: today, a snack name (the seeds quests are drawn
- * once the seeds snack exists).
+ * Quests with `requires` wait for that feature: by default a snack name (the seeds quests are
+ * drawn once the seeds snack exists); main adds `tricks` (core/economy/quests.ts questFeatures).
  */
-const hasFeature = (feature: string) => isSnack(feature)
+const hasSnack: QuestFeatures = (feature) => isSnack(feature)
 
 /**
  * Owns what the player has and is working towards: items, gift-box pity, the free-gift timer and
@@ -104,6 +104,7 @@ export class ProgressService {
     catalog: Catalog,
     wallet: Wallet,
     wearing: readonly string[],
+    features: QuestFeatures = hasSnack,
     rng: Rng = Math.random,
   ): Promise<ProgressService> {
     const now = Date.now()
@@ -111,7 +112,7 @@ export class ProgressService {
       (await loadSave(storage, INVENTORY_KEY, InventorySaveSchema, now)) ??
       newInventory(economy.starter, wearing)
     const quests = await loadSave(storage, QUESTS_KEY, QuestSaveSchema, now)
-    const book = new QuestBook(economy.quests, Date.now, quests, hasFeature)
+    const book = new QuestBook(economy.quests, Date.now, quests, features)
     const service = new ProgressService(economy, catalog, storage, wallet, inventory, book, rng)
     service.scheduleSave() // a first run writes the starter inventory
     return service

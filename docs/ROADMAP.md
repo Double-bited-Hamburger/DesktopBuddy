@@ -132,7 +132,20 @@ hands 🙌). **Exit:** earning rate matches `docs/ECONOMY.md`; auto-clicking is 
       kicks paid 3 each, the window closed by itself, no page errors
   - **Not verified:** what it looks like rolling (no screenshot taken), throwing it with the real
     mouse, CPU while it rolls (`npm run perf` not run)
-- [ ] Next: more toys (bubbles), emotes, ledger compaction
+- [x] **Soap bubbles** (1.1.0, 2026-11-17): Feed menu / tray → "Soap bubbles". The duck blows
+      through a wand (`blow`, 5 s; refused while busy, with a short message) and 12 bubbles float
+      up in one 64×96 click-through window for ~11 s; each popped pays `bubble` (1, cap 40) and
+      counts for the new daily quest "pop 20 bubbles" (`main/soap-play.ts`, `main/soap-window.ts`,
+      `renderer/soap`, core `toys/bubbles.ts`, sprites `toys/soap-bubble`, `toys/bubble-wand`).
+      Verified in dev on a throwaway folder over CDP: 12 synthetic clicks on the soap page paid 12,
+      a burst of 24 pops paid 1 (cooldown), pops and the plan refused from the duck page, the cap
+      stopped at 40 (Home's bar full), the panel's Start said ok and then busy while live, the
+      window was gone ~5 s after all were popped and between sessions; window flags read from
+      Windows (topmost, click-through, no-activate; click-through dropped while hovering a
+      bubble); a screenshot of the duck blowing. RAM: soap renderer ~24–27 MB while live (build)
+  - **Not verified:** popping with the real mouse, the pop sound heard, Linux (shaped window),
+    a second monitor or mixed DPI, CPU during a session, the Italian menu line fitting
+- [ ] Next: emotes, ledger compaction
 
 ## Phase 5 — Store, gifts & quests
 

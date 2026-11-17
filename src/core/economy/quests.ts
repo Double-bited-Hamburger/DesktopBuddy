@@ -1,6 +1,9 @@
 import { z } from 'zod'
 import type { Clock } from '../types'
+import type { LedgerEntry } from './ledger'
 import { localDayKey } from './ledger'
+import type { LevelsConfig } from './levels'
+import { firstTrickLevel, levelBefore } from './levels'
 
 /** Things the player does that quests can count. */
 export const QUEST_EVENTS = [
@@ -36,6 +39,10 @@ export const QUEST_EVENTS = [
   'ball',
   /** A talk in rubber-duck mode (the box opened; what is typed never leaves it). */
   'talk',
+  /** The duck plays a trick it has learned (asked from the Journey or the tray, or by itself). */
+  'trick',
+  /** A soap bubble popped with a click (core/toys/bubbles.ts; one per paid-or-not pop). */
+  'bubble',
 ] as const
 export type QuestEvent = (typeof QUEST_EVENTS)[number]
 
@@ -101,8 +108,12 @@ export function seeded(seed: number): () => number {
   }
 }
 
-/** Which `requires` features this app has (everything, when not given). */
-export type QuestFeatures = (feature: string) => boolean
+/**
+ * Which `requires` features this app has (everything, when not given). `since` is when the day
+ * or week being drawn started (epoch ms): a feature that depends on the player (`tricks`) is
+ * judged as of then, so a draw never changes in the middle of its day or week.
+ */
+export type QuestFeatures = (feature: string, since: number) => boolean
 const everything: QuestFeatures = () => true
 
 /** Shuffles a copy of `list` with a seeded generator (Fisher–Yates). */
@@ -116,22 +127,53 @@ export function seededShuffle<T>(list: readonly T[], seed: number): T[] {
   return out
 }
 
+/**
+ * The features quests may wait for: a snack name (`hasSnack`), and `tricks`: the bond level had
+ * reached the first level that teaches a trick before the day or week began (so the quest never
+ * pops into a draw halfway through it). Remembered per period: a past history doesn't change.
+ */
+export function questFeatures(
+  hasSnack: (feature: string) => boolean,
+  levels: LevelsConfig,
+  entries: () => readonly LedgerEntry[],
+): QuestFeatures {
+  const first = firstTrickLevel(levels)
+  const known = new Map<number, boolean>()
+  return (feature, since) => {
+    if (feature !== 'tricks') return hasSnack(feature)
+    if (first === undefined) return false
+    let ready = known.get(since)
+    if (ready === undefined) {
+      ready = levelBefore(levels, entries(), since) >= first
+      known.set(since, ready)
+    }
+    return ready
+  }
+}
+
+/** When the local day with key `key` (yyyymmdd, as `localDayKey`) starts, epoch ms. */
+export function dayKeyStart(key: number): number {
+  return new Date(Math.floor(key / 10000), (Math.floor(key / 100) % 100) - 1, key % 100).getTime()
+}
+
 function draw(
   config: QuestConfig,
   period: Quest['period'],
+  key: number,
   seed: number,
   count: number,
   has: QuestFeatures,
 ): Quest[] {
+  const since = dayKeyStart(key)
   const pool = config.pool.filter(
-    (q) => q.period === period && (q.requires === undefined || has(q.requires)),
+    (q) => q.period === period && (q.requires === undefined || has(q.requires, since)),
   )
   return seededShuffle(pool, seed).slice(0, count)
 }
 
 /** The daily quests for a day: `dailyCount` drawn from the pool, the same all day long. */
 export function dailyQuests(config: QuestConfig, day: number, has = everything): Quest[] {
-  return draw(config, 'daily', day, config.dailyCount, has)
+  return draw(config, 'daily', day, day, config.dailyCount, has)
 }
 
 /** Weekly seeds differ from daily ones (a week key is also a day key: its Monday). */
@@ -139,7 +181,7 @@ const WEEK_SALT = 0x5eed
 
 /** The weekly quests for the week starting on Monday `week`: `weeklyCount` drawn from the pool. */
 export function weeklyQuests(config: QuestConfig, week: number, has = everything): Quest[] {
-  return draw(config, 'weekly', week ^ WEEK_SALT, config.weeklyCount, has)
+  return draw(config, 'weekly', week, week ^ WEEK_SALT, config.weeklyCount, has)
 }
 
 /**

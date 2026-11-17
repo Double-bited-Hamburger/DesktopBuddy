@@ -162,3 +162,15 @@ own sprite (rare tiers and up may have their own silhouette). A skin that only s
 - `ui/tray-head` (16×16): the duck's head only, big eye, so it reads in the tray. The shell adds
   2× and 3× copies by repeating pixels (never a smooth resize).
 - `ui/points-digits` gained `m`, `a`, `x` in orange for **MAX** (same 5×7 cell and outline).
+
+## Toys added in 1.1.0: soap bubbles
+
+- `toys/bubble-wand` (7×10, one frame `bubble-wand`): a pink plastic wand, the stick held in the
+  beak, the ring up in front of the head, a cyan glint of soap film in the ring. Drawn at
+  `WAND_SPOT` (30, 8) on the duck's stage while it blows (`blow`), mirrored with the duck.
+- `toys/soap-bubble` (9×9): `small` (a 5×5 ring in the middle of the cell), `medium`, `pop-1`
+  (the ring breaking into bits), `pop-2` (four droplets). A blue rim with a cyan shimmer on the lit
+  top-left, pink underneath, a white glint; the middle is empty, never partial alpha. Drawn in
+  their own window, never mirrored (the light stays top-left whichever way the duck faces).
+- Checked by eye at 10× on a dark and a light background and on screen at 3× (dark desktop);
+  not checked on a light desktop on screen. Original: drawn for this project.

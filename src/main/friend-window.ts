@@ -12,6 +12,8 @@ import {
   miniLaneOf,
   nextFriendState,
   orbitAt,
+  paradeSpot,
+  paradeStep,
   towards,
 } from '../core/care/friend'
 import type { CatalogItem } from '../core/catalog/catalog'
@@ -37,12 +39,16 @@ const CARRY_MAX_MS = 30_000
 const FALL_STEP_MS = 1000 / 30
 /** A ghost let go drifts back to its loop at most this far per float step (logical px). */
 const GLIDE_PX = 8
+/** A ghost in a parade floats this high over the line (logical px). */
+const PARADE_HOVER = 6
 
 export interface FriendDeps {
   readonly scale: () => number
   /** The floor under your duck (its window range and top). */
   readonly floor: () => FloorBounds
   readonly duckMiddle: () => number
+  /** The way your duck walks (a parade lines up behind it). */
+  readonly duckFacing: () => 1 | -1
   /** Something serious is going on: the friend stays out of the way. */
   readonly quiet: () => boolean
   /** It reached the duck and they dance. */
@@ -90,6 +96,8 @@ export class FriendWindow {
   private held: { readonly dx: number; readonly dy: number } | undefined
   private hovered = false
   private falling = false
+  /** Its place in the parade line (0 = right behind your duck). */
+  private paradeSlot = 0
 
   constructor(deps: FriendDeps, item: CatalogItem) {
     this.deps = deps
@@ -122,13 +130,62 @@ export class FriendWindow {
    * dancing or eating, napping through something serious, flying, or not out at all.
    */
   fetch(x: number, snack: FriendFetch): boolean {
-    const busy = ['meet', 'dance', 'fetch', 'eat'].includes(this.state)
+    const busy = ['meet', 'dance', 'fetch', 'eat', 'parade'].includes(this.state)
     if (!this.window || this.flies || busy || this.held || this.falling || this.deps.quiet())
       return false
     this.fetching = snack
     this.goal = x
     this.enter('fetch')
     return true
+  }
+
+  /**
+   * Your duck started its parade: fall in behind it, `nth` place in the line (a ghost floats in
+   * line too). It marches for as long as the parade lasts, then goes back to its own life. False
+   * when it can't now (hidden, carried, falling, not out).
+   */
+  parade(nth: number): boolean {
+    if (!this.window?.isVisible() || this.held || this.falling) return false
+    this.giveUpFetch()
+    this.stopTimers()
+    this.state = 'parade'
+    this.paradeSlot = nth
+    this.direction = this.deps.duckFacing()
+    this.tell()
+    this.steps = setInterval(() => this.marchStep(), 1000 / (WALK_SPEED / STEP_PX))
+    this.decision = setTimeout(
+      () => {
+        this.stopTimers()
+        this.resume()
+      },
+      friendDuration('parade', Math.random),
+    )
+    return true
+  }
+
+  /** One step of the parade: to its place in the line, then in step with your duck. */
+  private marchStep(): void {
+    const scale = this.deps.scale()
+    const facing = this.deps.duckFacing()
+    const lane = this.flies ? this.duckLane() : this.lane()
+    const spot = paradeSpot(this.deps.duckMiddle(), facing, this.paradeSlot, scale)
+    const target = clamp(spot - this.size / 2, lane.minX, lane.maxX)
+    const next = paradeStep(this.x, target, STEP_PX * FRIEND_SPEED.parade * scale, facing)
+    this.x = next.x
+    if (next.direction !== this.direction) {
+      this.direction = next.direction
+      this.tell()
+    }
+    if (this.flies) this.y = glide(this.y, lane.y - PARADE_HOVER * scale, GLIDE_PX * scale)
+    else {
+      const floor = this.lane()
+      if (floor.y > this.y) {
+        this.fall() // marched off the edge of a taller screen
+        return
+      }
+      this.y = floor.y
+    }
+    this.place()
   }
 
   /** Your duck fell asleep or woke up: a friend napping next to it gets up too. */

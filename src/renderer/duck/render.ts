@@ -37,6 +37,7 @@ import {
   DUST_STEP_MS,
   ESPRESSO_SPOT,
   FLAME_STEP_MS,
+  FLOWER_SPOT,
   GLINT_SPOT,
   GLINT_STEP_MS,
   HEADPHONES_SPOT,
@@ -73,15 +74,18 @@ import {
   SWIRL_FROM_HEAD,
   SWIRL_STEP_MS,
   UMBRELLA_SPOT,
+  WAND_SPOT,
   ZZZ_FROM_HEAD,
   ZZZ_STEP_MS,
 } from '../../core/anim/spots'
+import { TRICK_PIVOT } from '../../core/anim/tricks'
 import { dreamAt } from '../../core/behavior/dream'
 import type { Direction } from '../../core/behavior/machine'
 import { listenAt } from '../../core/care/listen'
 import { needsUmbrella } from '../../core/care/weather'
 import { composeLayers, mirrorX } from '../../core/sprite/compositor'
 import { opaqueRects } from '../../core/sprite/shape'
+import { flipY, rotateQuarter } from '../../core/sprite/transform'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
 import { breadAt } from '../../core/toys/bread'
@@ -94,8 +98,9 @@ import { seedsAt } from '../../core/toys/seeds'
 import { PICKUP_MS } from '../../core/toys/snacks'
 import type { Point } from '../../core/types'
 import { drawDressed } from '../shared/outfit'
+import { flowerView } from './flower'
 import type { DuckPage } from './page'
-import { treatAt } from './page'
+import { treatAt, trickPose } from './page'
 import type { FramePair } from './props'
 
 interface Layer {
@@ -300,6 +305,8 @@ export function render(page: DuckPage): void {
       : undefined
   const moved = now - page.movedSince
   const landed = calm && page.landedAt !== undefined ? now - page.landedAt : -1
+  // A trick (core/anim/tricks.ts): its own pose, maybe upside down, turned or nudged.
+  const move = calm ? trickPose(page, now) : undefined
   const base = page.dragging
     ? alternating(HELD_POSES, moved, HELD_STEP_MS) // dangling, feet kicking
     : floating
@@ -308,10 +315,14 @@ export function render(page: DuckPage): void {
         ? alternating(AIRBORNE_POSES, moved, FLAP_STEP_MS) // flapping wildly
         : landed >= 0 && landed < LAND_MS
           ? LAND_POSE // squashed for a moment on landing
-          : (cup?.pose ?? (talk?.pose ? NOD_POSE : clock.frameName))
+          : (cup?.pose ?? (talk?.pose ? NOD_POSE : (move?.frame ?? clock.frameName)))
   const pose = (page.tired && TIRED_POSES[base]) || base
   cueSounds(page, pose, calm && cup !== undefined && 'shout' in cup && cup.shout !== undefined)
-  const offset = calm ? motionAt(fillMotion(page, now)) : STILL
+  if (move !== page.cuedMove) {
+    page.cuedMove = move
+    if (move?.sound) page.sound.play(move.sound)
+  }
+  const motion = calm ? motionAt(fillMotion(page, now)) : STILL
   const lookingBack =
     calm &&
     machine.state === 'look' &&
@@ -321,7 +332,15 @@ export function render(page: DuckPage): void {
   const twirledBack =
     calm && machine.state === 'twirl' && Math.floor(sinceState / TWIRL_STEP_MS) === TWIRL_FLIP_STEP
   const facing: Direction =
-    lookingBack || twirledBack ? (machine.direction === 1 ? -1 : 1) : machine.direction
+    lookingBack || twirledBack || move?.flipX
+      ? machine.direction === 1
+        ? -1
+        : 1
+      : machine.direction
+  // A trick's nudge is drawn facing right: it mirrors with the duck.
+  const ox = motion.x + (move ? facing * move.offset.x : 0)
+  const oy = motion.y + (move ? move.offset.y : 0)
+  const transformed = move !== undefined && (move.flipY || move.turns !== 0)
   // Storytime: the book (a page turns now and then) and a sparkle; the song: a rising note.
   const story = calm && machine.state === 'story'
   const book = story
@@ -370,7 +389,12 @@ export function render(page: DuckPage): void {
       : -1
   const dust = dustStep >= 0 && dustStep < props.dust.right.length ? `dust-${dustStep + 1}` : ''
   const sheltered =
-    calm && needsUmbrella(page.weather) && machine.state !== 'read' && !talk && props.umbrella
+    calm &&
+    needsUmbrella(page.weather) &&
+    machine.state !== 'read' &&
+    !talk &&
+    !transformed && // upside down or turned, the umbrella would float off on its own
+    props.umbrella
   const declining = calm && machine.state === 'refuse' && props.noSmoke !== undefined
   const rise = popupStep(page, now)
   const snack =
@@ -383,10 +407,17 @@ export function render(page: DuckPage): void {
   const snowy = page.december && calm && !newspaper && !talk
   const flake = snowy ? props.snow[Math.floor(now / SNOW_STEP_MS) % props.snow.length] : undefined
   const { popup } = page
+  // A flower grown from a seed left behind, while it is out (it blinks out at the end).
+  const bloomed = calm && flowerView(page, now) === 'shown'
+  // Soap bubbles: the wand in its beak while it blows (the bubbles have their own window).
+  const blowing = calm && machine.state === 'blow'
   // Everything that changes the picture is in the key: an unchanged key skips the redraw.
-  const key = `${book}:${sparkle?.name}:${note?.name}:${noteRise}:${page.outfitVersion}:${offset.x}:${offset.y}:${dream}:${Boolean(hic)}:${swirl?.name}:${shout?.name}:${lines}:${dust}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${newspaper}:${JSON.stringify(cup)}:${talk?.notebook}:${canopy?.name}`
+  const key = `${blowing}:${bloomed}:${book}:${sparkle?.name}:${note?.name}:${noteRise}:${page.outfitVersion}:${ox}:${oy}:${move?.flipY}:${move?.turns}:${move?.hatOff}:${dream}:${Boolean(hic)}:${swirl?.name}:${shout?.name}:${lines}:${dust}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${newspaper}:${JSON.stringify(cup)}:${talk?.notebook}:${canopy?.name}`
   if (key === page.lastKey) return
-  const outfit = talk ? page.outfits.specs : page.outfits.dressed
+  const offset = ox === motion.x && oy === motion.y ? motion : { x: ox, y: oy }
+  const worn = talk ? page.outfits.specs : page.outfits.dressed
+  // Upside down, a hat would stick into the floor: it comes off for that pose.
+  const outfit = move?.hatOff ? { ...worn, hat: undefined } : worn
   // Preening turns the head back into the wing: glasses would float in front of it.
   // Seen from the front or the back, no hat or glasses fit (like the rocket's shock).
   let image = drawDressed(
@@ -400,6 +431,9 @@ export function render(page: DuckPage): void {
   if (!image) return
   page.lastKey = key
 
+  // A trick's transform goes on the dressed duck, before it is mirrored to face its way.
+  if (move?.flipY) image = flipY(image)
+  if (move?.turns) image = rotateQuarter(image, move.turns, TRICK_PIVOT)
   if (facing === -1) image = mirrorX(image)
   // Bubbles, hearts and the points popup go on after mirroring so text never reads backwards.
   // The bubble and heart sit above the head on the side the duck faces, the popup on the other.
@@ -476,6 +510,8 @@ export function render(page: DuckPage): void {
     place(props.buzz, cup.buzz, BUZZ_SPOT)
   }
   place(props.buzz, fizz, BUZZ_SPOT)
+  if (bloomed) place(props.flower, 'flower', FLOWER_SPOT)
+  if (blowing) place(props.wand, 'bubble-wand', WAND_SPOT)
   if (wired) place(props.headphones, 'headphones', HEADPHONES_SPOT)
   if (sipping) {
     const tipped = clock.frameName === 'blink'

@@ -165,6 +165,9 @@ describe('duck source', () => {
       'read',
       'front',
       'back',
+      'bow',
+      'bd-kick',
+      'bd-freeze',
     ])
     expect(lintPxl(doc)).toEqual([])
     expect(doc.anchors.head).toBeDefined()

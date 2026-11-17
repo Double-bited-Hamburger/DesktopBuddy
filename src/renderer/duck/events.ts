@@ -1,12 +1,16 @@
 import { FLAME_STEP_MS, GLINT_STEP_MS, PARASOL_STEP_MS } from '../../core/anim/spots'
+import { trickOf } from '../../core/behavior/machine'
 import { isDecember, msUntilNextPart } from '../../core/care/day'
 import { TIRED_MS } from '../../core/toys/coffee'
 import { treatLength } from '../../core/toys/meal'
 import { BOOM_STEP_MS } from '../../core/toys/rocket'
+import { bloom } from './flower'
 import { pause, schedule, syncWalk, wake } from './loop'
 import type { DuckPage } from './page'
 import { behaviorFor, busy, loadOutfits } from './page'
 import { render, sendShape } from './render'
+import { askedToBlow } from './soap'
+import { askedForTrick } from './tricks'
 
 /** One timer per part of the day (hours apart), to re-weigh the idle choices. */
 function followTheDay(page: DuckPage): void {
@@ -54,6 +58,16 @@ export function listen(page: DuckPage): void {
   })
 
   duck.onTurned((direction) => {
+    if (trickOf(machine.state)) {
+      // A travelling trick hit the edge: a moonwalk ends there, a victory lap heads back, a
+      // parade turns round (core/anim/tricks.ts). A report of the way it was already told to go
+      // raced a change of direction (a lap's turn): nothing hit anything.
+      if (direction === page.walkingAs) return
+      page.walkingAs = direction // main already walks this way
+      machine.hitEdge()
+      wake(page) // the new pose, and syncWalk stops or keeps going
+      return
+    }
     const racing = machine.state === 'zoom' || machine.state === 'turbo'
     if (machine.state !== 'walk' && !racing) return // a turn that raced a stop: main stops on the next sync
     if (machine.direction !== direction) machine.hitEdge()
@@ -69,6 +83,14 @@ export function listen(page: DuckPage): void {
     else if (machine.state === 'run') machine.enter('idle')
     wake(page)
   })
+
+  // Tricks: main asks for one it checked is learned (Journey, tray); the page says ok or busy.
+  duck.onTrick((id) => askedForTrick(page, id))
+  duck.onTricks((ids) => {
+    page.tricks = ids
+  })
+  // Soap bubbles: main asks; the page blows if it can and says so (main opens their window).
+  duck.onBlow(() => askedToBlow(page))
 
   duck.onRefused(() => {
     if (busy(page) || page.treat) return
@@ -170,6 +192,9 @@ export function listen(page: DuckPage): void {
     } else if (event === 'hungry') {
       // It says so in a bubble (main) and has a look round for crumbs.
       if (undisturbed) machine.enter('forage')
+    } else if (event === 'bloom') {
+      // A seed left behind grew into a flower: sniffed at the next calm moment (flower.ts).
+      bloom(page)
     } else if (event === 'stare') {
       page.staring = true
       if (!page.treat) machine.stare(machine.direction)

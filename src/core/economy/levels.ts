@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { LedgerEntry } from './ledger'
-import { RewardSchema } from './rewards'
+import { isTrick, RewardSchema } from './rewards'
 
 /**
  * Bond level (1 … `max`): how long you and your duck have been friends. Its XP is every point
@@ -45,6 +45,26 @@ export function xpOf(entries: readonly LedgerEntry[], notXp: ReadonlySet<string>
   let xp = 0
   for (const entry of entries) if (isXp(entry, notXp)) xp += entry.delta
   return xp
+}
+
+/** The level a points history had reached before `before` (epoch ms). */
+export function levelBefore(
+  config: LevelsConfig,
+  entries: readonly LedgerEntry[],
+  before: number,
+): number {
+  const notXp = new Set(config.notXp)
+  let xp = 0
+  for (const entry of entries) if (entry.ts < before && isXp(entry, notXp)) xp += entry.delta
+  return levelForXp(config, xp)
+}
+
+/** The lowest level whose reward teaches a trick (undefined when none does). */
+export function firstTrickLevel(config: LevelsConfig): number | undefined {
+  const levels = config.rewards
+    .filter((r) => r.reward.unlock !== undefined && isTrick(r.reward.unlock))
+    .map((r) => r.level)
+  return levels.length > 0 ? Math.min(...levels) : undefined
 }
 
 /**

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { isTrickId } from '../core/anim/tricks'
 import { isFriendState } from '../core/care/friend'
 import { isSnack } from '../core/toys/snacks'
 import type { AppHistory } from '../core/tracker/screen-time'
@@ -17,6 +18,7 @@ import type {
   ProgressionView,
   ScreenTimeView,
   SettingsView,
+  SoapView,
   StatsView,
   StoreView,
   TodayView,
@@ -96,6 +98,21 @@ const api: BuddyApi = {
       ipcRenderer.on(IPC.lie, handler)
       return () => ipcRenderer.off(IPC.lie, handler)
     },
+    onTrick: (listener) => {
+      const handler = (_event: unknown, id: unknown) => {
+        if (isTrickId(id)) listener(id)
+      }
+      ipcRenderer.on(IPC.trick, handler)
+      return () => ipcRenderer.off(IPC.trick, handler)
+    },
+    onTricks: (listener) => {
+      const handler = (_event: unknown, ids: unknown) => {
+        if (Array.isArray(ids)) listener(ids.filter(isTrickId))
+      }
+      ipcRenderer.on(IPC.tricks, handler)
+      return () => ipcRenderer.off(IPC.tricks, handler)
+    },
+    trickPlayed: (id, answer) => ipcRenderer.send(IPC.trickPlayed, id, answer),
     onPrefs: (listener) => {
       const handler = (_event: unknown, prefs: DuckLivePrefs) =>
         listener({
@@ -158,6 +175,13 @@ const api: BuddyApi = {
     ate: () => ipcRenderer.send(IPC.ate),
     treatDropped: (elapsed) => ipcRenderer.send(IPC.treatDropped, elapsed),
     sleeping: (asleep) => ipcRenderer.send(IPC.duckSleep, asleep === true),
+    sniffed: () => ipcRenderer.send(IPC.sniffed),
+    onBlow: (listener) => {
+      const handler = () => listener()
+      ipcRenderer.on(IPC.blow, handler)
+      return () => ipcRenderer.off(IPC.blow, handler)
+    },
+    blowAnswer: (answer, facing) => ipcRenderer.send(IPC.blowAnswer, answer, facing),
     openPanel: () => ipcRenderer.send(IPC.openPanel),
   },
   panel: {
@@ -170,6 +194,7 @@ const api: BuddyApi = {
     feed: (snack) => ipcRenderer.send(IPC.feed, snack),
     feedHandful: () => ipcRenderer.send(IPC.feedHandful),
     throwBall: () => ipcRenderer.send(IPC.throwBall),
+    blowBubbles: () => ipcRenderer.invoke(IPC.blowBubbles),
     smokeBar: () => ipcRenderer.invoke(IPC.smokeBar),
     store: (): Promise<StoreView> => ipcRenderer.invoke(IPC.store),
     onStore: (listener) => {
@@ -182,6 +207,7 @@ const api: BuddyApi = {
     buyFeatured: (id?: string): Promise<BuyResult> => ipcRenderer.invoke(IPC.buyFeatured, id),
     claimSeasonal: (): Promise<BuyResult> => ipcRenderer.invoke(IPC.claimSeasonal),
     buyBoost: (id) => ipcRenderer.invoke(IPC.buyBoost, id),
+    doTrick: (id) => ipcRenderer.invoke(IPC.doTrick, id),
     claimQuest: (id): Promise<number> => ipcRenderer.invoke(IPC.claimQuest, id),
     progression: (): Promise<ProgressionView> => ipcRenderer.invoke(IPC.progression),
     onProgression: (listener) => {
@@ -272,6 +298,12 @@ const api: BuddyApi = {
     hover: (over) => ipcRenderer.send(IPC.friendHover, over),
     grab: () => ipcRenderer.send(IPC.friendGrab),
     drop: () => ipcRenderer.send(IPC.friendDrop),
+  },
+  soap: {
+    plan: (): Promise<SoapView> => ipcRenderer.invoke(IPC.soapPlan),
+    pop: (index) => ipcRenderer.send(IPC.soapPop, index),
+    hover: (over) => ipcRenderer.send(IPC.soapHover, over === true),
+    setShape: (rects) => ipcRenderer.send(IPC.soapShape, rects),
   },
   snack: {
     click: () => ipcRenderer.send(IPC.snackClick),

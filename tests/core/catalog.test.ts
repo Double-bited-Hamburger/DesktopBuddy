@@ -120,6 +120,18 @@ describe('shipped catalog (assets/economy/catalog.json)', () => {
     }
   })
 
+  it('no two skins share the same palette (as declared, not merged with the base)', () => {
+    const seen = new Map<string, string>()
+    for (const skin of itemsForSlot(shipped, 'skin')) {
+      const palette = Object.entries(skin.palette ?? {})
+        .map(([key, color]) => `${key}=${color.toLowerCase()}`)
+        .sort()
+      const key = palette.join(' ')
+      expect(seen.get(key), `${skin.id} has the same palette as ${seen.get(key)}`).toBeUndefined()
+      seen.set(key, skin.id)
+    }
+  })
+
   it('hat and face sprites declare the anchor of their slot', () => {
     const slotAnchor = { hat: 'head', face: 'face', neck: 'neck' } as const
     for (const item of shipped.items.filter(

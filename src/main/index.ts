@@ -40,6 +40,7 @@ import {
 import { checkEconomy } from '../core/economy/config'
 import { capBars, EarnLog, earnedOn, pointsPerDay } from '../core/economy/earn-log'
 import { localDayKey } from '../core/economy/ledger'
+import { questFeatures } from '../core/economy/quests'
 import { parseEconomy } from '../core/economy/save'
 import type { Listening } from '../core/friends/music'
 import { listeningTo } from '../core/friends/music'
@@ -48,6 +49,7 @@ import { pageOfUrl } from '../core/log/log'
 import type { Settings } from '../core/settings/settings'
 import { loadSettings, SETTINGS_KEY, saveSettings, soundVolume } from '../core/settings/settings'
 import { FLOOR_INSET, STAGE_SIZE } from '../core/stage'
+import { soapBounds } from '../core/toys/bubbles'
 import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
 import { dropOffset } from '../core/toys/meal'
 import { rocketBurst } from '../core/toys/rocket'
@@ -61,6 +63,7 @@ import {
   smoked,
 } from '../core/toys/smoke-bar'
 import type { Snack } from '../core/toys/snacks'
+import { isSnack } from '../core/toys/snacks'
 import { focusCounts, focusPointsDue } from '../core/tracker/focus'
 import { ANNOUNCE_TRIES, shouldAskAutoCheck, toAnnounce } from '../core/update/versions'
 import type {
@@ -71,6 +74,7 @@ import type {
   DashboardView,
   DuckLivePrefs,
   PointsEvent,
+  SoapResult,
 } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
 import { ActivityControls } from './activity-controls'
@@ -84,6 +88,7 @@ import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
 import { FriendWindow } from './friend-window'
 import { FriendsService } from './friends'
+import { GardenService } from './garden'
 import { registerIpc } from './ipc'
 import { eraseLog, initLog, logError, logInfo, logPath, logWarn } from './log'
 import { windowsNowPlaying } from './now-playing'
@@ -95,9 +100,12 @@ import { ProgressionService } from './progression'
 import { backUpSavesIfNewVersion, eraseBackups } from './save-backup'
 import { SettingsControls } from './settings-controls'
 import { SnackPile } from './snack-pile'
+import { SoapPlay } from './soap-play'
+import { SoapWindow } from './soap-window'
 import { TalkWindow } from './talk-window'
 import { TrackerService } from './tracker'
 import { createTray } from './tray'
+import { TrickControl } from './tricks'
 import { UpdateService } from './updates'
 import { VisitorWindow } from './visitor-window'
 import { WeatherService } from './weather'
@@ -130,6 +138,13 @@ function focusMinuteMsFromEnv(): number | undefined {
   return seconds > 0 ? seconds * 1000 : undefined
 }
 
+/** Dev-only: `BUDDY_BUBBLES=20` blows soap bubbles every 20 s (for smoke and perf probes). */
+function bubblesEveryMsFromEnv(): number | undefined {
+  if (app.isPackaged) return undefined
+  const seconds = Number(process.env.BUDDY_BUBBLES)
+  return seconds > 0 ? seconds * 1000 : undefined
+}
+
 /** `BUDDY_PIN_STATE=walk` keeps the duck walking, etc. Ignored in packaged builds. */
 function pinStateFromEnv(): BehaviorState | undefined {
   if (app.isPackaged) return undefined
@@ -143,6 +158,8 @@ const HUNGER_CHECK_MS = 15 * 60_000
 const FULLSCREEN_CHECK_MS = 2000
 /** The one-time "check for updates at startup?" question waits this long after start. */
 const ASK_UPDATES_DELAY_MS = 45_000
+/** A flower due since the last run blooms a little after start (the duck page is up by then). */
+const BLOOM_START_DELAY_MS = 20_000
 const HUNGER_IDLE_SECONDS = 60
 
 /** `BUDDY_HUNGER_SECONDS` checks sooner, in dev builds only. */
@@ -192,6 +209,13 @@ async function start(): Promise<void> {
     (!app.isPackaged && process.env.BUDDY_TIRED === '1')
   // Cigars fill the smoke bar, which drains over hours (core/toys/smoke-bar.ts).
   let smokeBar = await loadSmokeBar(storage)
+  // A seed left behind after a seed meal grows into a flower (core/toys/garden.ts).
+  // `BUDDY_BLOOM=1` makes one flower due right away, in dev builds only (for the smoke test).
+  const garden = await GardenService.load(
+    storage,
+    economy.garden,
+    !app.isPackaged && process.env.BUDDY_BLOOM === '1',
+  )
   // The duck's speech bubble: welcome back, hunger, focus, and questions with buttons.
   const bubble = new BubbleWindow()
   /** Set once everything below exists: until then the duck says nothing by itself. */
@@ -220,6 +244,8 @@ async function start(): Promise<void> {
       return true
     },
   })
+  /** Tricks on request and the duck's own (set up once the minis and progression exist). */
+  let trickControl: TrickControl | undefined
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
@@ -234,6 +260,7 @@ async function start(): Promise<void> {
     weather: weather.kind,
     shapeClickThrough: SHAPED,
     pinState,
+    tricks: trickControl?.playable ?? [],
   })
 
   const duck = new DuckWindow(settings.scale)
@@ -273,6 +300,8 @@ async function start(): Promise<void> {
       settings.loadout.face,
       settings.loadout.neck,
     ].flatMap((id) => (id === null ? [] : [id])),
+    // The trick quests are drawn once the duck could have learned a trick (core/economy/quests.ts).
+    questFeatures(isSnack, economy.levels, () => points.entries),
   )
   progress.onChange = () => panel.webContents?.send(IPC.storeChanged, progress.view())
   // Economy 2.0's long-term goals (progression.json): bond level, achievements, sets, stamps, eggs.
@@ -395,6 +424,40 @@ async function start(): Promise<void> {
     earn('ball')
     duck.window.webContents.send(IPC.care, 'ball-kick' satisfies CareEvent)
   }
+  // Soap bubbles (core/toys/bubbles.ts): free, like the ball. The duck blows through its wand and
+  // the bubbles get a small window of their own for one short session; each pop pays a little.
+  const soap = new SoapPlay({
+    canGo: () => duck.canLaunch,
+    ask: () => duck.window.webContents.send(IPC.blow),
+    open: (facing) => {
+      const at = duck.window.getBounds()
+      const area = screen.getDisplayNearestPoint({
+        x: at.x + Math.round(at.width / 2),
+        y: at.y + Math.round(at.height / 2),
+      }).workArea
+      return new SoapWindow(soapBounds(at, settings.scale, facing, area))
+    },
+    popped: () => {
+      progress.record('bubble')
+      earn('bubble')
+    },
+    volume: () => soundVolume(settings),
+    shaped: SHAPED,
+  })
+  const blowBubbles = async (): Promise<SoapResult> => {
+    const result = await soap.start()
+    if (result === 'ok') {
+      panel.closeUnlessPinned() // out of the way of the bubbles
+      ball.takeAway() // one thing at a time
+    }
+    return result
+  }
+  /** From the tray (no screen of its own): a busy duck says so, if it can be seen. */
+  const blowFromTray = () =>
+    void blowBubbles().then((result) => {
+      if (result !== 'busy' || !duck.window.isVisible() || talk.isOpen || bubble.asking) return
+      bubble.say(t('soap.busy'), settings.names.duck, duck.window.getBounds(), settings.scale)
+    })
   duck.onCaught = () => {
     if (ball.caught()) return
     const caught = snacks.caught()
@@ -500,6 +563,8 @@ async function start(): Promise<void> {
           logError('Could not save the last meal', error),
         )
       }
+      // Now and then a seed stays behind and grows into a flower by another day.
+      if (snackCaught === 'seeds') garden.seedMealEaten(Date.now())
       snackCaught = undefined
       // Every snack pays from its own source, whose cooldown is shorter than eating takes, so
       // each slice of a handful is paid (sharing `play`'s cooldown used to drop every other one).
@@ -585,6 +650,7 @@ async function start(): Promise<void> {
     scale: () => settings.scale,
     floor: () => duck.floorNow,
     duckMiddle: () => duck.middleX,
+    duckFacing: () => duck.facing,
     quiet: () => tracker.focusing || breaks.busy || talk.isOpen || busyNow(),
     onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance' satisfies CareEvent),
     duckAsleep: () => duckAsleep,
@@ -625,6 +691,7 @@ async function start(): Promise<void> {
       ball.setHidden(false)
     }
     duck.setLying(mode === 'lie')
+    if (mode !== 'normal') soap.end() // no bubbles over a video or a game
     for (const friend of friends) friend.setHidden(mode !== 'normal')
     if (mode === 'hide') {
       bubble.close()
@@ -697,6 +764,7 @@ async function start(): Promise<void> {
       settings = { ...settings, companions: next }
       await saveSettings(storage, settings)
       syncFriends()
+      syncTricks() // the parade needs a mini out
     }
     return companionsView()
   }
@@ -705,6 +773,36 @@ async function start(): Promise<void> {
     if (findItemById(catalog, id)?.slot !== 'friend') return
     const out = companionsOut()
     if (out.length < economy.companions.max && !out.includes(id)) void toggleFriend(id)
+  }
+  // Tricks (core/anim/tricks.ts): asked for from the Journey or the tray, or done by the duck
+  // itself after being happy. Each one counts for the quests; the parade brings the minis along.
+  const minisOut = () => friends.filter((friend) => friend.out).length
+  const tricks = new TrickControl({
+    unlocks: () => progression.unlocks,
+    minisOut,
+    canGo: () => duck.canLaunch,
+    send: (id) => duck.window.webContents.send(IPC.trick, id),
+    played: (id) => {
+      progress.record('trick')
+      if (id !== 'parade') return
+      let nth = 0
+      for (const friend of friends) if (friend.parade(nth)) nth++
+    },
+  })
+  trickControl = tricks
+  /** Learned tricks or the minis out changed: the tray's Tricks menu and the duck's own list. */
+  let tricksKey = `${tricks.learned.join()}|${minisOut() > 0}`
+  const syncTricks = () => {
+    const key = `${tricks.learned.join()}|${minisOut() > 0}`
+    if (key === tricksKey) return
+    tricksKey = key
+    duck.window.webContents.send(IPC.tricks, tricks.playable)
+    buildTray()
+  }
+  const progressionChanged = progression.onChange
+  progression.onChange = () => {
+    progressionChanged()
+    syncTricks() // a trick claimed on the Journey
   }
   powerMonitor.on('suspend', () => void tracker.pause())
   // Welcome back (core/care/welcome.ts): away = locked or asleep; the duck cheers on the way back.
@@ -747,12 +845,25 @@ async function start(): Promise<void> {
     !tracker.focusing &&
     duck.window.isVisible() &&
     powerMonitor.getSystemIdleTime() < HUNGER_IDLE_SECONDS
+  // The flower (core/toys/garden.ts): shown in the duck window when someone is there to see it.
+  // The duck sniffs it once it is free and says `sniffed`; only then is it paid, once per seed.
+  // While it waits, a later check sends it again (the page ignores a flower it already has).
+  const tryBloom = () => {
+    if (!garden.due(Date.now()) || !canTalk()) return
+    duck.window.webContents.send(IPC.care, 'bloom' satisfies CareEvent)
+  }
+  const sniffed = () => {
+    if (!garden.bloom(Date.now())) return
+    progression.count('flowers')
+    earn('flower')
+  }
   // Hunger (core/care/hunger.ts): only while the user is at the PC and nothing else is going on.
   setInterval(() => {
     weather.retryAlert() // rain coming, and the duck couldn't say so earlier
     progression.visit() // a new day while the app runs gets its stamp
     announceUpdate() // a new version it couldn't announce yet
     askAutoCheck()
+    tryBloom() // a seed planted yesterday may be ready (this check also sees the day change)
     const now = Date.now()
     if (!settings.hungerTalk || powerMonitor.getSystemIdleTime() >= HUNGER_IDLE_SECONDS) return
     if (awaySince !== undefined || busyNow() || breaks.busy || talk.isOpen) return
@@ -769,6 +880,10 @@ async function start(): Promise<void> {
   powerMonitor.on('suspend', goneAway)
   powerMonitor.on('unlock-screen', cameBack)
   powerMonitor.on('resume', cameBack)
+  // Back at the PC (maybe the next morning): a flower may have grown. After the welcome.
+  const bloomSoon = () => setTimeout(tryBloom, 2 * WELCOME_DELAY_MS)
+  powerMonitor.on('unlock-screen', bloomSoon)
+  powerMonitor.on('resume', bloomSoon)
   const activity = new ActivityControls(
     tracker,
     economy.focus,
@@ -781,7 +896,13 @@ async function start(): Promise<void> {
     (options) => panel.showSaveDialog(options),
   )
   const flushAll = async () => {
-    await Promise.all([points.flush(), progress.flush(), progression.flush(), tracker.pause()])
+    await Promise.all([
+      points.flush(),
+      progress.flush(),
+      progression.flush(),
+      garden.flush(),
+      tracker.pause(),
+    ])
   }
   // Check for updates (Settings → Updates). The daily check is opt-in; downloading and
   // installing always wait for a click.
@@ -878,6 +999,7 @@ async function start(): Promise<void> {
     if (away) {
       awayTimer = setTimeout(() => setAway(false), AWAY_MS)
       bubble.close()
+      soap.end()
       duck.setAway(true)
       snacks.setHidden(true)
       ball.setHidden(true)
@@ -901,10 +1023,20 @@ async function start(): Promise<void> {
       feed,
       feedHandful,
       throwBall,
+      blowBubbles: blowFromTray,
       talk: () => {
         progress.record('talk')
         talk.open(duck.window.getBounds(), settings.names.duck)
       },
+      // The parade waits for a mini to be out (its label says so).
+      tricks: tricks.learned.map((id) => {
+        const alone = id === 'parade' && minisOut() === 0
+        return {
+          label: alone ? t('tray.paradeAlone') : t(`trick.${id}`),
+          enabled: !alone,
+          run: () => void tricks.request(id),
+        }
+      }),
       pillShown: settings.showPointsPill,
       setPill,
       muted: settings.muted,
@@ -940,6 +1072,7 @@ async function start(): Promise<void> {
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
       ball.setScale(next.scale)
+      soap.end() // its window was placed for the old size
       visitor.setScale()
       for (const friend of friends) friend.setScale()
     }
@@ -1065,10 +1198,13 @@ async function start(): Promise<void> {
     companions: companionsView,
     toggleCompanion: toggleFriend,
     buyRocket,
+    tricks,
     earn,
     feed,
     feedHandful,
     throwBall,
+    blowBubbles,
+    soap,
     smokeBar: () => {
       const now = Date.now()
       return {
@@ -1080,6 +1216,7 @@ async function start(): Promise<void> {
     ate,
     treatDropped,
     duckSleeping,
+    sniffed,
     duck,
     panel,
     pill,
@@ -1119,9 +1256,13 @@ async function start(): Promise<void> {
   logInfo('Started')
   // A little after start (not in the middle of the welcome): the one-time update question.
   setTimeout(askAutoCheck, ASK_UPDATES_DELAY_MS)
+  setTimeout(tryBloom, BLOOM_START_DELAY_MS)
   // Dev only: open the talk box at start, for probes (the tray can't be clicked from a script).
   if (!app.isPackaged && process.env.BUDDY_OPEN_TALK === '1')
     setTimeout(() => talk.open(duck.window.getBounds(), settings.names.duck), 3000)
+  // Dev only: soap bubbles every few seconds (`BUDDY_BUBBLES`), skipped while the duck is busy.
+  const bubblesEvery = bubblesEveryMsFromEnv()
+  if (bubblesEvery) setInterval(() => void blowBubbles(), bubblesEvery)
   app.on('second-instance', () => panel.open())
   app.on('before-quit', () => {
     clearInterval(fullscreenTimer)
@@ -1130,8 +1271,10 @@ async function start(): Promise<void> {
     talk.close()
     for (const friend of friends) friend.setEnabled(false)
     ball.takeAway()
+    soap.stop()
     weather.stop()
     progression.stop()
+    tricks.stop()
     friendsNet.stop()
     visitor.close()
   })

@@ -1,0 +1,22 @@
+# A plastic bubble wand, its stick held in the duck's beak and the ring up in front of its head
+# (WAND_SPOT in src/core/anim/spots.ts). Drawn for a duck facing right; lit from the top-left,
+# a glint of soap film in the ring. The open end at the bottom goes into the beak.
+name: bubble-wand
+size: 7x10
+palette:
+  K #2a1f2d
+  M #e8559a
+  N #a8326b
+  F #bdf0ff
+
+@frame bubble-wand
+..KKK..
+.KMMMK.
+KMF..NK
+KM...NK
+KN...NK
+.KNNNK.
+..KMK..
+..KMK..
+..KNK..
+..KNK..

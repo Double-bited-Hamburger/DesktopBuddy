@@ -1,3 +1,4 @@
+import { TRICK_MS } from '../anim/tricks'
 import { floorAt } from '../floor'
 import type { FloorBounds } from '../stage'
 import { STAGE_SIZE } from '../stage'
@@ -9,7 +10,8 @@ import type { Rect, Rng } from '../types'
  * choices and timings; the shell moves the window. During a focus session, a break, the talk box
  * or a fullscreen app it just naps, so it never gets in the way. It also grabs a piece of a
  * tossed handful (fetch, eat), and when your duck naps it often walks over and naps next to it
- * (snuggle, nap) until your duck wakes up.
+ * (snuggle, nap) until your duck wakes up. When your duck does its parade trick, the minis that
+ * are out fall in behind it in a line (parade) until the march is over.
  */
 export const FRIEND_STATES = [
   'idle',
@@ -22,6 +24,7 @@ export const FRIEND_STATES = [
   'eat',
   'snuggle',
   'nap',
+  'parade',
 ] as const
 export type FriendState = (typeof FRIEND_STATES)[number]
 
@@ -43,6 +46,8 @@ const DURATIONS: Readonly<Record<FriendState, readonly [number, number]>> = {
   snuggle: [20_000, 20_000],
   /** At most this long; it gets up as soon as your duck does. */
   nap: [120_000, 120_000],
+  /** As long as your duck's parade trick. */
+  parade: [TRICK_MS.parade, TRICK_MS.parade],
 }
 
 /** Multiples of the walking speed. */
@@ -57,6 +62,8 @@ export const FRIEND_SPEED: Readonly<Record<FriendState, number>> = {
   eat: 0,
   snuggle: 1.5,
   nap: 0,
+  /** At most this fast while catching up with its place in the line; then it keeps step. */
+  parade: 4,
 }
 
 /** What it may pick when idle, and how likely. Mostly resting: every window move costs CPU. */
@@ -123,6 +130,31 @@ export function miniLane(
 export function glide(from: number, to: number, max: number): number {
   const gap = to - from
   return Math.abs(gap) <= max ? to : from + Math.sign(gap) * max
+}
+
+/** In a parade, how much further back than its slot the first mini walks (logical px). */
+const PARADE_TAIL = 8
+
+/**
+ * Where the `nth` mini (from 0) marches in your duck's parade: its middle, screen px, `nth + 1`
+ * mini widths behind your duck's middle (plus a little, so the first one clears its tail).
+ */
+export function paradeSpot(duckMiddle: number, facing: 1 | -1, nth: number, scale: number): number {
+  return duckMiddle - facing * ((nth + 1) * MINI_STAGE + PARADE_TAIL) * scale
+}
+
+/**
+ * One parade step for a mini whose window is at `x`, going for window x `target`, at most
+ * `max` px: it runs to its place facing where it goes, then keeps step facing the duck's way.
+ */
+export function paradeStep(
+  x: number,
+  target: number,
+  max: number,
+  facing: 1 | -1,
+): { x: number; direction: 1 | -1 } {
+  const far = Math.abs(target - x) > max
+  return { x: glide(x, target, max), direction: far ? towards(x, target) : facing }
 }
 
 /** How often it goes over to nap next to a sleeping duck (otherwise it does its own thing). */

@@ -1,3 +1,4 @@
+import { trickOf } from '../../core/behavior/machine'
 import { alphaAt } from '../../core/sprite/compositor'
 import { dropTreat, pause, schedule, wake } from './loop'
 import type { DuckPage } from './page'
@@ -57,6 +58,7 @@ export function handleInput(page: DuckPage): void {
       dropTreat(page, performance.now()) // grabbed mid-treat: what is left falls from its beak
       machine.enter('idle')
     }
+    if (trickOf(machine.state)) machine.enter('idle') // picked up mid-trick: the show is over
     pressedAt = { x: e.screenX, y: e.screenY }
     page.walkingAs = 0 // main stops the walk on drag start; tick restarts it after the drop
     page.movedSince = performance.now()

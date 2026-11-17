@@ -4,7 +4,8 @@ import type { CatalogItem } from '../src/core/catalog/catalog'
 import { parseCatalog } from '../src/core/catalog/catalog'
 import type { Layer } from '../src/core/sprite/compositor'
 import { composeLayers, mirrorX } from '../src/core/sprite/compositor'
-import { dressDuck } from '../src/core/sprite/outfit'
+import type { AccessoryFrames } from '../src/core/sprite/outfit'
+import { dressDuck, pickAccessoryFrames } from '../src/core/sprite/outfit'
 import { parsePxl, pxlToSprite } from '../src/core/sprite/pxl'
 import { buildRecolorMapping, recolorFrame } from '../src/core/sprite/recolor'
 import type { Frame, RgbaImage } from '../src/core/sprite/types'
@@ -211,9 +212,10 @@ async function main(): Promise<void> {
     const base = frameOf(duck, 'idle')
     return skin.palette ? recolorFrame(base, buildRecolorMapping(duck.palette, skin.palette)) : base
   }
-  const accessory = async (item: CatalogItem) => {
+  // The main frame plus its `<name>-back` frame (a cape's drape), as the game picks them.
+  const accessory = async (item: CatalogItem): Promise<AccessoryFrames> => {
     const sprite = await load(item.sprite)
-    return sprite.frames[0] ?? frameOf(sprite, item.id)
+    return pickAccessoryFrames(sprite.frames) ?? { frame: frameOf(sprite, item.id) }
   }
   const cells: Frame[][] = []
   cells.push(groups.skins.map((skin) => asFrame(dressDuck(skinBody(skin), []))))
@@ -227,7 +229,7 @@ async function main(): Promise<void> {
     for (const [i, item] of items.entries()) {
       const skin = wearers[(i + shift) % wearers.length]
       if (!skin) throw new Error('no skins in the catalog')
-      row.push(asFrame(dressDuck(skinBody(skin), [{ frame: await accessory(item), slot }])))
+      row.push(asFrame(dressDuck(skinBody(skin), [{ ...(await accessory(item)), slot }])))
     }
     return row
   }

@@ -45,7 +45,7 @@ throw it, dress it up. Free and open source, with no paywalls.
 | let out **mini friends** (up to 2)     | tiny ducks that walk (or fly, the ghost) beside yours | playing pays up to **×1.9** |
 | finish **quests** (3 a day + 4 a week) | —                                          | **+30…350** |
 | grow your **bond** (Journey)           | levels, 30+ achievements, album sets, a stamp card, eggs that hatch into minis | rewards, tricks, exclusive items |
-| open **gifts** in the Store            | new skins, hats, glasses, neckwear (odds shown, pity) | spend 150 / 500 / 1500 |
+| open **gifts** in the Store            | new skins, hats, glasses, neckwear (odds shown, pity) | spend 140 / 460 / 1400 |
 | open the **Bag** (right-click)         | wears what you've found, live              |          — |
 | run a **focus session** (15/25/50 min, or Pomodoro with breaks) | keeps time while you work, naps on your breaks | **+3/min** |
 | type a **city** (Settings, optional)   | Home shows a 7-day forecast; the duck tells you when rain is coming | — |
@@ -53,7 +53,7 @@ throw it, dress it up. Free and open source, with no paywalls.
 
 <div align="center">
 <img src="docs/media/wardrobe.svg" alt="Every duck skin, hat, pair of glasses and mini friend in the game" width="720">
-<br><sub>29 skins · 23 hats · 7 glasses · 4 neckwear · 8 mini friends, all original pixel art, all earnable in play</sub>
+<br><sub>49 skins · 26 hats · 8 glasses · 7 neckwear · 8 mini friends, all original pixel art, all earnable in play</sub>
 </div>
 
 Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets you nowhere:

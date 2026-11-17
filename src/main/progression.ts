@@ -178,6 +178,11 @@ export class ProgressionService {
     }
   }
 
+  /** Exclusive items and tricks claimed so far (`trick:<id>` for a trick). */
+  get unlocks(): readonly string[] {
+    return this.state.unlocks
+  }
+
   /** Claims one reward if it is due (validates the IPC payload). */
   claim(kind: unknown, id?: unknown): ClaimResult {
     if (!REWARD_KINDS.some((k) => k === kind)) return { ok: false, reason: 'unknown' }

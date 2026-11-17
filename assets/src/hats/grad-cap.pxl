@@ -1,0 +1,24 @@
+# A graduation cap: a flat square board seen side-on, a snug skullcap, a gold tassel hanging
+# off the back corner.
+name: grad-cap
+size: 19x10
+anchor: head 9 7
+palette:
+  K #2a1f2d
+  L #5a6090
+  M #3a3f66
+  c #2e3252
+  Y #f2c230
+  y #b8861a
+
+@frame grad-cap
+........KKK........
+.....KKKYYYKKK.....
+..KKKLLYLLLLLLKKK..
+KKYYYLLLLLLLLLLLLKK
+KYKKMMMMMMMMMMKKK..
+KYK.KKMMMMMMMKK....
+KYK...KccccccK.....
+KYyK..KccccccK.....
+KyyK...KKKKKK......
+.KK................

@@ -1,10 +1,18 @@
 import { useEffect, useState } from 'preact/hooks'
+import type { TrickId } from '../../core/anim/tricks'
+import { TRICK_IDS } from '../../core/anim/tricks'
 import type { AchievementStat } from '../../core/economy/achievements'
 import { QUEST_EVENTS } from '../../core/economy/quests'
 import type { Reward } from '../../core/economy/rewards'
 import { isTrick } from '../../core/economy/rewards'
 import type { Translator } from '../../core/i18n/i18n'
-import type { ClaimResult, HatchResult, ProgressionView, RewardKind } from '../../shared/ipc'
+import type {
+  ClaimResult,
+  HatchResult,
+  ProgressionView,
+  RewardKind,
+  TrickResult,
+} from '../../shared/ipc'
 import { SpriteIcon } from './widgets'
 
 /** A 12×12 Journey icon (level, trophy, stamp, egg, album), drawn 2×. */
@@ -53,6 +61,17 @@ function paidText(t: Translator, result: ClaimResult | HatchResult): string {
   return t('journey.got', { what: parts.join(' · ') })
 }
 
+/** Where a trick is learned: "Level 5", an achievement's or an album set's name ('' if nowhere). */
+function trickSource(t: Translator, view: ProgressionView, id: TrickId): string {
+  const unlock = `trick:${id}`
+  const level = view.levels.find((l) => l.reward.unlock === unlock)
+  if (level) return t('journey.level', { n: level.level })
+  const achievement = view.achievements.find((a) => a.reward.unlock === unlock)
+  if (achievement) return t(`achievement.${achievement.id}`)
+  const set = view.sets.find((s) => s.reward.unlock === unlock)
+  return set ? t(`set.${set.id}`) : ''
+}
+
 function Bar({ value, max }: { value: number; max: number }) {
   return (
     <div class="bar" role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={value}>
@@ -69,6 +88,8 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
   const [view, setView] = useState<ProgressionView | undefined>()
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | undefined>()
+  /** How many minis are out (the parade needs one). */
+  const [minis, setMinis] = useState(0)
 
   useEffect(() => {
     window.buddy.panel.progression().then(
@@ -80,6 +101,13 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
     )
     return window.buddy.panel.onProgression(setView)
   }, [t])
+
+  useEffect(() => {
+    window.buddy.panel.companions().then(
+      (companions) => setMinis(companions.out.length),
+      (error) => console.error('Companions failed', error),
+    )
+  }, [])
 
   if (!view) return <section class="journey">{note && <p class="muted warn">{note}</p>}</section>
 
@@ -96,6 +124,22 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
   }
   const claim = (kind: RewardKind, id?: string | number) =>
     run(window.buddy.panel.claimReward(kind, id))
+  /** Asks the duck for a trick: the panel steps aside when it plays, else says why it can't. */
+  const doTrick = (id: TrickId) => {
+    setBusy(true)
+    setNote(undefined)
+    window.buddy.panel
+      .doTrick(id)
+      .then((result: TrickResult) => {
+        if (result !== 'ok')
+          setNote(t(result === 'locked' ? 'journey.trickLocked' : 'journey.trickBusy'))
+      })
+      .catch((error) => {
+        console.error('Trick failed', error)
+        setNote(t('panel.failed'))
+      })
+      .finally(() => setBusy(false))
+  }
 
   const n = (value: number) => value.toLocaleString(language)
   const { level } = view
@@ -108,7 +152,9 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
       Number(a.claimed) - Number(b.claimed) ||
       b.value / b.target - a.value / a.target,
   )
-  const tricks = view.unlocks.filter(isTrick)
+  const learned = new Set(view.unlocks.filter(isTrick).map((u) => u.slice('trick:'.length)))
+  const tricks = TRICK_IDS.filter((id) => learned.has(id))
+  const toLearn = TRICK_IDS.filter((id) => !learned.has(id))
 
   return (
     <section class="journey">
@@ -291,10 +337,37 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
         ))}
       </ul>
 
-      {tricks.length > 0 && (
+      <p class="muted note">{t('journey.flowers', { n: n(view.counters.flowers ?? 0) })}</p>
+
+      <h3 class="store-head">{t('journey.tricksHead')}</h3>
+      {tricks.length > 0 ? (
+        <div class="trick-row">
+          <span class="muted">{t('journey.tricks')}</span>
+          {tricks.map((id) => (
+            <button
+              key={id}
+              type="button"
+              class="chip"
+              disabled={busy || (id === 'parade' && minis === 0)}
+              onClick={() => doTrick(id)}
+            >
+              {t(`trick.${id}`)}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p class="muted note">{t('journey.noTricks')}</p>
+      )}
+      {learned.has('parade') && minis === 0 && <p class="muted note">{t('journey.paradeAlone')}</p>}
+      {toLearn.length > 0 && (
         <p class="muted note">
-          {t('journey.tricks')}{' '}
-          {tricks.map((trick) => t(`trick.${trick.slice('trick:'.length)}`)).join(' · ')}
+          {t('journey.toLearn')}{' '}
+          {toLearn
+            .map((id) => {
+              const from = trickSource(t, view, id)
+              return from ? `${t(`trick.${id}`)} (${from})` : t(`trick.${id}`)
+            })
+            .join(' · ')}
         </p>
       )}
     </section>

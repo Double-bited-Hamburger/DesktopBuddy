@@ -70,4 +70,11 @@ describe('isValidShape', () => {
   ])('refuses %s', (_label, rects) => {
     expect(isValidShape(rects, 120)).toBe(false)
   })
+
+  it('checks a window that is not square against its own width and height', () => {
+    expect(isValidShape([{ x: 0, y: 0, width: 192, height: 288 }], 192, 288)).toBe(true)
+    expect(isValidShape([{ x: 0, y: 200, width: 10, height: 10 }], 192, 288)).toBe(true)
+    expect(isValidShape([{ x: 0, y: 200, width: 10, height: 10 }], 192)).toBe(false)
+    expect(isValidShape([{ x: 190, y: 0, width: 10, height: 10 }], 192, 288)).toBe(false)
+  })
 })

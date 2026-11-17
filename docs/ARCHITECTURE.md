@@ -50,6 +50,19 @@ possible if the RAM budget cannot be met.
   off the ground, then eats (1.8 s) or smokes (6.3 s, puffs every 1.5 s), redrawing only when the
   snack, a puff or a pose changes → duck `ate` → main pays `play` once if the duck caught it. All
   these timers exist only while a snack is out.
+- **Soap bubbles (1.1.0):** tray / panel → main `SoapPlay.start` (main/soap-play.ts) asks the duck
+  page (`duck:blow`); a free duck enters `blow` (5 s, the wand drawn in its own window) and answers
+  `ok` with the way it faces. Main rolls a plan (≤ 12 bubbles, core/toys/bubbles.ts) and opens ONE
+  64×96-logical-px soap window (main/soap-window.ts, scaled like the duck, placed on the wand ring,
+  clamped to the work area). The page asks for the plan (`soap:plan`, which starts the session's
+  clock) and draws `bubblesAt` with one `setTimeout` at a time, at most 12 fps and only while
+  something changes (bubbles step at 10 fps; none while hidden or once all are gone). The window
+  is click-through (`setIgnoreMouseEvents(true, {forward: true})`) until the page's hit-test says
+  the cursor is over a bubble (`soap:hover`, only on a change); Linux shapes it to the bubbles
+  (`soap:shape`). A click pops locally and sends `soap:pop(index)`; main pays only for the live
+  session's page, a real bubble that is out now and not popped. Main closes the window when the
+  last bubble is gone (sooner once all are popped, 12 s at most) and on fullscreen, hide, a size
+  change or quit. Nothing exists between sessions.
 - **Points pill (optional):** a third renderer page in a 120×32 click-through window. It costs a
   renderer process (tens of MB) only while the setting is on; off by default, so the resting app
   is still one window. It has no timers and repaints only on `points` events.
@@ -383,6 +396,25 @@ Same method (built app, throwaway folder, two samples 10 s apart after 50 s):
   a follow-up (fewer redraws while walking) is noted in ROADMAP.
 - RAM 90 MB, well under 120 MB. Not measured: Friends on, minis out, a handful of bread.
 
+### Quick RAM check of a soap bubbles session (1.1.0, 2026-11-17, owner's PC in light use)
+
+Production build (`electron-vite preview`), throwaway data folder, `BUDDY_BUBBLES=12` (a session
+every 12 s), private working set of each process, sampled 2.5 s into a session:
+
+| | Processes | Soap renderer | Whole app |
+| --- | ---: | ---: | ---: |
+| between sessions (first ~10 s after start, not settled) | 4 | — | 98–108 MB |
+| session live (2 samples) | 5 | **23.9 / 26.8 MB** | 126–133 MB |
+| after the session | 4 | gone | 98–107 MB |
+
+- The soap window costs one renderer (~24–27 MB, a mini's is ~17 MB) for at most ~12 s, then
+  its process is gone. For that moment the app is over the 120 MB budget for the duck alone
+  (about 115 MB on the settled 90 MB baseline). Its bundle is small (4.5 kB plus the
+  shared sprite module every small page loads).
+- In dev mode (Vite, unbundled) the same renderer was ~59 MB: measure on the build.
+- CPU while a session runs: not measured (no perf run). Expected small: ≤ 12 redraws a second
+  of a 64×96 canvas for ≤ 12 s, and one `setIgnoreMouseEvents` per hover change.
+
 ## Decisions that differ from the original plan
 
 - **Baked sheets are RGBA PNG, not indexed PNG** — `pngjs` can't write palette PNGs. Sheets use the
@@ -414,3 +446,9 @@ debug port open.
 For anything that spends points or changes items, start the dev app with a throwaway data folder:
 `BUDDY_DATA_DIR=<some temp folder>` (unpackaged builds only) moves every save there, so probes
 never touch the real ledger, inventory or quests. Seed `<folder>/data/ledger.json` for points.
+
+Soap bubbles in a probe: `BUDDY_BUBBLES=15` (unpackaged builds only) starts a session every 15 s
+(skipped while the duck is busy); attach to the `/soap/` page and call `window.buddy.soap.plan()`
+for the bubbles and their timing, then click them with `Input.dispatchMouseEvent` (into the page:
+the real cursor never moves) or call `window.buddy.soap.pop(index)`. `__duck.blow()` on the duck
+page plays the blow alone (no window, nothing paid).

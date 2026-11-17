@@ -1,3 +1,4 @@
+import { PARADE_STEP_MS } from '../../core/anim/tricks'
 import type { FriendState } from '../../core/care/friend'
 import { MINI_STAGE } from '../../core/care/friend'
 import { findItemById } from '../../core/catalog/catalog'
@@ -89,6 +90,13 @@ const SEQUENCES: Readonly<Record<FriendState, readonly Step[]>> = {
   nap: [
     ['crouch', 400],
     ['sit', Number.POSITIVE_INFINITY],
+  ],
+  // In your duck's parade: marching in step with it (main moves the window).
+  parade: [
+    ['walk-1', PARADE_STEP_MS],
+    ['walk-2', PARADE_STEP_MS],
+    ['walk-3', PARADE_STEP_MS],
+    ['walk-4', PARADE_STEP_MS],
   ],
 }
 

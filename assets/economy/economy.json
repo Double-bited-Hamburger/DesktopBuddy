@@ -25,6 +25,16 @@
       "points": 3,
       "cooldownMs": 0,
       "dailyCap": 200
+    },
+    "flower": {
+      "points": 25,
+      "cooldownMs": 0,
+      "dailyCap": 25
+    },
+    "bubble": {
+      "points": 1,
+      "cooldownMs": 250,
+      "dailyCap": 40
     }
   },
   "throws": {
@@ -54,7 +64,7 @@
   "boxes": [
     {
       "id": "paper",
-      "price": 150,
+      "price": 140,
       "odds": {
         "common": 75,
         "uncommon": 22,
@@ -68,7 +78,7 @@
     },
     {
       "id": "ribbon",
-      "price": 500,
+      "price": 460,
       "odds": {
         "uncommon": 60,
         "rare": 30,
@@ -83,7 +93,7 @@
     },
     {
       "id": "royal",
-      "price": 1500,
+      "price": 1400,
       "odds": {
         "rare": 50,
         "epic": 35,
@@ -123,14 +133,59 @@
   },
   "seasonal": [
     {
+      "id": "new-year",
+      "item": "new-year",
+      "month": 1
+    },
+    {
+      "id": "carnival",
+      "item": "carnival",
+      "month": 2
+    },
+    {
+      "id": "clover",
+      "item": "clover",
+      "month": 3
+    },
+    {
       "id": "sakura",
       "item": "sakura",
       "month": 4
     },
     {
+      "id": "daisy",
+      "item": "daisy",
+      "month": 5
+    },
+    {
+      "id": "seaside",
+      "item": "seaside",
+      "month": 6
+    },
+    {
+      "id": "watermelon",
+      "item": "watermelon",
+      "month": 7
+    },
+    {
+      "id": "firefly",
+      "item": "firefly",
+      "month": 8
+    },
+    {
+      "id": "pencil",
+      "item": "pencil",
+      "month": 9
+    },
+    {
       "id": "pumpkin",
       "item": "pumpkin",
       "month": 10
+    },
+    {
+      "id": "autumn-leaf",
+      "item": "autumn-leaf",
+      "month": 11
     },
     {
       "id": "christmas",
@@ -140,10 +195,10 @@
   ],
   "duplicateRefund": 0.3,
   "prices": {
-    "common": 130,
-    "uncommon": 300,
-    "rare": 1300,
-    "epic": 2600,
+    "common": 120,
+    "uncommon": 280,
+    "rare": 1200,
+    "epic": 2400,
     "legendary": 3600,
     "exotic": 6000
   },
@@ -322,6 +377,21 @@
         "event": "ball",
         "target": 1,
         "reward": 40
+      },
+      {
+        "id": "trick-3",
+        "period": "daily",
+        "event": "trick",
+        "target": 3,
+        "reward": 40,
+        "requires": "tricks"
+      },
+      {
+        "id": "bubble-20",
+        "period": "daily",
+        "event": "bubble",
+        "target": 20,
+        "reward": 50
       },
       {
         "id": "pet-60",
@@ -964,6 +1034,14 @@
         "reward": {
           "box": "star"
         }
+      },
+      {
+        "id": "green-thumb",
+        "stat": "flowers",
+        "target": 10,
+        "reward": {
+          "box": "ribbon"
+        }
       }
     ]
   },
@@ -994,6 +1072,27 @@
       "items": ["crown", "golden", "viking-helmet", "wizard-hat"],
       "reward": {
         "box": "royal"
+      }
+    },
+    {
+      "id": "code",
+      "items": [
+        "coffee-stain",
+        "light-mode",
+        "bug-red",
+        "dark-mode",
+        "retro-amber",
+        "merge-conflict"
+      ],
+      "reward": {
+        "box": "royal"
+      }
+    },
+    {
+      "id": "bakery",
+      "items": ["toast", "lemon", "matcha", "cherry", "muffin"],
+      "reward": {
+        "box": "ribbon"
       }
     },
     {
@@ -1045,5 +1144,9 @@
   },
   "earlyBird": {
     "unlock": "early-bird"
+  },
+  "garden": {
+    "leaveChance": 0.3,
+    "growHours": 6
   }
 }

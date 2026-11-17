@@ -292,6 +292,11 @@ export class DuckWindow {
     return this.floor
   }
 
+  /** The way it last walked (or is walking): the minis line up behind it in a parade. */
+  get facing(): 1 | -1 {
+    return this.walkDirection
+  }
+
   /** Middle of the duck, screen x (to pick the nearest snack). */
   get middleX(): number {
     return duckCenterX(this.x, this.scale)

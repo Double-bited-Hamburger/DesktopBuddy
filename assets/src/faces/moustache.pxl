@@ -1,0 +1,17 @@
+# A handlebar moustache under the beak (the upper beak plays the nose): a bar along the mouth
+# line, both ends twirled up. Anchor: the eye; the moustache starts one pixel right of it and
+# hangs from the eye's bottom row down past the jaw.
+name: moustache
+size: 13x5
+anchor: face 0 0
+palette:
+  K #2a1f2d
+  M #5a3620
+  L #8c5a34
+
+@frame moustache
+..K.......K..
+.KMK.....KMK.
+.KMMKKKKKKMMK
+..KMMLMMLMMK.
+...KKKKKKKK..

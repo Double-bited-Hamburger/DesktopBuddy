@@ -47,7 +47,10 @@ function useTheme(theme: Theme): boolean {
 function FeedMenu({ t, dark }: { t: Translator; dark: boolean }) {
   const [open, setOpen] = useState(false)
   const [noCigar, setNoCigar] = useState(false)
+  /** The duck couldn't blow bubbles just now: said in the menu, which stays open. */
+  const [busyNote, setBusyNote] = useState(false)
   const toggle = () => {
+    setBusyNote(false)
     if (!open)
       window.buddy.panel.smokeBar().then(
         (bar) => setNoCigar(bar.refuses),
@@ -66,6 +69,13 @@ function FeedMenu({ t, dark }: { t: Translator; dark: boolean }) {
   const ball = () => {
     setOpen(false)
     window.buddy.panel.throwBall()
+  }
+  const bubbles = () => {
+    setBusyNote(false)
+    window.buddy.panel.blowBubbles().then(
+      (result) => (result === 'ok' ? setOpen(false) : setBusyNote(true)),
+      () => setBusyNote(true),
+    )
   }
   return (
     <div class="feed">
@@ -92,6 +102,14 @@ function FeedMenu({ t, dark }: { t: Translator; dark: boolean }) {
           <button type="button" role="menuitem" onClick={ball}>
             {t('snack.ball')}
           </button>
+          <button type="button" role="menuitem" onClick={bubbles}>
+            {t('snack.bubbles')}
+          </button>
+          {busyNote && (
+            <p class="muted feed-note" role="status">
+              {t('soap.busy')}
+            </p>
+          )}
         </div>
       )}
     </div>

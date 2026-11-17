@@ -19,8 +19,10 @@ import {
   SWIRL_STEP_MS,
   ZZZ_STEP_MS,
 } from '../../core/anim/spots'
+import { msUntilTrickChange } from '../../core/anim/tricks'
 import { msUntilDreamChange, planDream } from '../../core/behavior/dream'
 import type { BehaviorState } from '../../core/behavior/machine'
+import { trickOf } from '../../core/behavior/machine'
 import { msUntilListenChange } from '../../core/care/listen'
 import { HANDFUL_PIECES, isHandful, msUntilBreadChange } from '../../core/toys/bread'
 import { msUntilSmokeChange } from '../../core/toys/cigar'
@@ -30,9 +32,11 @@ import { msUntilQuackChange, TURBO_SPEED, WOBBLE_MS } from '../../core/toys/quac
 import { msUntilSeedsChange } from '../../core/toys/seeds'
 import type { Snack } from '../../core/toys/snacks'
 import type { WalkDirection } from '../../shared/ipc'
+import { msUntilFlower, tendFlower } from './flower'
 import type { DuckPage } from './page'
-import { busy, treatAt } from './page'
+import { busy, treatAt, trickPose } from './page'
 import { fillMotion, render } from './render'
+import { maybeTrickAfterHappy } from './tricks'
 
 // The loop is event-driven: it wakes only when the drawn frame changes or the machine makes its
 // next decision, never on a fixed beat. Main owns the walk steps and falls (see `syncWalk`), so
@@ -145,6 +149,9 @@ export function schedule(page: DuckPage): void {
     wait = Math.min(wait, SPARKLE_STEP_MS - (sinceState % SPARKLE_STEP_MS))
   if (machine.state === 'song') wait = Math.min(wait, NOTE_STEP_MS - (sinceState % NOTE_STEP_MS))
   if (machine.state === 'twirl') wait = Math.min(wait, TWIRL_STEP_MS - (sinceState % TWIRL_STEP_MS))
+  // A trick wakes on its own beat: the next pose on its timeline (core/anim/tricks.ts).
+  const trick = trickOf(machine.state)
+  if (trick) wait = Math.min(wait, msUntilTrickChange(trick, machine.stateMs + now - page.lastTick))
   if (machine.state === 'sleep') {
     const asleep = sinceState - SIT_DOWN_MS
     wait = Math.min(wait, asleep < 0 ? -asleep : ZZZ_STEP_MS - (asleep % ZZZ_STEP_MS))
@@ -160,6 +167,7 @@ export function schedule(page: DuckPage): void {
   if (page.listening && machine.state === 'listen')
     wait = Math.min(wait, msUntilListenChange(now, page.listening))
   if (page.december) wait = Math.min(wait, SNOW_STEP_MS - (now % SNOW_STEP_MS))
+  if (page.flower) wait = Math.min(wait, msUntilFlower(page, now)) // it blinks out, then goes
   if (machine.state === 'cough') wait = Math.min(wait, DIZZY_STEP_MS - (sinceState % DIZZY_STEP_MS))
   // The new moving bits: motion (core/anim/motion.ts), the crash's stars, turbo's speed lines and
   // the dust puff after an edge bounce. Each one only while it is on.
@@ -179,9 +187,19 @@ export function schedule(page: DuckPage): void {
 export function syncWalk(page: DuckPage): void {
   const { machine } = page
   const racing = machine.state === 'zoom' || machine.state === 'turbo'
-  const moving = !busy(page) && (machine.state === 'walk' || racing)
-  const wanted: WalkDirection = moving ? machine.direction : 0
-  const stride = machine.state === 'turbo' ? TURBO_SPEED : machine.state === 'zoom' ? ZOOM_SPEED : 1
+  // A travelling trick says which way and how fast: a moonwalk goes backwards (facing ahead),
+  // a victory lap at zoom stride, a parade at a walk.
+  const move = trickPose(page, performance.now())
+  const travel = move ? move.travel : machine.state === 'walk' || racing ? 1 : 0
+  const moving = !busy(page) && travel !== 0
+  const wanted: WalkDirection = moving ? ((machine.direction * travel) as WalkDirection) : 0
+  const stride = move
+    ? move.stride
+    : machine.state === 'turbo'
+      ? TURBO_SPEED
+      : machine.state === 'zoom'
+        ? ZOOM_SPEED
+        : 1
   if (wanted === page.walkingAs && (wanted === 0 || stride === page.walkingStride)) return
   page.walkingAs = wanted
   page.walkingStride = stride
@@ -221,8 +239,11 @@ export function tick(page: DuckPage): void {
   page.lastTick = now
 
   if (!busy(page)) {
-    // A quack the duck chose by itself (clicks play theirs in input.ts).
-    if (machine.update(dt)) {
+    // A quack the duck chose by itself (clicks play theirs in input.ts), or, after being happy,
+    // now and then a trick it has learned (renderer/duck/tricks.ts).
+    const before = machine.state
+    // (A trick plays its own sounds as its poses come up.)
+    if (machine.update(dt) && !maybeTrickAfterHappy(page, before)) {
       if (machine.state === 'quack') sound.play('quack')
       else if (machine.state === 'song' && page.prefs.chatter) sound.play('chirp') // la-la
     }
@@ -231,6 +252,7 @@ export function tick(page: DuckPage): void {
       machine.listen()
     else if (page.focusing && BACK_TO_STARE.has(machine.state) && machine.state !== 'focus')
       machine.focus()
+    if (page.flower) tendFlower(page, now) // a flower grew: sniff it once free
     clock.play(machine.state) // a no-op unless the state changed (by time or by a click)
     clock.advance(dt)
   }

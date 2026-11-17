@@ -1,0 +1,22 @@
+# A blue necktie with gold stripes, knotted at the throat, hanging down the chest.
+name: necktie
+size: 5x10
+anchor: neck 2 1
+palette:
+  K #2a1f2d
+  L #6f9bea
+  B #3b6fd1
+  b #284c94
+  Y #f2c230
+
+@frame necktie
+.KKK.
+KLBbK
+.KBK.
+.KLBK
+KLBbK
+KYBbK
+KLYbK
+KLBYK
+.KBK.
+..K..

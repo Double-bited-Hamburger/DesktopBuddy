@@ -93,7 +93,7 @@ const state = await duck.evaluate(`(async () => {
 check('duck canvas has drawn pixels', state.opaque > 0, `${state.opaque} opaque px`)
 check(
   'window.buddy exposes exactly the known surfaces',
-  state.api.join() === 'bubble,duck,friend,getConfig,onPoints,panel,sign,snack,talk',
+  state.api.join() === 'bubble,duck,friend,getConfig,onPoints,panel,sign,snack,soap,talk,visitor',
   state.api.join(),
 )
 check(

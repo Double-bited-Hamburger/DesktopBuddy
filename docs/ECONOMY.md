@@ -63,6 +63,9 @@ nothing expires, no streak that can be lost.
 | Long-term goals | none | **bond level 1–30, 38 achievements, 5 album sets, stamp card, eggs, early bird** |
 | Rocket Boost | 200, 3 per hit, ≤ 60 hits | same |
 
+Box and shelf prices have been trimmed three times since (1.0.0 twice, 1.1.0 once) as items were
+added; the prices in force are in "Sinks" below, the history under "Simulation".
+
 ## Sources (earning)
 
 | Source | Points | Cooldown | Daily cap | Notes |
@@ -78,6 +81,8 @@ nothing expires, no streak that can be lost.
 | `refund` | 30% of a bought box | — | — | A duplicate; the free gift's duplicate pays 20 |
 | `level`, `achievement`, `set`, `stamp`, `early-bird`, `egg` | see below | — | — | Claimed rewards |
 | `rocket`, `rocket-refund` | 3 per hit / what wasn't paid | — | — | Pays part of the 200 back, never more |
+| `flower` | 25 | — | 25 | A flower grown from a seed left behind (1.1.0, see Garden below). Paid by main once per planted seed, when the duck page says it sniffed it and the seed was really due. |
+| `bubble` | 1 | 0.25 s | 40 | A soap bubble popped with a click (1.1.0, see Soap bubbles below). Main pays only a real bubble of the live session that is out and not popped yet. |
 
 **Mini friends** multiply what play pays (`companions.boosted`: click, pet, snack, ball, bounce)
 by 1 + the bonuses of the minis out (two at most): **×1.1 … ×1.9**. Since 2.0 the daily caps do
@@ -107,11 +112,13 @@ Gift boxes roll a rarity by the weights below, then an item of that rarity. Rari
 in the catalog are left out and the rest scaled to 100%; the Store shows exactly those numbers
 (core `boxOdds`, the same function the roll uses).
 
+Prices as shipped in 1.1.0 (the history is under "Simulation"):
+
 | Box | Price | Odds (weights) | Pity | Extras |
 | --- | ---: | --- | --- | --- |
-| Paper | 180 | common 75 · uncommon 22 · rare 3 | rare+ on the 10th open | new items first |
-| Ribbon | 600 | uncommon 60 · rare 30 · epic 9 · legendary 1 | epic+ on the 8th | new items first |
-| Royal | 1,800 | rare 50 · epic 35 · legendary 13 · exotic 2 | legendary+ on the 6th | exotic on the 15th (jackpot) · 5% egg · new items first |
+| Paper | 140 | common 75 · uncommon 22 · rare 3 | rare+ on the 10th open | new items first |
+| Ribbon | 460 | uncommon 60 · rare 30 · epic 9 · legendary 1 | epic+ on the 8th | new items first |
+| Royal | 1,400 | rare 50 · epic 35 · legendary 13 · exotic 2 | legendary+ on the 6th | exotic on the 15th (jackpot) · 5% egg · new items first |
 | Star | not sold | legendary 75 · exotic 25 | exotic on the 3rd | new items first; only from rewards |
 
 - **Pity** counts opens of that box in a row below its pity rarity; the open after `after − 1`
@@ -121,8 +128,8 @@ in the catalog are left out and the rest scaled to 100%; the Store shows exactly
   change). When both are due, the jackpot wins. Shown in the Store (`BoxView.jackpot`).
 - **New items first** (`newFirst`, every box since the re-tune of 2026-11-12): after the rarity
   roll, items of that rarity you don't own come first; a duplicate only once you own all of them.
-  Rarity odds don't change. With 63 items to find, uniform picks made the last ones a long,
-  duplicate-heavy grind.
+  Rarity odds don't change. With 63 items to find (85 since 1.1.0), uniform picks made the last
+  ones a long, duplicate-heavy grind.
 - **Eggs** (`egg`, royal 5%): a separate roll after a bought open; shown on the box.
 - **Duplicates** refund 30% of a bought box's price (and of a reward box's nominal price; the
   star box counts as 6,000); the free gift's duplicate pays 20.
@@ -130,16 +137,27 @@ in the catalog are left out and the rest scaled to 100%; the Store shows exactly
   no pity counter and **no longer counts for the "open gifts" quests** (it counts for its own
   `free-gift` achievement).
 - **The shelf** (`shelf.tiers`): every local day one common-or-uncommon, one rare and one epic
-  item, drawn by a generator seeded with the day (the same for everyone, all day), at the fixed
-  prices above. Starter items and seasonal gifts are never on it. Legendary and exotic items are
+  item, drawn by a generator seeded with the day (the same for everyone, all day), at fixed
+  prices (`prices`, 1.1.0: common 120 · uncommon 280 · rare 1,200 · epic 2,400). Starter items and seasonal gifts are never on it. Legendary and exotic items are
   never sold: they come from royal and star boxes, eggs, levels and achievements. The old
   `featured` field in `StoreView` is the shelf's first item; `buyFeatured(id?)` buys any of the
   three.
 - **Exclusive items** (every `unlock` that isn't a trick, e.g. `early-bird`) are never in boxes,
   on the shelf or in eggs (`exclusiveIds`, `shopCatalog`).
-- **Seasonal gifts** (`seasonal`): free in their month to anyone who doesn't own them: the sakura
-  skin in April, the pumpkin skin in October, the Christmas skin in December. They are in the
-  boxes all year too, as is the Christmas hat (rare).
+- **Seasonal gifts** (`seasonal`): one skin for every month (since 1.1.0; before, only April,
+  October and December), free in its month to anyone who doesn't own it yet, claimed in the
+  Store. Nothing is lost to the calendar: every seasonal skin is in the boxes all year (not on
+  the shelf), as is the Santa hat. `tests/core/seasonal.test.ts` checks exactly one gift per
+  month.
+
+  | Month | Skin | Rarity | Month | Skin | Rarity |
+  | --- | --- | --- | --- | --- | --- |
+  | Jan | new-year | rare | Jul | watermelon | rare |
+  | Feb | carnival | rare | Aug | firefly | epic |
+  | Mar | clover | uncommon | Sep | pencil | uncommon |
+  | Apr | sakura | rare | Oct | pumpkin | epic |
+  | May | daisy | uncommon | Nov | autumn-leaf | rare |
+  | Jun | seaside | rare | Dec | christmas | epic |
 - **Rocket Boost (200)**: unchanged; charged only when the duck can launch.
 - **Opening a box** rolls the prize first; the reel is only a show drawn with the same odds.
 
@@ -150,13 +168,18 @@ by a generator seeded with the day / week key, so they are the same all day / al
 counts actions, not points, so a capped source still moves its quest. Rewards are paid on Claim.
 A quest with `requires` is never drawn until the app has that feature: `seeds-3` and `seeds-20`
 wait for the seeds snack (`requires: "seeds"` is satisfied as soon as `SNACKS` includes `seeds`).
+`trick-3` (1.1.0) waits for `requires: "tricks"`: the bond level had reached the first level that
+teaches a trick (5, Spin) **before** the day began, judged from the ledger (`questFeatures`), so
+a draw never changes halfway through its day; a player who reached it today gets it from tomorrow.
 
-**Daily (24):** pet ×8 → 60 · pet ×25 → 80 · click ×15 → 40 · click ×40 → 60 · throw ×2 → 50 ·
+**Daily (26):** pet ×8 → 60 · pet ×25 → 80 · click ×15 → 40 · click ×40 → 60 · throw ×2 → 50 ·
 throw ×5 → 70 · bread ×2 → 50 · cigar ×1 → 50 · coffee ×1 → 50 · QUACK ×1 → 50 · seeds ×3 → 60
 (needs seeds) · handful ×1 → 50 · outfit change ×1 → 30 · focus ×1 → 80 · kick ×10 → 60 · kick
 ×25 → 80 · wall hits ×20 → 60 · let a mini out ×1 → 30 · umbrella float ×1 → 45 · nap ×1 → 40 ·
 pet with a mini out ×10 → 70 · talk (rubber-duck mode) ×1 → 40 · open a bought box ×1 → 60 ·
-throw the ball ×1 → 40. Average ≈ 54, so ≈ 160 a day.
+throw the ball ×1 → 40 · a trick ×3 → 40 (1.1.0, needs tricks; tricks are free and quick, so it
+pays like the other one-tap quests) · pop soap bubbles ×20 → 50 (1.1.0: two sessions, half the
+bubble cap; like wall hits ×20). Average ≈ 54, so ≈ 160 a day.
 
 **Weekly (16):** pet ×60 → 300 · bread ×10 → 250 · bought boxes ×3 → 300 · focus ×5 → 350 ·
 rocket ×1 → 150 · kick ×60 → 300 · wall hits ×100 → 300 · throws ×25 → 300 · coffee ×5 → 250 ·
@@ -167,7 +190,10 @@ Events (`QUEST_EVENTS`), recorded in main: `click`, `pet`, `pet-mini` (a pet whi
 out), `throw`, `bounce` (a paid edge hit), `kick`, `bread`/`cigar`/`coffee`/`quack`/`seeds` (a
 snack finished), `handful` (Feed → handful), `ball` (the ball put out), `gift` (a **bought** box),
 `equip`, `focus` (a round at least half present), `friend` (a mini let out), `float`, `rocket`,
-`nap` (the duck page says it fell asleep), `talk` (the talk box opened from the tray).
+`nap` (the duck page says it fell asleep), `talk` (the talk box opened from the tray), `trick`
+(1.1.0: a learned trick started, asked for from the Journey or the tray or done by the duck itself
+after being happy; main checks it is learned and counts reports at most once a second), `bubble`
+(1.1.0: a real soap bubble popped, counted whether or not its points were capped).
 
 Changing the pool resets nothing: `quests.json` keeps version 1 and its shape; progress for a
 quest id that is no longer drawn simply stops counting for that period.
@@ -195,7 +221,7 @@ Rewards: L2 140 · L3 paper box · L4 180 · **L5 ribbon box + `trick:spin`** ·
 into exclusive items (`unlock: "<item id>"`): an unlock claimed before its item exists is kept in
 `progression.unlocks` and handed over as soon as an update adds the item.
 
-### Achievements (38)
+### Achievements (39)
 
 | Id | Counts | Target | Reward |
 | --- | --- | ---: | --- |
@@ -214,12 +240,13 @@ into exclusive items (`unlock: "<item id>"`): an unlock claimed before its item 
 | level-10 / level-20 / level-30 | bond level | 10 / 20 / 30 | ribbon box / star box / `trick:bow` |
 | sets-1 / sets-5 | album sets complete | 1 / 5 | ribbon box / egg |
 | eggs-1 / eggs-5 | eggs hatched | 1 / 5 | 200 / star box |
+| green-thumb (1.1.0) | flowers grown | 10 | ribbon box |
 
-Lifetime counters (every quest event, plus `pet-night` and `free-gift`, and `eggs` hatched) live
-in `progression.json`. `days`, `owned`, `level` and `sets` are worked out when needed. The cigar
+Lifetime counters (every quest event, plus `pet-night` and `free-gift`, `eggs` hatched and
+`flowers` grown) live in `progression.json`. `days`, `owned`, `level` and `sets` are worked out when needed. The cigar
 has no achievement on purpose.
 
-### Album sets (5, existing items for now)
+### Album sets (7)
 
 | Set | Items | Reward |
 | --- | --- | --- |
@@ -227,7 +254,12 @@ has no achievement on purpose.
 | Arcade | neon, plumber-cap, cyber-visor, golden-cartridge | star box |
 | Winter | beanie, santa-hat, christmas, ghost | royal box |
 | Royal court | crown, golden, viking-helmet, wizard-hat | royal box |
+| **Code** (1.1.0) | coffee-stain, light-mode, bug-red, dark-mode, retro-amber, merge-conflict | royal box |
+| **Bakery** (1.1.0) | toast, lemon, matcha, cherry, muffin | ribbon box |
 | The flock | all 8 minis | `trick:parade` |
+
+The `sets-5` achievement still needs 5 complete sets (now any 5 of 7). Names: `set.<id>` in
+`en.json` and `it.json` ("Code" / "Codice", "Bakery" / "Panetteria").
 
 ### Stamp card
 
@@ -257,9 +289,14 @@ exclusive item Stage 6 draws; the claim is stored and the item handed over once 
 shipped `economy.json` and `catalog.json` with the real core functions (ledger caps and
 cooldowns, companion multiplier, quest draws, box odds with pity, jackpot and refunds, free gifts,
 the shelf, bond levels, achievements, sets, stamps, eggs), over 20 seeds. Only main's glue and the
-player's choices are written in the tool (`tools/lib/economy-sim.ts`). The target is every item
-except seasonal gifts and reward-only exclusives (63 after the 1.0.0 art; it was 33). The player buys today's shelf items
-it lacks (cheapest first), then whichever sold box finds the most new items per point.
+player's choices are written in the tool (`tools/lib/economy-sim.ts`). It reads `catalog.json`
+and `economy.json` when it runs, so new items count automatically. The target is every item
+except seasonal gifts and reward-only exclusives: 33 in 0.9, 63 after the 1.0.0 art, 67 with the
+neck slot, **85 in 1.1.0** (98 items − 12 seasonal − `early-bird`). Seasonal skins are not
+targets but are in the box pools (`shopCatalog`), so with "new items first" they still take some
+of the rolls; the simulation does not hand out the free monthly gift, so it errs slightly slow.
+The player buys today's shelf items it lacks (cheapest first), then whichever sold box finds the
+most new items per point.
 
 | Profile | Plays a day | Quests | Other |
 | --- | --- | --- | --- |
@@ -268,7 +305,10 @@ it lacks (cheapest first), then whichever sold box finds the most new items per 
 | grinder | 120 min (every cap) | all dailies and weeklies | 5 free gifts, focus to its cap, tracking on |
 
 Human pace per minute of each kind of play: 12 pets, 20 clicks, 2 throws × 3 hits, 8 kicks, 6
-snacks (split evenly). Results (2026-11-11, 20 seeds each):
+snacks (split evenly). Since 1.1.0 also: soap bubbles sessions a day (casual 1, normal 2,
+grinder 4), popping 9 of each session's 12 bubbles 0.4 s apart; and seed meals a day among the
+snacks (casual 0, normal 1, grinder 2), each rolling `garden.leaveChance` for a seed that blooms
+the next day (`flower`, 25). Results (2026-11-11, 20 seeds each):
 
 | Profile | Everything collected (median) | Range | First rare (median day) | XP a day | Owned day 7 / 14 / 30 (of 33) | Level on day 30 | Level 30 ≈ day |
 | --- | ---: | ---: | ---: | ---: | --- | ---: | ---: |
@@ -277,8 +317,8 @@ snacks (split evenly). Results (2026-11-11, 20 seeds each):
 | grinder | 25 | 20–30 | 1 | ~1,800 | 41.5 / 55 / 63 | 20 | ~56 |
 
 `tests/tools/economy-sim.test.ts` keeps it there: normal median (12 seeds) within 25–35 days, no
-grinder seed under 12 days. **Expected time to first rare:** ~2 days for a normal player, ~4 for
-a casual one, day 1 for a grinder.
+grinder seed under 12 days. **Expected time to first rare (1.1.0):** day 1 for a normal player
+(median), ~3 days for a casual one, day 1 for a grinder.
 
 **Second trim, 2026-11-12 (neck slot, 4 more items):** shelf 130 / 300 / 1,300 / 2,600 (legendary
 3,600, exotic 6,000), boxes 150 / 500 / 1,500. Normal player about 33 days, casual about 48,
@@ -289,11 +329,87 @@ grinder 19–30. The tables above show the first re-tune; these prices replace t
 day-one buy) and every box got "new items first". Earning was not changed. Re-run the simulation
 and re-tune whenever items are added.
 
+### Re-tune for 1.1.0 (2026-11-17: 27 new items, 12 seasonal gifts, 2 new albums)
+
+1.1.0 adds 20 skins (6 programmer, 9 seasonal, 5 food) and 7 accessories (moustache, cape,
+necktie, bandana, beret, hard hat, grad cap): 71 → 98 items, 67 → 85 targets. Only prices
+changed; earning, odds, pity and rewards did not.
+
+| What | 1.0.1 | 1.1.0 |
+| --- | --- | --- |
+| Paper / ribbon / royal box | 150 / 500 / 1,500 | **140 / 460 / 1,400** |
+| Shelf common / uncommon / rare / epic | 130 / 300 / 1,300 / 2,600 | **120 / 280 / 1,200 / 2,400** |
+| Seasonal gifts | 3 (Apr, Oct, Dec) | **12, one a month** |
+| Album sets | 5 | **7** (+ Code → royal box, + Bakery → ribbon box) |
+
+Median days to collect every target (20 seeds; the test's 12-seed median in brackets):
+
+| Step | Casual | Normal | Grinder (fastest seed) |
+| --- | ---: | ---: | ---: |
+| 1.0.1 as shipped (67 targets) | 48.5 | 33.5 (35) | 21.5 (19) |
+| 1.1.0 items, 1.0.1 economy (94 targets) | 60.5 | 35.5 | 27.5 (22) |
+| + 12 seasonal gifts and the 2 albums (85 targets) | 57 | 33.5 (33) | 25 (21) |
+| **+ the price trim (shipped)** | **53** | **31.5 (32)** | **24 (19)** |
+
+Price cuts move the normal player only a little: the last items are legendary and exotic ones
+from royal boxes, which pity and the jackpot pace more than price does. Cutting further (royal
+1,300, paper 130) did not beat 32 days over 40 seeds, so the trim stops here, near the middle
+of the 25–35 band.
+
+1.1.0 results (2026-11-17, 20 seeds each):
+
+| Profile | Everything collected (median) | Range | First rare (median day) | XP a day | Owned day 7 / 14 / 30 (of 85) | Level on day 30 | Level 30 ≈ day |
+| --- | ---: | ---: | ---: | ---: | --- | ---: | ---: |
+| casual | 53 | 43–65 | 3 | ~850 | 35 / 49 / 71.5 | 11 | ~118 |
+| normal | **31.5** | 28–39 | 1 | ~1,360 | 42.5 / 66 / 84 | 16 | ~74 |
+| grinder | 24 | 19–31 | 1 | ~1,790 | 55 / 75 / 85 | 20 | ~56 |
+
+**Bubbles and the flower (1.1.0, 2026-11-17).** With soap bubbles and the garden in the
+simulation (seed 1: bubbles ~9 / 18 / 36 a day and the flower ~0 / 6 / 11 a day for casual /
+normal / grinder), 20 seeds: casual **51** (46–57), normal **33** (28–39; the test's 12-seed
+median within 25–35), grinder **23** (18–29). Both stay inside the targets, so nothing in
+economy.json was re-tuned. The normal median moved from 31.5 to 33 mostly because the garden's
+rolls shift the random stream; the extra income is small next to ~1,400 XP a day.
+
+The rare shelf price (1,200) is now a little under a normal player's day of XP (~1,360), so a
+rare can be a day-one buy if the shelf has one the player likes; the first rare already came on
+day 1 or 2 from boxes, so this changes little.
+
 ## Items
 
-`{ id, slot, rarity, sprite, palette? }`, slots `skin | hat | face | friend` (a mini, with its
-points bonus); rarities common · uncommon · rare · epic · legendary · exotic. Everything in the
-catalog is obtainable in play. Item ids are never removed or renamed (saves refer to them).
+`{ id, slot, rarity, sprite, palette? }`, slots `skin | hat | face | neck | friend` (a mini,
+with its points bonus); rarities common · uncommon · rare · epic · legendary · exotic. Everything
+in the catalog is obtainable in play. Item ids are never removed or renamed (saves refer to them).
+
+1.1.0: **98 items**: 49 skins, 26 hats, 8 faces, 7 neck, 8 minis; by rarity common 21 · uncommon
+29 · rare 25 · epic 13 · legendary 7 · exotic 3. Every skin is a palette recolor of `ducks/duck`;
+`tests/core/catalog.test.ts` checks that no two skins declare the same palette (compared as
+declared, so skins that only change a few zones still differ).
+
+### Garden (1.1.0)
+
+When a seed meal ends there is a `garden.leaveChance` (0.3) that one seed stays planted. It is
+saved in `garden.json`, not shown, and nothing runs while it grows. One seed at a time: while one
+is in the ground, seed meals don't roll. On a **later local day** and at least `garden.growHours`
+(6) after planting, once someone is at the PC and the duck is free (the same moments the duck
+speaks by itself: start, the 15-minute check, coming back to the PC), main sends `bloom`. The duck
+sniffs the flower at its next calm moment (`sniff`, then a heart), says `sniffed`, and main pays
+`flower` (25, cap 25 a day) and counts `flowers` for **green-thumb** (10 flowers). A flower
+nobody saw stays due and comes back at the next check. At most one a day, so 10 flowers take at
+least 10 days of seed meals; with 0.3 per meal, about a month at one seed meal a day. In the
+simulation since 1.1.0 (seed meals a day per profile, see Simulation).
+
+### Soap bubbles (1.1.0)
+
+Free, like the ball: **Blow soap bubbles** in the tray or **🫧 Soap bubbles** in the panel's feed
+menu. Main asks the duck page; a duck that is free (the calm moments a flower can bloom into; a
+napping duck wakes up) takes out its wand and blows for 5 s (`blow`), otherwise it is busy and
+says so (in the speech bubble from the tray, under the menu in the panel). One session at a time:
+12 bubbles come out of the wand (`planBubbles`, core/toys/bubbles.ts) and float up for 3–6 s in a
+small window of their own, about 11 s at most. Each one popped with a click pays `bubble` (1
+point, 0.25 s cooldown, **40 a day**) and counts `bubble` for the quest. Main checks every pop
+against the session's own plan: the soap page of the live session only, a bubble that is out
+now and not popped yet. Up to 40 a day from about four sessions; minis don't multiply it.
 
 ## Saves and data safety
 
@@ -307,6 +423,7 @@ throws are granted by main when it sees them.
 | `quests` | 1 | `{ progress: { id: { period, count, claimed } } }` | no |
 | `focus-state` | — | the running focus run | two optional fields, `checked` and `present` |
 | **`progression`** | **1, new** | see below | new file |
+| `garden` (1.1.0) | 1 | `{ seed?: { plantedAt }, flowers }` | new file; missing (older versions) or invalid → an empty garden (an invalid file is copied aside first) |
 
 ```text
 progression.json
@@ -315,7 +432,7 @@ progression.json
   earlyBird: boolean,                      // the ledger had entries before createdAt
   claims: { levels: number[], achievements: string[], sets: string[],
             stampCards: number, earlyBird: boolean },
-  counters: { [event]: number },           // lifetime; quest events + pet-night, free-gift, eggs
+  counters: { [event]: number },           // lifetime; quest events + pet-night, free-gift, eggs, flowers
   stamps: { count: number, lastDay: yyyymmdd | 0 },
   eggs: [{ id, foundAt, minutes }],        // warming; hatched eggs leave the list
   nextEgg: number,
@@ -370,3 +487,5 @@ Names: `quest.<event>`, `stat.<stat>` (stats that aren't quest events), `achieve
 - The focus presence check and the egg warm-up timer were not run in the app (main-process code,
   no unit test harness for `TrackerService`/`ProgressionService`); their core rules are tested.
 - A 0.9 save upgraded in the real app (the backfill is unit-tested on a made-up ledger only).
+- Soap bubbles (1.1.0): popping with the real mouse (only synthetic CDP clicks on the soap page);
+  the `bubble-20` quest was not drawn in the test profile, so counting it is unit-tested only.

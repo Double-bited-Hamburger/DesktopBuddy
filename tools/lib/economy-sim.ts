@@ -18,6 +18,9 @@ import { QuestBook } from '../../src/core/economy/quests'
 import type { Reward } from '../../src/core/economy/rewards'
 import { completeSets, setViews } from '../../src/core/economy/sets'
 import { cardReward, fullCards, stampDay } from '../../src/core/economy/stamps'
+import { MAX_BUBBLES } from '../../src/core/toys/bubbles'
+import type { GardenSave } from '../../src/core/toys/garden'
+import { afterSeedMeal, bloomDue, bloomed, EMPTY_GARDEN } from '../../src/core/toys/garden'
 import { SNACKS } from '../../src/core/toys/snacks'
 import { focusPointsDue } from '../../src/core/tracker/focus'
 import type { Rng } from '../../src/core/types'
@@ -47,6 +50,10 @@ const PLAY: readonly PlayRate[] = [
   { source: 'snack', event: 'bread', perMinute: 6 },
 ]
 
+/** Of a soap bubbles session's bubbles, a human pops about this share, one every ~0.4 s. */
+const BUBBLE_POP_SHARE = 0.75
+const BUBBLE_GAP_MS = 400
+
 export interface Profile {
   readonly name: string
   /** Minutes of petting, clicking, throwing, ball and snacks a day (split evenly). */
@@ -63,6 +70,13 @@ export interface Profile {
   readonly tracking: boolean
   /** Free gifts opened a day (one every 3 h at most). */
   readonly freeGifts: number
+  /** Soap bubbles sessions a day (each blows MAX_BUBBLES; most are popped, paying `bubble`). */
+  readonly bubbleSessions: number
+  /**
+   * Seed meals a day, among the snacks above (no extra snack points): now and then one leaves a
+   * seed that blooms into a flower on a later day (`garden`, the one-time `flower` source).
+   */
+  readonly seedMeals: number
   /** Other things done a day, for achievements (naps, coffee, outfit changes…). */
   readonly extras: Readonly<Partial<Record<QuestEvent, number>>>
 }
@@ -78,6 +92,8 @@ export const PROFILES: readonly Profile[] = [
     activeMinutes: 180,
     tracking: false,
     freeGifts: 1,
+    bubbleSessions: 1,
+    seedMeals: 0,
     extras: { nap: 1, equip: 1 },
   },
   {
@@ -90,6 +106,8 @@ export const PROFILES: readonly Profile[] = [
     activeMinutes: 300,
     tracking: false,
     freeGifts: 2,
+    bubbleSessions: 2,
+    seedMeals: 1,
     extras: { nap: 2, coffee: 1, equip: 2, float: 1, friend: 1 },
   },
   {
@@ -102,6 +120,8 @@ export const PROFILES: readonly Profile[] = [
     activeMinutes: 600,
     tracking: true,
     freeGifts: 5,
+    bubbleSessions: 4,
+    seedMeals: 2,
     extras: { nap: 4, coffee: 3, equip: 5, float: 3, friend: 2, talk: 1, rocket: 0 },
   },
 ]
@@ -173,6 +193,7 @@ export function simulate(
   let stamps = { count: 0, lastDay: 0 }
   let cardsClaimed = 0
   let eggs: Egg[] = []
+  let garden: GardenSave = EMPTY_GARDEN
   let hatched = 0
   const xp = new XpTally(economy.levels.notXp)
   const ownedAt: Record<number, number> = {}
@@ -271,6 +292,26 @@ export function simulate(
         }
       }
     }
+    // Soap bubbles: a few sessions; each pop pays `bubble` (its cooldown and daily cap apply).
+    const pops = Math.round(MAX_BUBBLES * BUBBLE_POP_SHARE)
+    const bubbleGap = Math.max((economy.sources.bubble?.cooldownMs ?? 0) + 1, BUBBLE_GAP_MS)
+    for (let session = 0; session < profile.bubbleSessions; session++)
+      for (let i = 0; i < pops; i++) {
+        now += bubbleGap
+        count('bubble')
+        quests.record('bubble')
+        ledger.earn('bubble')
+      }
+
+    // The garden: a seed left behind by an earlier day's seed meal blooms (the duck sniffs it).
+    if (bloomDue(garden, now, economy.garden)) {
+      garden = bloomed(garden)
+      count('flowers')
+      ledger.earn('flower')
+    }
+    for (let meal = 0; meal < profile.seedMeals; meal++)
+      garden = afterSeedMeal(garden, now, rng, economy.garden)
+
     for (const [event, n] of Object.entries(profile.extras)) count(event, n)
 
     // Focus: 25-minute rounds, paying only the minutes present, up to the daily cap.

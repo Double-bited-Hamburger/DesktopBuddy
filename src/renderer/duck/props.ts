@@ -49,6 +49,10 @@ export interface Props {
   readonly storybook: FramePair
   readonly sparkle: readonly Frame[] // symmetric: never mirrored
   readonly notes: readonly Frame[] // notes read one way: never mirrored
+  /** A flower grown from a seed left behind (core/toys/garden.ts). */
+  readonly flower: FramePair
+  /** The soap bubble wand, held in the beak while it blows (core/toys/bubbles.ts). */
+  readonly wand: FramePair
 }
 
 const withMirrored = (frames: readonly Frame[]): FramePair => ({
@@ -108,5 +112,7 @@ export async function loadProps(): Promise<Props> {
     storybook: withMirrored(await frames('toys', 'storybook')),
     sparkle: await frames('emotes', 'sparkle'),
     notes: await frames('emotes', 'notes'),
+    flower: withMirrored(await frames('toys', 'flower')),
+    wand: withMirrored(await frames('toys', 'bubble-wand')),
   }
 }

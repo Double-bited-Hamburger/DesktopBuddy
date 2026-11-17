@@ -1,5 +1,6 @@
 import type { WebContents } from 'electron'
 import { ipcMain } from 'electron'
+import { isTrickId } from '../core/anim/tricks'
 import { FriendsActionSchema } from '../core/friends/actions'
 import { ZOOM_SPEED } from '../core/toys/coffee'
 import { TURBO_SPEED } from '../core/toys/quack'
@@ -19,9 +20,12 @@ import type {
   ProgressionView,
   SettingsView,
   SmokeBarView,
+  SoapResult,
+  SoapView,
   StatsView,
   StoreView,
   TodayView,
+  TrickResult,
   UpdateView,
 } from '../shared/ipc'
 import { EARN_SOURCES, IPC } from '../shared/ipc'
@@ -38,7 +42,9 @@ import type { ProgressService } from './progress'
 import type { ProgressionService } from './progression'
 import type { SettingsControls } from './settings-controls'
 import type { SnackPile } from './snack-pile'
+import type { SoapPlay } from './soap-play'
 import type { TalkWindow } from './talk-window'
+import type { TrickControl } from './tricks'
 import type { UpdateService } from './updates'
 
 interface IpcDeps {
@@ -53,12 +59,18 @@ interface IpcDeps {
   readonly dashboard: () => DashboardView
   /** Pays for the Rocket Boost and sets it off, if the duck can go now. */
   readonly buyRocket: () => BoostResult
+  /** Tricks on request, and the duck page's answers (main/tricks.ts). */
+  readonly tricks: TrickControl
   /** Earns for a click or pet, subject to economy.json cooldowns and caps. */
   readonly earn: (source: EarnSource) => void
   /** Hands the user a snack (from the panel), paid for once the duck has finished it. */
   readonly feed: (snack: Snack) => void
   readonly feedHandful: () => void
   readonly throwBall: () => void
+  /** Soap bubbles (free, like the ball): 'busy' when the duck can't now or a session is on. */
+  readonly blowBubbles: () => Promise<SoapResult>
+  /** The soap bubbles' session: its page, its pops (main/soap-play.ts checks each one). */
+  readonly soap: SoapPlay
   /** How full the smoke bar is, for the Bag. */
   readonly smokeBar: () => SmokeBarView
   readonly ate: () => void
@@ -66,6 +78,8 @@ interface IpcDeps {
   readonly treatDropped: (elapsed: number) => void
   /** The duck page says it fell asleep or woke up. */
   readonly duckSleeping: (asleep: boolean) => void
+  /** The duck sniffed the flower it was sent (paid only if a planted seed was due). */
+  readonly sniffed: () => void
   readonly duck: DuckWindow
   readonly panel: PanelWindow
   readonly pill: PillWindow
@@ -106,14 +120,18 @@ export function registerIpc({
   toggleCompanion,
   dashboard,
   buyRocket,
+  tricks,
   earn,
   feed,
   feedHandful,
   throwBall,
+  blowBubbles,
+  soap,
   smokeBar,
   ate,
   treatDropped,
   duckSleeping,
+  sniffed,
   duck,
   panel,
   pill,
@@ -195,6 +213,10 @@ export function registerIpc({
     if (fromDuck(event.sender) && typeof asleep === 'boolean') duckSleeping(asleep)
   })
 
+  ipcMain.on(IPC.sniffed, (event) => {
+    if (fromDuck(event.sender)) sniffed()
+  })
+
   ipcMain.on(IPC.feed, (event, kind: unknown) => {
     if (fromPanel(event.sender) && isSnack(kind)) feed(kind)
   })
@@ -206,6 +228,27 @@ export function registerIpc({
   ipcMain.on(IPC.throwBall, (event) => {
     if (fromPanel(event.sender)) throwBall()
   })
+
+  ipcMain.handle(IPC.blowBubbles, (event): Promise<SoapResult> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return blowBubbles()
+  })
+
+  // The duck page's answer to `blow`: 'ok' or 'busy', and the way it faces (checked there).
+  ipcMain.on(IPC.blowAnswer, (event, answer: unknown, facing: unknown) => {
+    if (fromDuck(event.sender)) soap.answered(answer, facing)
+  })
+
+  // The soap page: only the live session's window, checked in SoapPlay (session live, the index a
+  // real bubble that is out and not popped yet, a boolean hover, a shape inside the window).
+  ipcMain.handle(IPC.soapPlan, (event): SoapView => {
+    const view = soap.view(event.sender)
+    if (!view) throw new Error('Unknown sender')
+    return view
+  })
+  ipcMain.on(IPC.soapPop, (event, index: unknown) => soap.pop(event.sender, index))
+  ipcMain.on(IPC.soapHover, (event, over: unknown) => soap.hover(event.sender, over))
+  ipcMain.on(IPC.soapShape, (event, rects: unknown) => soap.setShape(event.sender, rects))
 
   ipcMain.handle(IPC.smokeBar, (event): SmokeBarView => {
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
@@ -297,6 +340,21 @@ export function registerIpc({
     if (!fromPanel(event.sender)) throw new Error('Unknown sender')
     if (id !== 'rocket') throw new Error('Unknown boost')
     return buyRocket()
+  })
+
+  // A trick: panel-only, a known trick id (learned or not: TrickControl answers 'locked').
+  ipcMain.handle(IPC.doTrick, (event, id: unknown): Promise<TrickResult> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    if (!isTrickId(id)) throw new Error('Unknown trick')
+    return tricks.request(id).then((result) => {
+      if (result === 'ok') panel.closeUnlessPinned() // out of the way of the show
+      return result
+    })
+  })
+
+  // The duck page's answer to a trick request (or a trick it chose itself); checked there.
+  ipcMain.on(IPC.trickPlayed, (event, id: unknown, answer: unknown) => {
+    if (fromDuck(event.sender)) tricks.answered(id, answer)
   })
 
   ipcMain.handle(IPC.buyFeatured, (event, id: unknown): BuyResult => {

@@ -92,6 +92,14 @@ body {
   white-space: nowrap;
 }
 
+/* A short line under the menu ("busy"): as wide as the buttons, never wider. */
+.feed-menu .feed-note {
+  width: 0;
+  min-width: 100%;
+  margin: 0;
+  white-space: normal;
+}
+
 .panel button[aria-pressed="true"],
 .panel button[aria-expanded="true"] {
   background: var(--accent);
@@ -1455,6 +1463,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* Tricks learned: small buttons that ask the duck for one. */
+.trick-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
 }
 
 .journey-note {

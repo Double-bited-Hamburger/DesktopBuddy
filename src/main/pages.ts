@@ -11,6 +11,7 @@ export type Page =
   | 'talk'
   | 'friend'
   | 'visitor'
+  | 'soap'
 
 /** Security baseline for every window: isolated, sandboxed, no Node in the renderer. */
 export const webPreferences: WebPreferences = {

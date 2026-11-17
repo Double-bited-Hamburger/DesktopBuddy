@@ -49,22 +49,23 @@ export function opaqueRects(image: RgbaImage, scale: number): Rect[] {
 }
 
 /**
- * Whether `rects` is a shape main may apply to a window of `size` px: a list of at most
- * MAX_SHAPE_RECTS whole-number rectangles inside the window. Anything else is refused.
+ * Whether `rects` is a shape main may apply to a window of `width` × `height` px (square when no
+ * height is given): a list of at most MAX_SHAPE_RECTS whole-number rectangles inside the window.
+ * Anything else is refused.
  */
-export function isValidShape(rects: unknown, size: number): rects is Rect[] {
+export function isValidShape(rects: unknown, width: number, height = width): rects is Rect[] {
   if (!Array.isArray(rects) || rects.length === 0 || rects.length > MAX_SHAPE_RECTS) return false
   return rects.every((r: unknown) => {
     if (typeof r !== 'object' || r === null) return false
-    const { x, y, width, height } = r as Record<string, unknown>
+    const { x, y, width: w, height: h } = r as Record<string, unknown>
     const ok = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0
     return (
       ok(x) &&
       ok(y) &&
-      ok(width) &&
-      ok(height) &&
-      x + width <= size &&
-      y + height <= size &&
+      ok(w) &&
+      ok(h) &&
+      x + w <= width &&
+      y + h <= height &&
       Object.keys(r).length === 4
     )
   })

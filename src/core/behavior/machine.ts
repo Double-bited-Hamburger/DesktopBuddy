@@ -1,5 +1,8 @@
+import type { TrickId } from '../anim/tricks'
+import { isTrickId, TRICK_IDS, TRICK_MS, trickAfterEdge } from '../anim/tricks'
 import { LISTEN_MAX_MS } from '../care/listen'
 import { MEAL_MS } from '../toys/bread'
+import { BLOW_MS } from '../toys/bubbles'
 import { COUGH_MS, REFUSE_MS, SMOKE_MS } from '../toys/cigar'
 import { DRINK_MS, ESPRESSO_MS } from '../toys/coffee'
 import { CHUG_MS, CRASH_MS, POWER_NAP_MS } from '../toys/quack'
@@ -31,6 +34,8 @@ export const WAG_MS = 1200
 export const SONG_MS = 2400
 export const TWIRL_MS = 1750
 export const WINK_MS = 700
+/** A flower grew from a seed left behind (core/toys/garden.ts): a long sniff, then a happy heart. */
+export const SNIFF_MS = 2400
 
 export const BEHAVIOR_STATES = [
   'idle',
@@ -76,6 +81,12 @@ export const BEHAVIOR_STATES = [
   'twirl',
   'wink',
   'nibble',
+  // The tricks (core/anim/tricks.ts), one state each, named after the trick.
+  ...TRICK_IDS,
+  // New states go after the tricks, so the order above stays as it was.
+  'sniff',
+  // Blowing soap bubbles through its wand (core/toys/bubbles.ts).
+  'blow',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -143,6 +154,16 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     twirl: [TWIRL_MS, TWIRL_MS],
     wink: [WINK_MS, WINK_MS],
     nibble: [SEEDS_MS, SEEDS_MS], // pecking up a handful of seeds
+    spin: [TRICK_MS.spin, TRICK_MS.spin],
+    moonwalk: [TRICK_MS.moonwalk, TRICK_MS.moonwalk],
+    handstand: [TRICK_MS.handstand, TRICK_MS.handstand],
+    backflip: [TRICK_MS.backflip, TRICK_MS.backflip],
+    breakdance: [TRICK_MS.breakdance, TRICK_MS.breakdance],
+    'victory-lap': [TRICK_MS['victory-lap'], TRICK_MS['victory-lap']],
+    bow: [TRICK_MS.bow, TRICK_MS.bow],
+    parade: [TRICK_MS.parade, TRICK_MS.parade],
+    sniff: [SNIFF_MS, SNIFF_MS],
+    blow: [BLOW_MS, BLOW_MS], // the bubbles come out meanwhile; they float on after it
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -207,6 +228,16 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     twirl: { idle: 1 },
     wink: { idle: 1 },
     nibble: { wiggle: 1 }, // a happy wiggle after the seeds
+    spin: { idle: 1 },
+    moonwalk: { idle: 1 },
+    handstand: { idle: 1 },
+    backflip: { idle: 1 },
+    breakdance: { idle: 1 },
+    'victory-lap': { idle: 1 },
+    bow: { happy: 1 }, // and a heart for the applause
+    parade: { idle: 1 },
+    sniff: { happy: 1 }, // and a heart: it smells lovely
+    blow: { idle: 1 },
   },
 }
 
@@ -290,6 +321,58 @@ export function tiredBehaviorConfig(config: BehaviorConfig): BehaviorConfig {
   return { ...config, next: { ...config.next, idle } }
 }
 
+/**
+ * Busy with something that matters: a trick waits. Treats being eaten (a trick would drop them),
+ * a chase, a cough or a refusal, a hard landing, the sugar rush and crash, listening to the user,
+ * and a trick that is already playing. A napping duck just wakes up for it.
+ */
+const TRICK_BLOCKERS: ReadonlySet<BehaviorState> = new Set<BehaviorState>([
+  'eat',
+  'smoke',
+  'drink',
+  'chug',
+  'nibble',
+  'run',
+  'cough',
+  'refuse',
+  'ouch',
+  'turbo',
+  'crash',
+  'listen',
+  'sniff',
+  'blow',
+  ...TRICK_IDS,
+])
+
+/**
+ * Calm moments a flower can bloom into: idling, strolling, the small fidgets and a nap. Never in
+ * the middle of a meal, a chase, a reaction, a break stare, listening, focus or a trick.
+ */
+export const SNIFF_FROM: ReadonlySet<BehaviorState> = new Set<BehaviorState>([
+  'idle',
+  'walk',
+  'sleep',
+  'yawn',
+  'turn',
+  'getup',
+  'look',
+  'shake',
+  'stretch',
+  'hop',
+  'forage',
+  'preen',
+  'scratch',
+  'sneeze',
+  'wag',
+  'wink',
+  'wiggle',
+])
+
+/** The trick a state plays, if it is one. */
+export function trickOf(state: BehaviorState): TrickId | undefined {
+  return isTrickId(state) ? state : undefined
+}
+
 function between(range: readonly [number, number], rng: Rng): number {
   return range[0] + rng() * (range[1] - range[0])
 }
@@ -320,6 +403,8 @@ export class BehaviorMachine {
   /** Where a turning duck will walk once it has looked around. */
   private turnTo: Direction = 1
   private remainingMs: number
+  /** Milliseconds spent in the current state so far (a trick's place on its timeline). */
+  private elapsedMs = 0
 
   constructor(rng: Rng, config: BehaviorConfig = DEFAULT_BEHAVIOR_CONFIG) {
     this.rng = rng
@@ -335,6 +420,11 @@ export class BehaviorMachine {
     return this.facing
   }
 
+  /** Milliseconds since the current state started (paused with the machine). */
+  get stateMs(): number {
+    return this.elapsedMs
+  }
+
   /** Milliseconds until the next decision (`update` may change state then). */
   get msUntilDecision(): number {
     return Math.max(0, this.remainingMs)
@@ -348,6 +438,7 @@ export class BehaviorMachine {
   /** Advances time. Returns true when the state changed. */
   update(dtMs: number): boolean {
     this.remainingMs -= Math.max(0, dtMs)
+    this.elapsedMs += Math.max(0, dtMs)
     if (this.remainingMs > 0) return false
     const before = this.current
     this.enter(pickWeighted(this.config.next[this.current], this.rng))
@@ -432,6 +523,38 @@ export class BehaviorMachine {
     this.enter('listen')
   }
 
+  /**
+   * Asked to do a trick it has learned (the shell checks that it has). A napping duck wakes up
+   * for it; a busy one says no (`TRICK_BLOCKERS`). It keeps facing the way it was.
+   */
+  trick(id: TrickId): 'ok' | 'busy' {
+    if (TRICK_BLOCKERS.has(this.current)) return 'busy'
+    this.enter(id)
+    return 'ok'
+  }
+
+  /**
+   * A flower bloomed in front of its beak (core/toys/garden.ts): it bends down to sniff it, then
+   * is happy (a heart). Only from a calm moment (`SNIFF_FROM`; a napping duck wakes up for it):
+   * otherwise 'busy', and the shell asks again on a later tick.
+   */
+  sniff(): 'ok' | 'busy' {
+    if (!SNIFF_FROM.has(this.current)) return 'busy'
+    this.enter('sniff')
+    return 'ok'
+  }
+
+  /**
+   * Soap bubbles (core/toys/bubbles.ts): out comes the wand and it blows for BLOW_MS. Only from
+   * the calm moments a flower can bloom into (`SNIFF_FROM`; a napping duck wakes up for it):
+   * otherwise 'busy', and the shell says so.
+   */
+  blow(): 'ok' | 'busy' {
+    if (!SNIFF_FROM.has(this.current)) return 'busy'
+    this.enter('blow')
+    return 'ok'
+  }
+
   /** A half-eaten snack picked up again: the eating state lasts only for what is left of it. */
   shorten(ms: number): void {
     this.remainingMs = Math.min(this.remainingMs, Math.max(0, ms))
@@ -450,11 +573,21 @@ export class BehaviorMachine {
 
   /**
    * The shell reports that a walking duck reached the edge of its floor. A strolling duck stops
-   * and looks for `TURN_MS`, then walks back; a zooming one just bounces.
+   * and looks for `TURN_MS`, then walks back; a zooming one just bounces. A travelling trick
+   * does what core/anim/tricks.ts says (`trickAfterEdge`): a parade turns round, a moonwalk or a
+   * victory lap skips ahead on its timeline.
    */
   hitEdge(): void {
     const back: Direction = this.facing === 1 ? -1 : 1
-    if (this.current === 'zoom' || this.current === 'turbo') this.facing = back
+    const trick = trickOf(this.current)
+    if (trick) {
+      const next = trickAfterEdge(trick, this.elapsedMs)
+      if (next === 'bounce') this.facing = back
+      else {
+        this.remainingMs -= next - this.elapsedMs
+        this.elapsedMs = next
+      }
+    } else if (this.current === 'zoom' || this.current === 'turbo') this.facing = back
     else if (this.current === 'walk') {
       this.enter('turn')
       this.turnTo = back
@@ -463,6 +596,7 @@ export class BehaviorMachine {
 
   enter(state: BehaviorState): void {
     this.current = state
+    this.elapsedMs = 0
     this.remainingMs = between(this.config.durationMs[state], this.rng)
     if (state === 'walk' || state === 'zoom' || state === 'turbo')
       this.facing = this.rng() < 0.5 ? -1 : 1

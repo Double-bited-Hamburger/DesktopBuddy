@@ -1,3 +1,4 @@
+import type { TrickId } from '../core/anim/tricks'
 import type { BehaviorState } from '../core/behavior/machine'
 import type { DayForecast, RainAlert } from '../core/care/forecast'
 import type { FriendState } from '../core/care/friend'
@@ -20,6 +21,7 @@ import type {
   SettingsPatch,
   Theme,
 } from '../core/settings/settings'
+import type { BubblePlan } from '../core/toys/bubbles'
 import type { Snack } from '../core/toys/snacks'
 import type { AppHistory, ScreenTimeDay } from '../core/tracker/screen-time'
 import type { Category, DaySummary, Streak } from '../core/tracker/summary'
@@ -40,6 +42,10 @@ export const IPC = {
   rocket: 'duck:rocket',
   lie: 'duck:lie',
   buyBoost: 'panel:buy-boost',
+  doTrick: 'panel:do-trick',
+  trick: 'duck:trick',
+  trickPlayed: 'duck:trick-played',
+  tricks: 'duck:tricks',
   openPanel: 'duck:open-panel',
   panelClose: 'panel:close',
   panelSetPinned: 'panel:set-pinned',
@@ -55,6 +61,7 @@ export const IPC = {
   ate: 'duck:ate',
   treatDropped: 'duck:treat-dropped',
   duckSleep: 'duck:sleep',
+  sniffed: 'duck:sniffed',
   chase: 'duck:chase',
   snackClick: 'snack:click',
   store: 'panel:store',
@@ -108,6 +115,13 @@ export const IPC = {
   updateDownload: 'panel:update-download',
   updateInstall: 'panel:update-install',
   updateChanged: 'panel:update-changed',
+  blowBubbles: 'panel:blow-bubbles',
+  blow: 'duck:blow',
+  blowAnswer: 'duck:blow-answer',
+  soapPlan: 'soap:plan',
+  soapPop: 'soap:pop',
+  soapHover: 'soap:hover',
+  soapShape: 'soap:shape',
 } as const
 
 /** What a renderer needs to know at startup. */
@@ -137,6 +151,11 @@ export interface AppConfig {
   readonly weather?: WeatherKind
   /** Dev-only (`BUDDY_PIN_STATE`, unpackaged builds): keep the duck in one state, for perf runs. */
   readonly pinState?: BehaviorState
+  /**
+   * The tricks the duck may do by itself after being happy: the ones learned (the parade only
+   * while a mini is out). Updates arrive through `duck.onTricks`.
+   */
+  readonly tricks: readonly TrickId[]
 }
 
 /** What the duck wears: catalog ids (see assets/economy/catalog.json). */
@@ -489,6 +508,8 @@ export interface SettingsView {
  * soft quack: still typing), welcome (back from a real break) or calm (it lets it go for now).
  * Rubber-duck mode (core/care/listen.ts): listen (the talk box opened), scribble (a key was
  * pressed), nod (a line was finished) and listened (the box closed). Never any of the text.
+ * bloom: a seed left behind grew into a flower; the duck sniffs it once it is free, then says
+ * `sniffed`.
  */
 export type CareEvent =
   | 'stare'
@@ -507,6 +528,7 @@ export type CareEvent =
   | 'ball-kick'
   | 'focus-break'
   | 'focus-back'
+  | 'bloom'
 export const CARE_EVENTS: readonly CareEvent[] = [
   'stare',
   'nag',
@@ -524,6 +546,7 @@ export const CARE_EVENTS: readonly CareEvent[] = [
   'ball-kick',
   'focus-break',
   'focus-back',
+  'bloom',
 ]
 
 /** The weather line in Settings. */
@@ -600,6 +623,30 @@ export type BoostResult =
   | { readonly ok: true }
   | { readonly ok: false; readonly reason: 'short' | 'busy' }
 
+/**
+ * Asking for a trick: it plays, it isn't learned yet, or the duck can't now (held, flying, eating,
+ * on the sign, hidden, already doing one; a parade with no mini out).
+ */
+export type TrickResult = 'ok' | 'locked' | 'busy'
+/** The duck page's answer to `duck.onTrick` (or news of a trick it started by itself: `ok`). */
+export type TrickAnswer = Exclude<TrickResult, 'locked'>
+
+/** Starting soap bubbles: on their way, or the duck can't now (held, eating, on a break…). */
+export type SoapResult = 'ok' | 'busy'
+
+/** What the soap page draws: this session's bubbles (core/toys/bubbles.ts). */
+export interface SoapView {
+  readonly plan: BubblePlan
+  /** The way the duck faces: the bubbles float off in front of its beak. */
+  readonly facing: 1 | -1
+  /** How far into the session it is already (0 on the first load), ms. */
+  readonly atMs: number
+  /** Sound volume for the pop, 0 = silent. */
+  readonly volume: number
+  /** Linux: click-through by shaping the window (`soap.setShape`), as for the duck. */
+  readonly shaped: boolean
+}
+
 /** A flight: it starts, maybe opens an umbrella (`float`) on the way down, then lands or hurts. */
 export type FallEvent = 'start' | 'float' | 'land' | 'hurt'
 export const FALL_EVENTS: readonly FallEvent[] = ['start', 'float', 'land', 'hurt']
@@ -635,6 +682,15 @@ export interface BuddyApi {
     onRocket(listener: (phase: RocketPhase) => void): () => void
     /** A fullscreen video on its screen: lie flat out of the way (true) or get up (false). */
     onLie(listener: (lying: boolean) => void): () => void
+    /**
+     * Do this learned trick now (main checked the unlock): answer with `trickPlayed`, 'ok' if it
+     * started, 'busy' if it can't now. Returns an unsubscribe function.
+     */
+    onTrick(listener: (id: TrickId) => void): () => void
+    /** The tricks it may do by itself changed (one learned, a mini out or home). */
+    onTricks(listener: (ids: readonly TrickId[]) => void): () => void
+    /** A trick started ('ok', also one it chose itself after being happy) or couldn't ('busy'). */
+    trickPlayed(id: TrickId, answer: TrickAnswer): void
     /** Volume or behavior switches changed in Settings. Returns an unsubscribe function. */
     onPrefs(listener: (prefs: DuckLivePrefs) => void): () => void
     /** The opt-in weather changed (undefined: off or unknown). Returns an unsubscribe function. */
@@ -663,6 +719,17 @@ export interface BuddyApi {
     /** The duck fell asleep (true) or woke up: the friend duck may nap next to it. */
     sleeping(asleep: boolean): void
     /**
+     * The duck sniffed the flower main sent with the `bloom` care event (core/toys/garden.ts).
+     * Main pays the one-time `flower` source only if a planted seed was really due.
+     */
+    sniffed(): void
+    /**
+     * Blow soap bubbles now (main checked the duck is on screen and free): answer with
+     * `blowAnswer`, 'ok' and the way it faces if it started, 'busy' if it can't now.
+     */
+    onBlow(listener: () => void): () => void
+    blowAnswer(answer: SoapResult, facing: 1 | -1): void
+    /**
      * Asks for points for a click or a pet. Main applies the cooldowns and daily caps from
      * economy.json and answers through `onPoints` only when something was granted.
      */
@@ -689,6 +756,8 @@ export interface BuddyApi {
     feedHandful(): void
     /** Puts the ball in the user's hand; the duck chases and headbutts it once it lands. */
     throwBall(): void
+    /** The duck blows soap bubbles to pop (free, like the ball); 'busy' when it can't now. */
+    blowBubbles(): Promise<SoapResult>
     /** How full the duck's smoke bar is (core/toys/smoke-bar.ts). */
     smokeBar(): Promise<SmokeBarView>
     /** Store, quests and what the player owns. */
@@ -703,6 +772,8 @@ export interface BuddyApi {
     claimSeasonal(): Promise<BuyResult>
     /** Buys a boost (the rocket) and sets it off right away; nothing is spent if it can't go. */
     buyBoost(id: 'rocket'): Promise<BoostResult>
+    /** Asks the duck for a trick it has learned (main checks the unlock and that it can now). */
+    doTrick(id: TrickId): Promise<TrickResult>
     /** Claims a finished quest; resolves to the points paid (0 if it couldn't be claimed). */
     claimQuest(id: string): Promise<number>
     /** Bond level, achievements, album sets, stamps, eggs (economy 2.0). */
@@ -796,6 +867,17 @@ export interface BuddyApi {
   /** A friend's visiting duck (Friends): its page draws what main sends. */
   visitor: {
     onShow(listener: (view: VisitorView, scale: number) => void): () => void
+  }
+  /** The soap bubbles' page (core/toys/bubbles.ts): one short session at a time. */
+  soap: {
+    /** This session's bubbles (rejects when the window isn't the live session's). */
+    plan(): Promise<SoapView>
+    /** A bubble was clicked: main checks it is there and pays the `bubble` source. */
+    pop(index: number): void
+    /** The cursor is over a bubble (true) or left them: only then the window takes clicks. */
+    hover(over: boolean): void
+    /** Linux click-through: the window only exists over these rectangles (window px). */
+    setShape(rects: readonly Rect[]): void
   }
   snack: {
     /** The carried snack was clicked: drop/throw it, or pick it up again if it lies around. */

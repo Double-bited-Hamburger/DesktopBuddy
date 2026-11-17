@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { HungerConfigSchema } from '../care/hunger'
 import type { Catalog } from '../catalog/catalog'
+import { GardenConfigSchema } from '../toys/garden'
 import { RocketConfigSchema } from '../toys/rocket'
 import { FocusConfigSchema } from '../tracker/focus'
 import { AchievementsConfigSchema } from './achievements'
@@ -57,6 +58,8 @@ export const EconomyConfigSchema = z.object({
   eggs: EggsConfigSchema,
   /** For players whose points history began before 1.0.0's first run. */
   earlyBird: RewardSchema,
+  /** A seed left behind after a seed meal grows into a flower (core/toys/garden.ts). */
+  garden: GardenConfigSchema,
 })
 
 export type EconomyConfig = z.infer<typeof EconomyConfigSchema>
@@ -87,7 +90,7 @@ export function exclusiveIds(economy: EconomyConfig): Set<string> {
 /** Cross-checks economy.json against the catalog (throws: both ship with the app). */
 export function checkEconomy(economy: EconomyConfig, catalog: Catalog): void {
   const ids = new Set(catalog.items.map((item) => item.id))
-  for (const source of ['click', 'pet', 'snack', 'ball', 'bounce'])
+  for (const source of ['click', 'pet', 'snack', 'ball', 'bounce', 'flower', 'bubble'])
     if (!economy.sources[source]) throw new Error(`Point source "${source}" is missing`)
   for (const source of economy.companions.boosted)
     if (!economy.sources[source]) throw new Error(`Boosted source "${source}" is missing`)
