@@ -791,6 +791,28 @@ from one screen onto a lower or higher one with the eyes (unit-tested lane math 
 icon at 125/150% scaling, the MAX popup seen on screen, the new quests counting in a real play
 session (unit-tested), the light theme screenshots, Linux.
 
+## 1.1.0 — more skins and features (2026-11-17)
+
+- **20 skins** (palette recolors): programmer pack (coffee-stain, light-mode, bug-red, dark-mode,
+  retro-amber, merge-conflict), food pack (toast, lemon, matcha, cherry, muffin), and a seasonal
+  skin for every month that had none (new-year, carnival, clover, daisy, seaside, watermelon,
+  firefly, pencil, autumn-leaf). New albums Code and Bakery. 98 items in all.
+- **7 accessories:** moustache, cape, necktie, bandana, beret, hard-hat, grad-cap. Accessory
+  sheets can have a `<name>-back` frame drawn behind the body (the cape's drape).
+- **Economy:** boxes 140/460/1400, shelf 120/280/1200/2400; normal player median ~32 days
+  (docs/ECONOMY.md "Re-tune for 1.1.0").
+- **Tricks:** spin, moonwalk, handstand, backflip, breakdance, victory-lap, bow, parade (minis
+  follow in a line). Started from Journey buttons, the tray "Tricks" submenu, or a 5% chance after
+  `happy` (off with fidgets). New daily quest `trick-3`. 3 new duck frames (62).
+- **Flowers:** a seed meal may leave one seed planted (30%); on a later day (≥ 6 h) a flower
+  blooms in the duck window, the duck sniffs it, +25 points. `green-thumb` at 10 flowers.
+- **Soap bubbles:** see Phase 4 above.
+
+`npm run check` green (818 tests); the trick round trip, parade and Journey were checked live on a
+throwaway data folder. **Not verified:** the tray Tricks submenu, how tricks/flower/bubbles look
+and feel on a real screen, sounds, popping bubbles with a real mouse, perf (no full run), the
+installer and Linux packages on real machines.
+
 ## 1.0.1 — Linux startup fix (2026-11-17)
 
 Reported in issue #2 and fixed in PR #3 by mirkosio (Fedora 44, KDE Plasma, Wayland): the .rpm
