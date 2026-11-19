@@ -1203,6 +1203,12 @@
       "slot": "hat",
       "rarity": "uncommon",
       "sprite": "hats/duckduckgo-hat"
+    },
+    {
+      "id": "duckhub-hat",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/duckhub-hat"
     }
   ]
 }
