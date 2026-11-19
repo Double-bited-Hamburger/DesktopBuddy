@@ -1,0 +1,27 @@
+# A blue cap with a yellow duck head, orange beak and green bow tie: a nod to the
+# search engine whose mascot is a privacy-minded duck. Original pixel art.
+name: duckduckgo-hat
+size: 16x10
+anchor: head 8 9
+palette:
+  K #2a1f2d
+  B #3d7fd6
+  b #2a5a9b
+  Y #ffd34d
+  y #d9a82c
+  O #f2872b
+  G #4caf50
+  g #2f7d32
+  E #1e1620
+
+@frame duckduckgo-hat
+....KKKKKKKK....
+..KKBBBBBBBBKK..
+.KBBBBBBBBBBBBK.
+.KBBYYYKKBBBBBBK
+KBBBYYYYYKBBBBBK
+KBBOYYYEYKBBBBBK
+KBBOOYYYKKBBBBBK
+KBBBGGKGBBBBBBBK
+.KBBBBBBBBBBBBBK
+..KKKKKKKKKKKK..

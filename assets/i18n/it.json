@@ -678,5 +678,7 @@
   "soap.busy": "Il tuo papero è occupato: le bolle tra un momento.",
   "quest.bubble": "Scoppia le bolle di sapone",
   "source.bubble": "Bolle",
-  "source.flower": "Fiori"
+  "source.flower": "Fiori",
+  "item.duckduckgo-hat": "Cappello papera",
+  "item.duckhub-hat": "Cappello DuckHub"
 }

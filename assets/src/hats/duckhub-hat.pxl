@@ -1,0 +1,21 @@
+# DuckHub cap: orange and black bands with DH lettering. Original pixel art.
+name: duckhub-hat
+size: 16x10
+anchor: head 8 9
+palette:
+  K #2a1f2d
+  O #f2872b
+  B #17161c
+  W #fff8e7
+
+@frame duckhub-hat
+..KKKKKKKKKKKK..
+KOOOOOOOOOOOOOOK
+KOOOOOOOOOOOOOOK
+KBBBWWWBWBWBBBBK
+KBBBWBWBWBWBBBBK
+KOOOWOWOWWWOOOOK
+KOOOWOWOWOWOOOOK
+KBBBWWWBWBWBBBBK
+KBBBBBBBBBBBBBBK
+..KKKKKKKKKKKK..
