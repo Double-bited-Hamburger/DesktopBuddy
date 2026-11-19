@@ -393,8 +393,10 @@ saved in `garden.json`, not shown, and nothing runs while it grows. One seed at 
 is in the ground, seed meals don't roll. On a **later local day** and at least `garden.growHours`
 (6) after planting, once someone is at the PC and the duck is free (the same moments the duck
 speaks by itself: start, the 15-minute check, coming back to the PC), main sends `bloom`. The duck
-sniffs the flower at its next calm moment (`sniff`, then a heart), says `sniffed`, and main pays
-`flower` (25, cap 25 a day) and counts `flowers` for **green-thumb** (10 flowers). A flower
+sniffs the flower at its next calm moment (`sniff`, then a heart), says `sniffed` as the sniff
+starts, and main pays `flower` (25, cap 25 a day), counts `flowers` for **green-thumb** (10
+flowers) and has the duck say so in its speech bubble. The flower then stays by the duck until
+it is clicked (picked: a heart, nothing more paid) or for 2 minutes (`FLOWER_MS`). A flower
 nobody saw stays due and comes back at the next check. At most one a day, so 10 flowers take at
 least 10 days of seed meals; with 0.3 per meal, about a month at one seed meal a day. In the
 simulation since 1.1.0 (seed meals a day per profile, see Simulation).

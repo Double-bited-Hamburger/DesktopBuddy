@@ -4,7 +4,12 @@ import type { MotionInput } from '../../core/anim/motion'
 import type { TrickId, TrickPose } from '../../core/anim/tricks'
 import { trickPoseAt } from '../../core/anim/tricks'
 import type { Dream } from '../../core/behavior/dream'
-import type { BehaviorConfig, BehaviorPrefs, BehaviorState } from '../../core/behavior/machine'
+import type {
+  BehaviorConfig,
+  BehaviorPrefs,
+  BehaviorState,
+  Direction,
+} from '../../core/behavior/machine'
 import {
   BehaviorMachine,
   behaviorConfigFor,
@@ -135,9 +140,12 @@ export interface DuckPage {
   toldAsleep: boolean
   /**
    * A flower grew (main sent `bloom`): waiting for a calm moment (`since` unset), then shown from
-   * the start of the sniff. `told`: main heard `sniffed`. Undefined when there is none.
+   * the start of the sniff. `told`: main heard `sniffed`. `facing`: the way the duck faced when
+   * it sniffed (it keeps facing the flower). Undefined when there is none.
    */
-  flower: { since: number | undefined; told: boolean } | undefined
+  flower: { since: number | undefined; told: boolean; facing: Direction } | undefined
+  /** Where the flower was last drawn (stage pixels), for clicking it; undefined when not shown. */
+  flowerBox: { x: number; y: number; width: number; height: number } | undefined
 }
 
 /** The local clock shifts the mood: sleepy at night, stretchy in the morning (core/care/day). */
@@ -243,5 +251,6 @@ export async function createPage(): Promise<DuckPage> {
     walkingStride: 1,
     toldAsleep: false,
     flower: undefined,
+    flowerBox: undefined,
   }
 }

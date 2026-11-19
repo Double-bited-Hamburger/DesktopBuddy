@@ -1,17 +1,26 @@
-# A seed left overnight grows into a little flower.
+# A seed left overnight grows into a flower: four pink petals round a yellow middle, a leaf on
+# its stem. It stands on the ground in front of the beak until someone clicks it.
 name: flower
-size: 5x7
+size: 7x11
 palette:
   K #2a1f2d
+  L #f8bcd4
   P #f08ab0
+  R #c4588a
   Y #f7d84a
-  G #58a84a
+  O #d9a531
+  G #6cbc58
+  E #3f8a3c
 
 @frame flower
-.KKK.
-KPPPK
-KPYPK
-KPPPK
-.KGK.
-GKGK.
-.KGK.
+.KK.KK.
+KLLKLPK
+KLPYPRK
+.KYYOK.
+KLPOPRK
+KPRKPRK
+.KKGKK.
+..KGKK.
+.KKGEGK
+KGGEKK.
+.KKEK..

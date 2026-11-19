@@ -555,6 +555,15 @@ export class BehaviorMachine {
     return 'ok'
   }
 
+  /**
+   * A flower is out in front of it: a wander (or the turn before one) becomes idling where it
+   * stands, still facing `direction` (towards the flower), so it never walks off or turns away.
+   */
+  stayBy(direction: Direction): void {
+    this.enter('idle')
+    this.facing = direction
+  }
+
   /** A half-eaten snack picked up again: the eating state lasts only for what is left of it. */
   shorten(ms: number): void {
     this.remainingMs = Math.min(this.remainingMs, Math.max(0, ms))

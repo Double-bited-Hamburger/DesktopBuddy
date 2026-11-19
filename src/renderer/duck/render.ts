@@ -409,6 +409,13 @@ export function render(page: DuckPage): void {
   const { popup } = page
   // A flower grown from a seed left behind, while it is out (it blinks out at the end).
   const bloomed = calm && flowerView(page, now) === 'shown'
+  const flowerFrame = bloomed ? props.flower.right[0] : undefined
+  page.flowerBox = flowerFrame && {
+    x: xAt(facing, FLOWER_SPOT, flowerFrame.width),
+    y: FLOWER_SPOT.y,
+    width: flowerFrame.width,
+    height: flowerFrame.height,
+  }
   // Soap bubbles: the wand in its beak while it blows (the bubbles have their own window).
   const blowing = calm && machine.state === 'blow'
   // Everything that changes the picture is in the key: an unchanged key skips the redraw.

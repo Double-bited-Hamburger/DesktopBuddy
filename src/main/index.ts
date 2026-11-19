@@ -856,6 +856,9 @@ async function start(): Promise<void> {
     if (!garden.bloom(Date.now())) return
     progression.count('flowers')
     earn('flower')
+    // Say so: a small flower that comes and goes is easy to miss (1.1.1).
+    if (!duck.window.isVisible() || talk.isOpen || bubble.asking) return
+    bubble.say(t('flower.bloomed'), settings.names.duck, duck.window.getBounds(), settings.scale)
   }
   // Hunger (core/care/hunger.ts): only while the user is at the PC and nothing else is going on.
   setInterval(() => {

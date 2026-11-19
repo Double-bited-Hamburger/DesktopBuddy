@@ -791,6 +791,23 @@ from one screen onto a lower or higher one with the eyes (unit-tested lane math 
 icon at 125/150% scaling, the MAX popup seen on screen, the new quests counting in a real play
 session (unit-tested), the light theme screenshots, Linux.
 
+## 1.1.1 — a flower you can see (2026-11-19)
+
+The owner's first flower bloomed on 18 Nov (+25 paid) and they never saw it: it was 5×7 px,
+stayed 8 s and nothing was said.
+
+- **Bigger:** the flower is 7×11 (four petals, a leaf), as big as fits in front of the beak.
+- **Said out loud:** as the sniff starts, main pays `flower` and the duck's speech bubble says
+  "A flower bloomed from a seed! Click it to pick it."
+- **Stays until clicked:** up to 2 minutes (`FLOWER_MS`), the duck waiting by it and facing it
+  (`stayBy` turns a wander or a turn into idling). A click picks it (a heart; nothing more is
+  paid). Picking the duck up or a travelling trick leaves it behind.
+
+`npm run check` green (820 tests). Checked live in a dev build on a throwaway folder: bloom,
+still there after 8 s, the bubble text (Italian), click → picked and happy, +25 once. **Not
+verified:** with a real mouse, on the owner's screen, the full 2-minute wait to the blink-out,
+the installer.
+
 ## 1.1.0 — more skins and features (2026-11-17)
 
 - **20 skins** (palette recolors): programmer pack (coffee-stain, light-mode, bug-red, dark-mode,
@@ -806,6 +823,7 @@ session (unit-tested), the light theme screenshots, Linux.
   `happy` (off with fidgets). New daily quest `trick-3`. 3 new duck frames (62).
 - **Flowers:** a seed meal may leave one seed planted (30%); on a later day (≥ 6 h) a flower
   blooms in the duck window, the duck sniffs it, +25 points. `green-thumb` at 10 flowers.
+  Made easier to see in 1.1.1 (below).
 - **Soap bubbles:** see Phase 4 above.
 
 `npm run check` green (818 tests); the trick round trip, parade and Journey were checked live on a

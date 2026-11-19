@@ -1,5 +1,6 @@
 import { trickOf } from '../../core/behavior/machine'
 import { alphaAt } from '../../core/sprite/compositor'
+import { leaveFlower, onFlower, pickFlower } from './flower'
 import { dropTreat, pause, schedule, wake } from './loop'
 import type { DuckPage } from './page'
 import { render } from './render'
@@ -14,10 +15,13 @@ export function handleInput(page: DuckPage): void {
   let dragQueued = false
   let pressedAt = { x: 0, y: 0 }
 
+  const stageX = (e: MouseEvent): number => Math.floor(e.clientX / page.scale)
+  const stageY = (e: MouseEvent): number => Math.floor(e.clientY / page.scale)
+  /** On the flower that is out (core/toys/garden.ts): a click picks it. */
+  const isOverFlower = (e: MouseEvent): boolean => onFlower(page, stageX(e), stageY(e))
   const isOverDuck = (e: MouseEvent): boolean =>
-    page.rendered !== undefined &&
-    alphaAt(page.rendered, Math.floor(e.clientX / page.scale), Math.floor(e.clientY / page.scale)) >
-      0
+    isOverFlower(e) ||
+    (page.rendered !== undefined && alphaAt(page.rendered, stageX(e), stageY(e)) > 0)
 
   function setIgnore(ignore: boolean): void {
     if (ignore === page.ignoring) return
@@ -52,6 +56,13 @@ export function handleInput(page: DuckPage): void {
 
   document.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || !isOverDuck(e)) return
+    if (isOverFlower(e)) {
+      wake(page) // catch the machine up to now first (as petting does)
+      pickFlower(page)
+      wake(page)
+      return
+    }
+    leaveFlower(page) // picked up: the flower stays where it grew
     page.dragging = true
     petting.reset()
     if (page.treat) {

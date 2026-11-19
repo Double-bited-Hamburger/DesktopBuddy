@@ -156,6 +156,24 @@ describe('the flower on screen', () => {
   })
 })
 
+describe('a flower you can see (1.1.1)', () => {
+  it('stays out long enough to notice: at least a minute before it starts to blink', () => {
+    expect(FLOWER_MS - FLOWER_BLINKS * FLOWER_BLINK_MS).toBeGreaterThanOrEqual(60_000)
+  })
+
+  it('keeps the duck by the flower, facing it, instead of wandering off', () => {
+    // rng 0: entering `walk` would face left (-1); staying by keeps the flower's side.
+    const machine = new BehaviorMachine(sequence([0]), DEFAULT_BEHAVIOR_CONFIG)
+    machine.enter('walk')
+    expect(machine.direction).toBe(-1)
+    machine.stayBy(1)
+    expect(machine.state).toBe('idle')
+    expect(machine.direction).toBe(1)
+    machine.stayBy(-1)
+    expect(machine.direction).toBe(-1)
+  })
+})
+
 describe('the sniff state', () => {
   it('comes right after the tricks (newer states only go after it)', () => {
     expect(BEHAVIOR_STATES.indexOf('sniff')).toBe(BEHAVIOR_STATES.indexOf('parade') + 1)

@@ -82,11 +82,13 @@ export const ARMCHAIR_SPOT: Point = { x: 4, y: 9 }
 export const NOTEBOOK_SPOT: Point = { x: 26, y: 21 }
 /**
  * A flower grown from a seed left behind (core/toys/garden.ts): on the ground just in front of
- * the beak, so the sniffing duck's beak touches its bloom. It stays FLOWER_MS from the start of
- * the sniff, blinking out over its last FLOWER_BLINKS steps (no partial alpha, so no real fade).
+ * the beak, so the sniffing duck's beak touches its bloom. It stays until it is clicked (picked)
+ * or for FLOWER_MS from the start of the sniff, blinking out over its last FLOWER_BLINKS steps
+ * (no partial alpha, so no real fade). 1.1.1: bigger and much longer (it was 5×7 for 8 s, and
+ * the owner never saw one).
  */
-export const FLOWER_SPOT: Point = { x: 33, y: 32 }
-export const FLOWER_MS = 8000
+export const FLOWER_SPOT: Point = { x: 33, y: 28 }
+export const FLOWER_MS = 120_000
 export const FLOWER_BLINK_MS = 250
 export const FLOWER_BLINKS = 6
 /**
