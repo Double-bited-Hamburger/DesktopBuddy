@@ -1197,6 +1197,12 @@
       "slot": "neck",
       "rarity": "epic",
       "sprite": "neck/cape"
+    },
+    {
+      "id": "duckduckgo-hat",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/duckduckgo-hat"
     }
   ]
 }
