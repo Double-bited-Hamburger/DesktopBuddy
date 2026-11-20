@@ -15,7 +15,8 @@ import { Friends } from './friends'
 import { Home } from './home'
 import { Journey } from './journey'
 import type { Screen } from './menu'
-import { FACT_COUNT, Menu, MenuIcon } from './menu'
+import { FACT_COUNT, Menu, MenuIcon, SCREENS } from './menu'
+import { Play } from './play'
 import { Quests } from './quests'
 import { Settings } from './settings'
 import { Stats } from './stats'
@@ -23,6 +24,9 @@ import { Store } from './store'
 import { Today } from './today'
 
 const dictionaries = { en, it }
+
+/** A screen name from main (the URL hash or `onGo`), if it is one. */
+const screenOf = (name: string): Screen | undefined => SCREENS.find((s) => s === name)
 
 const darkQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
@@ -134,7 +138,8 @@ function App() {
   const [loadout, setLoadout] = useState<Loadout | undefined>()
   const [points, setPoints] = useState<number | undefined>()
   const [language, setLanguage] = useState('en')
-  const [screen, setScreen] = useState<Screen>('home')
+  // Main may open the panel on a screen (the duck menu's Hold a Note… opens Play).
+  const [screen, setScreen] = useState<Screen>(() => screenOf(location.hash.slice(1)) ?? 'home')
   const [store, setStore] = useState<StoreView | undefined>()
   const [theme, setTheme] = useState<Theme>('system')
   const [progression, setProgression] = useState<ProgressionView | undefined>()
@@ -159,7 +164,12 @@ function App() {
       .then((view) => setProgression((shown) => shown ?? view))
       .catch((error) => console.error('Progression failed', error))
     const offProgression = window.buddy.panel.onProgression(setProgression)
+    const offGo = window.buddy.panel.onGo((name) => {
+      const next = screenOf(name)
+      if (next) setScreen(next)
+    })
     return () => {
+      offGo()
       offStore()
       offPoints()
       offProgression()
@@ -243,7 +253,13 @@ function App() {
         <Home t={t} language={language} loadout={loadout} store={store} onGo={setScreen} />
       )}
       {loadout && store && screen === 'bag' && (
-        <Bag t={t} loadout={loadout} owned={new Set(store.owned)} onEquip={equip} />
+        <Bag
+          t={t}
+          loadout={loadout}
+          owned={new Set(store.owned)}
+          onEquip={equip}
+          onWorn={setLoadout}
+        />
       )}
       {loadout && store && screen === 'store' && (
         <Store
@@ -258,6 +274,7 @@ function App() {
       )}
       {store && screen === 'quests' && <Quests t={t} quests={store.quests} />}
       {screen === 'journey' && <Journey t={t} language={language} />}
+      {screen === 'play' && <Play t={t} />}
       {screen === 'friends' && <Friends t={t} />}
       {screen === 'today' && <Today t={t} />}
       {screen === 'stats' && <Stats t={t} language={language} onGo={setScreen} />}

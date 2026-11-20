@@ -129,6 +129,29 @@ export const NOTE_RISE_STEPS = 4
 /** Looking back: it turns its head after this long, and looks ahead again this long before the end. */
 export const LOOK_TURN_MS = 450
 
+// 1.2.0 props and emotes (spots from the artist's placement, right-facing stage top-left).
+/** Fishing: the duck sits 4 px further back, the rod (with its line and puddle) in front. */
+export const FISHING_DUCK_SHIFT = -4
+export const ROD_SPOT: Point = { x: 20, y: 8 }
+/** A catch or a gag item hangs from the line here on `rod-reel`. */
+export const CATCH_SPOT: Point = { x: 32, y: 21 }
+export const LAPTOP_SPOT: Point = { x: 28, y: 28 }
+export const POPCORN_SPOT: Point = { x: 29, y: 21 }
+/** Cocoa and the water cup: held at the chest, tipped up into the beak. */
+export const CUP_SPOT = { held: { x: 26, y: 24 }, sip: { x: 32, y: 13 } } as const
+/** The blanket over a night nap (`sit` and `loaf-2`). */
+export const BLANKET_SPOT: Point = { x: 4, y: 20 }
+export const QUESTION_SPOT: Point = { x: 31, y: 2 }
+export const EXCLAIM_SPOT: Point = { x: 32, y: 2 }
+export const CONFETTI_SPOT: Point = { x: 14, y: 0 }
+/** The laser dot, on the floor in front of the beak. */
+export const LASER_DOT_SPOT: Point = { x: 35, y: 36 }
+/** The note in the beak: its top-left this far from the duck frame's `face` anchor. */
+export const BEAK_NOTE_FROM_FACE: Point = { x: 7, y: 1 }
+/** Party and sparkles last this long. */
+export const CONFETTI_STEP_MS = 250
+export const CONFETTI_MS = 3 * CONFETTI_STEP_MS * 2
+
 /** A sprite placed at a right-facing spot lands here once the duck (and the stage) is mirrored. */
 export function mirroredX(spotX: number, width: number, stageSize: number): number {
   return stageSize - spotX - width
@@ -170,6 +193,20 @@ export const SPOT_SPRITES: readonly { spot: Point; sprite: string }[] = [
   { spot: DUST_SPOT, sprite: 'emotes/dust' },
   { spot: FLOWER_SPOT, sprite: 'toys/flower' },
   { spot: WAND_SPOT, sprite: 'toys/bubble-wand' },
+  { spot: ROD_SPOT, sprite: 'toys/fishing-rod' },
+  { spot: CATCH_SPOT, sprite: 'toys/catches' },
+  { spot: CATCH_SPOT, sprite: 'toys/junk' },
+  { spot: LAPTOP_SPOT, sprite: 'toys/laptop' },
+  { spot: POPCORN_SPOT, sprite: 'toys/popcorn' },
+  { spot: CUP_SPOT.held, sprite: 'toys/cocoa' },
+  { spot: CUP_SPOT.sip, sprite: 'toys/cocoa' },
+  { spot: CUP_SPOT.held, sprite: 'toys/water-cup' },
+  { spot: CUP_SPOT.sip, sprite: 'toys/water-cup' },
+  { spot: BLANKET_SPOT, sprite: 'toys/blanket' },
+  { spot: QUESTION_SPOT, sprite: 'emotes/question' },
+  { spot: EXCLAIM_SPOT, sprite: 'emotes/exclaim' },
+  { spot: CONFETTI_SPOT, sprite: 'emotes/confetti' },
+  { spot: LASER_DOT_SPOT, sprite: 'toys/laser-dot' },
 ]
 
 /**

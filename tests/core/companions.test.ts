@@ -44,7 +44,10 @@ describe('companion bonuses', () => {
     const minis = catalog.items.filter((i) => i.slot === 'friend')
     expect(minis.length).toBeGreaterThanOrEqual(8)
     for (const mini of minis) expect(config.bonus[mini.rarity]).toBeGreaterThan(0)
-    expect(minis.filter((m) => m.motion === 'fly').map((m) => m.id)).toEqual(['mini-ghost'])
+    expect(minis.filter((m) => m.motion === 'fly').map((m) => m.id)).toEqual([
+      'mini-ghost',
+      'mini-paper-plane', // 1.2.0: glides like the ghost
+    ])
   })
 
   it('label', () => {

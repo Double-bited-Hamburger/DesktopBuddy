@@ -7,7 +7,10 @@ import {
   TWIRL_STEP_MS,
 } from '../../core/anim/clips'
 import { msUntilMotionChange } from '../../core/anim/motion'
+import { msUntilFishChange, msUntilLaserChange } from '../../core/anim/play'
 import {
+  CONFETTI_MS,
+  CONFETTI_STEP_MS,
   DIZZY_STEP_MS,
   DUST_STEP_MS,
   LOOK_TURN_MS,
@@ -24,6 +27,7 @@ import { msUntilDreamChange, planDream } from '../../core/behavior/dream'
 import type { BehaviorState } from '../../core/behavior/machine'
 import { trickOf } from '../../core/behavior/machine'
 import { msUntilListenChange } from '../../core/care/listen'
+import { msUntilCosmeticChange } from '../../core/sprite/cosmetics'
 import { HANDFUL_PIECES, isHandful, msUntilBreadChange } from '../../core/toys/bread'
 import { msUntilSmokeChange } from '../../core/toys/cigar'
 import { msUntilCoffeeChange, msUntilPageTurn, ZOOM_SPEED } from '../../core/toys/coffee'
@@ -35,6 +39,7 @@ import type { WalkDirection } from '../../shared/ipc'
 import { msUntilFlower, tendFlower } from './flower'
 import type { DuckPage } from './page'
 import { busy, treatAt, trickPose } from './page'
+import { bellTing, wokeUp } from './play'
 import { fillMotion, render } from './render'
 import { maybeTrickAfterHappy } from './tricks'
 
@@ -95,7 +100,41 @@ const BACK_TO_STARE: ReadonlySet<BehaviorState> = new Set([
   'story',
   'song',
   'twirl',
+  'loaf',
+  'cocoa',
+  'ruffle',
+  'zoomies',
+  'curious',
+  'headbob',
+  'laptop',
+  'popcorn',
 ])
+
+/**
+ * While fishing or chasing the laser (P1), whatever the duck drifts into by itself goes back to
+ * the toy; reactions (a pet, a quack) play first.
+ */
+const BACK_TO_PLAY: ReadonlySet<BehaviorState> = new Set([
+  'idle',
+  'walk',
+  'sleep',
+  'turn',
+  'look',
+  'loaf',
+  'getup',
+  'yawn',
+  'ruffle',
+  'wag',
+  'wink',
+  'curious',
+  'headbob',
+  'laptop',
+  'popcorn',
+  'cocoa',
+])
+
+/** The combo badge shows this long after a hit. */
+export const COMBO_SHOW_MS = 1500
 
 /** The meal is cut short: tell main, so what is left drops and the duck finishes it later. */
 export function dropTreat(page: DuckPage, now: number): void {
@@ -175,6 +214,32 @@ export function schedule(page: DuckPage): void {
   if (machine.state === 'crash' && sinceState < WOBBLE_MS)
     wait = Math.min(wait, msUntilStep(sinceState, SWIRL_STEP_MS))
   if (machine.state === 'turbo') wait = Math.min(wait, msUntilStep(sinceState, SPEED_LINES_STEP_MS))
+  // 1.2.0: fishing's bobber, the laser's skid and pounce, badges, confetti, sparkles, the key.
+  if (page.fish && machine.state === 'fish')
+    wait = Math.min(wait, msUntilFishChange(page.fish.phase, now - page.fish.since))
+  if (page.laser && machine.state === 'laser')
+    wait = Math.min(wait, msUntilLaserChange(page.laser.pose, now - page.laser.since))
+  if (page.combo) {
+    const shown = now - page.combo.since
+    if (shown < COMBO_SHOW_MS) wait = Math.min(wait, COMBO_SHOW_MS - shown)
+    else page.combo = undefined
+  }
+  for (const since of [page.partySince, page.sparklesSince]) {
+    if (since === undefined) continue
+    const t = now - since
+    if (t < CONFETTI_MS) wait = Math.min(wait, msUntilStep(t, CONFETTI_STEP_MS))
+  }
+  if (page.partySince !== undefined && now - page.partySince >= CONFETTI_MS)
+    page.partySince = undefined
+  if (page.sparklesSince !== undefined && now - page.sparklesSince >= CONFETTI_MS)
+    page.sparklesSince = undefined
+  wait = Math.min(
+    wait,
+    msUntilCosmeticChange({
+      sinceWakeMs: page.wokeAt === undefined ? -1 : now - page.wokeAt,
+      items: { back: page.outfits.dressed.back?.id },
+    }),
+  )
   if (page.dustSince !== undefined) {
     const dusty = now - page.dustSince
     if (dusty < DUST_FRAMES * DUST_STEP_MS) wait = Math.min(wait, msUntilStep(dusty, DUST_STEP_MS))
@@ -186,7 +251,8 @@ export function schedule(page: DuckPage): void {
 /** Tells main to start, stop or flip the walk, but only when that actually changes. */
 export function syncWalk(page: DuckPage): void {
   const { machine } = page
-  const racing = machine.state === 'zoom' || machine.state === 'turbo'
+  const racing =
+    machine.state === 'zoom' || machine.state === 'turbo' || machine.state === 'zoomies'
   // A travelling trick says which way and how fast: a moonwalk goes backwards (facing ahead),
   // a victory lap at zoom stride, a parade at a walk.
   const move = trickPose(page, performance.now())
@@ -197,7 +263,7 @@ export function syncWalk(page: DuckPage): void {
     ? move.stride
     : machine.state === 'turbo'
       ? TURBO_SPEED
-      : machine.state === 'zoom'
+      : machine.state === 'zoom' || machine.state === 'zoomies'
         ? ZOOM_SPEED
         : 1
   if (wanted === page.walkingAs && (wanted === 0 || stride === page.walkingStride)) return
@@ -252,11 +318,16 @@ export function tick(page: DuckPage): void {
       machine.listen()
     else if (page.focusing && BACK_TO_STARE.has(machine.state) && machine.state !== 'focus')
       machine.focus()
+    // Fishing or the laser: back to the toy once a reaction is over.
+    if (page.fish && BACK_TO_PLAY.has(machine.state)) machine.enter('fish')
+    else if (page.laser && BACK_TO_PLAY.has(machine.state)) machine.enter('laser')
     if (page.flower) tendFlower(page, now) // a flower grew: sniff it once free
     clock.play(machine.state) // a no-op unless the state changed (by time or by a click)
     clock.advance(dt)
   }
   if (machine.state !== page.shownState) {
+    if (page.shownState === 'sleep' || page.shownState === 'crash') wokeUp(page, now)
+    if (machine.state === 'hop' || machine.state === 'dance') bellTing(page, now)
     page.shownState = machine.state
     page.stateSince = now
     // Rolled once per nap: most naps are dreamless.

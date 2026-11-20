@@ -1,12 +1,16 @@
 import type { WebContents } from 'electron'
 import { BrowserWindow, screen } from 'electron'
-import type { FriendState } from '../core/care/friend'
+import type { FriendState, LeapfrogMini } from '../core/care/friend'
 import {
   besideDuck,
   FRIEND_SPEED,
   friendDuration,
   glide,
   hasReached,
+  LEAP_STEP_MS,
+  LEAPFROG_MS,
+  leapAt,
+  leapLanding,
   MINI_STAGE,
   miniLane,
   miniLaneOf,
@@ -57,6 +61,11 @@ export interface FriendDeps {
   readonly duckAsleep: () => boolean
   /** False on Linux, where forwarded mouse events don't exist: there it can't be picked up. */
   readonly grabbable: boolean
+  /**
+   * It took a step (`decided` false) or picked what to do next (true): main checks whether two
+   * minis are close enough for leapfrog (1.2.0). Cheap: two numbers compared.
+   */
+  readonly moved?: (friend: FriendWindow, decided: boolean) => void
 }
 
 /** A snack the friend is walking over to: `arrive` eats it (false if it went), or it gives up. */
@@ -130,12 +139,62 @@ export class FriendWindow {
    * dancing or eating, napping through something serious, flying, or not out at all.
    */
   fetch(x: number, snack: FriendFetch): boolean {
-    const busy = ['meet', 'dance', 'fetch', 'eat', 'parade'].includes(this.state)
+    const busy = ['meet', 'dance', 'fetch', 'eat', 'parade', 'leap', 'brace', 'cheer'].includes(
+      this.state,
+    )
     if (!this.window || this.flies || busy || this.held || this.falling || this.deps.quiet())
       return false
     this.fetching = snack
     this.goal = x
     this.enter('fetch')
+    return true
+  }
+
+  /** Where it stands and what it does, for leapfrog (undefined while hidden, held or falling). */
+  get spot(): LeapfrogMini | undefined {
+    if (!this.window?.isVisible() || this.flies || this.held || this.falling) return undefined
+    return { middle: this.middle, y: this.y, state: this.state }
+  }
+
+  /**
+   * Leapfrog: jump over the mini whose middle is at `other` (screen px), landing just past it,
+   * then cheer. Main moves the window along the arc on a 12 fps beat for 1.5 s.
+   */
+  leapOver(other: number): boolean {
+    if (!this.spot) return false
+    this.stopTimers()
+    this.state = 'leap'
+    this.direction = towards(this.middle, other)
+    this.tell()
+    const scale = this.deps.scale()
+    const lane = this.lane()
+    const half = this.size / 2
+    const from = this.middle
+    const to = clamp(leapLanding(from, other, scale), lane.minX + half, lane.maxX + half)
+    const floorY = lane.y
+    const start = performance.now()
+    const land = () => {
+      this.y = floorY
+      this.place()
+      this.enter(nextFriendState('leap', Math.random, this.deps.quiet()))
+    }
+    this.steps = setInterval(() => {
+      const at = leapAt(performance.now() - start, from, to, scale)
+      this.x = at.middle - half
+      this.y = floorY - at.lift
+      this.place()
+      if (at.landed) land()
+    }, LEAP_STEP_MS)
+    // In case the beat stalls: it lands anyway.
+    this.decision = setTimeout(land, LEAPFROG_MS + 500)
+    return true
+  }
+
+  /** Leapfrog: duck down while the other mini (middle at `jumper`) jumps over, then cheer. */
+  brace(jumper: number): boolean {
+    if (!this.spot) return false
+    this.direction = towards(this.middle, jumper)
+    this.enter('brace')
     return true
   }
 
@@ -217,6 +276,17 @@ export class FriendWindow {
   }
 
   /** The page belongs to this mini (for the IPC sender checks). */
+  /**
+   * The Quack Jam (1.2.0): it answers your duck with a little hop dance, unless it is busy
+   * (fetching, eating, napping, in a parade, held). False when it didn't.
+   */
+  cheer(): boolean {
+    if (!this.out || this.held) return false
+    if (this.state !== 'idle' && this.state !== 'walk') return false
+    this.enter('dance')
+    return true
+  }
+
   owns(sender: WebContents): boolean {
     return this.window !== undefined && sender === this.window.webContents
   }
@@ -435,6 +505,7 @@ export class FriendWindow {
         this.enter(nextFriendState(state, Math.random, this.deps.quiet(), this.deps.duckAsleep())),
       friendDuration(state, Math.random),
     )
+    if (state === 'idle' || state === 'walk') this.deps.moved?.(this, true)
   }
 
   private tell(): void {
@@ -508,6 +579,7 @@ export class FriendWindow {
     }
     this.y = floor.y // a shorter neighbour: hop up onto its floor
     this.place()
+    if (this.state === 'walk') this.deps.moved?.(this, false)
   }
 
   private place(): void {

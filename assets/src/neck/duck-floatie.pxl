@@ -1,0 +1,28 @@
+# A little rubber-duck pool ring round the waist: a fat glossy yellow tube with a duck head (eye,
+# orange beak) on the front and a tail flick at the back.
+name: duck-floatie
+size: 32x13
+anchor: neck 23 2
+palette:
+  K #2a1f2d
+  Y #f7d84a
+  S #d9a92a
+  W #ffffff
+  O #f2872b
+  D #b8561a
+  E #1e1620
+
+@frame duck-floatie
+................................
+.........................KKKK...
+........................KYWYYK..
+........................KYYYEKKK
+........................KYYYYOOK
+.K.......................KYYYDK.
+KYK......................KYYYK..
+KYYKKKKKKKKKKKKKKKKKKKKKKKYYK...
+KYKYWWWYYYWYYYYYYYYYYYYYYYYK....
+.KYWYYYYYYYYYYYYYYYYYYYYYYYYK...
+.KSYYYYYYYYYYYYYYYYYYYYYYYYSK...
+..KSSSSSSSSSSSSSSSSSSSSSSSSK....
+...KKKKKKKKKKKKKKKKKKKKKKKK.....

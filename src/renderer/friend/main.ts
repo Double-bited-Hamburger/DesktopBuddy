@@ -8,8 +8,18 @@ import type { Frame, RgbaImage, Sprite } from '../../core/sprite/types'
 import { catalog } from '../shared/outfit'
 import { loadSprite, loadSpriteRef } from '../shared/sprites'
 
-/** Pose, and how long to hold it. A pose held forever (a nap) needs no timer. */
-type Step = readonly [pose: string, ms: number]
+/** A little sign over the mini (leapfrog, 1.2.0). */
+type Emote = 'exclaim' | 'heart'
+/** Pose, how long to hold it, and a sign over it. A pose held forever (a nap) needs no timer. */
+type Step = readonly [pose: string, ms: number, emote?: Emote]
+/**
+ * Where each sign goes on the 20×20 stage when the mini faces right (mirrored when it faces
+ * left): the heart sits in the 6 free rows over its head, the tall "!" over its back.
+ */
+const EMOTE_SPOT: Readonly<Record<Emote, { x: number; y: number }>> = {
+  heart: { x: 9, y: 0 },
+  exclaim: { x: 4, y: 0 },
+}
 
 const WALK = 250
 const RUN = 110
@@ -98,6 +108,19 @@ const SEQUENCES: Readonly<Record<FriendState, readonly Step[]>> = {
     ['walk-3', PARADE_STEP_MS],
     ['walk-4', PARADE_STEP_MS],
   ],
+  // Leapfrog: a crouch to spring, then up in the air (main moves the window along the arc).
+  leap: [
+    ['crouch', 150],
+    ['hop', Number.POSITIVE_INFINITY],
+  ],
+  // The other one ducks down while it is jumped over.
+  brace: [['crouch', Number.POSITIVE_INFINITY]],
+  // Both: "!", then a little hop with a heart.
+  cheer: [
+    ['idle', 500, 'exclaim'],
+    ['hop', 300, 'heart'],
+    ['idle', Number.POSITIVE_INFINITY, 'heart'],
+  ],
 }
 
 /** Asleep (on its own, or next to your duck): a zzz floats up once it has sat down. */
@@ -136,8 +159,24 @@ async function main(): Promise<void> {
   let sleepy = false
   let direction: 1 | -1 = 1
   const zzzFrames = (await loadSprite('emotes', 'zzz')).frames
+  const emotes: Readonly<Record<Emote, Frame | undefined>> = {
+    exclaim: (await loadSprite('emotes', 'exclaim')).frames[0],
+    heart: (await loadSprite('emotes', 'heart')).frames[0],
+  }
+  /** The sign over it in this step (leapfrog), if any. */
+  let emote: Emote | undefined
   /** What is on the canvas now, for the hit-test. */
   let shown: RgbaImage | undefined
+
+  /** Puts a sign on the stage after mirroring, so it never reads backwards. */
+  const overlay = (image: RgbaImage, sign: Frame, spot: { x: number; y: number }): RgbaImage => {
+    const stage: Frame = { name: 'stage', anchors: {}, ...image }
+    const x = direction === 1 ? spot.x : MINI_STAGE - spot.x - sign.width
+    return composeLayers(MINI_STAGE, MINI_STAGE, [
+      { frame: stage, offset: { x: 0, y: 0 } },
+      { frame: sign, offset: { x, y: spot.y } },
+    ])
+  }
 
   const draw = (next: string) => {
     pose = next
@@ -145,15 +184,9 @@ async function main(): Promise<void> {
     if (!image) return
     if (direction === -1) image = mirrorX(image)
     const zzz = sleepy && pose === 'sit' ? zzzFrames[zzzStep % zzzFrames.length] : undefined
-    if (zzz) {
-      // Letters go on after mirroring, so they never read backwards.
-      const stage: Frame = { name: 'stage', anchors: {}, ...image }
-      const x = direction === 1 ? ZZZ_SPOT.x : MINI_STAGE - ZZZ_SPOT.x - zzz.width
-      image = composeLayers(MINI_STAGE, MINI_STAGE, [
-        { frame: stage, offset: { x: 0, y: 0 } },
-        { frame: zzz, offset: { x, y: ZZZ_SPOT.y } },
-      ])
-    }
+    if (zzz) image = overlay(image, zzz, ZZZ_SPOT)
+    const sign = emote && emotes[emote]
+    if (emote && sign) image = overlay(image, sign, EMOTE_SPOT[emote])
     shown = image
     ctx.putImageData(
       new ImageData(image.data as Uint8ClampedArray<ArrayBuffer>, image.width, image.height),
@@ -165,6 +198,7 @@ async function main(): Promise<void> {
   const play = (steps: readonly Step[], index: number) => {
     const step = steps[index % steps.length]
     if (!step) return
+    emote = step[2]
     draw(step[0])
     if (Number.isFinite(step[1])) timer = setTimeout(() => play(steps, index + 1), step[1])
   }

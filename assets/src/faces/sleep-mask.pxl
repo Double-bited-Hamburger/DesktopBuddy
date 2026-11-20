@@ -1,0 +1,37 @@
+# A lavender sleep mask with a pixel moon. `sleep-mask-up` is pushed up on the forehead (the eye
+# shows), `sleep-mask-down` is pulled over the eye for a nap. The elastic runs round the back of
+# the head. Both frames share the face anchor.
+name: sleep-mask
+size: 12x11
+anchor: face 8 8
+palette:
+  K #2a1f2d
+  P #6c5ce7
+  L #a29bfe
+  M #ffeaa7
+
+@frame sleep-mask-up
+............
+...KKKKKKK..
+...KLMMPPK..
+..KKLMPPPK..
+.KPKPMMPPK..
+KPK.KKKKKK..
+.K..........
+............
+............
+............
+............
+
+@frame sleep-mask-down
+............
+............
+............
+............
+............
+......KKKKK.
+.KKKKKLLMMPK
+.PPPPKLPMPPK
+.KKKKKLPMMPK
+.....KPPPPPK
+......KKKKK.

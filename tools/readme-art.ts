@@ -236,10 +236,17 @@ async function main(): Promise<void> {
   cells.push(await worn(groups.hats, 'head', 0))
   cells.push(await worn(groups.faces, 'face', 3))
   cells.push(await worn(groups.necks, 'neck', 6))
-  const mini = await load('companions/mini-duck')
-  const miniIdle = frameOf(mini, 'idle')
+  // Back items hang on the neck anchor, as in the game (renderer/shared/outfit.ts).
+  cells.push(await worn(groups.backs, 'neck', 9))
+  // Each mini from its own sheet (1.2.0 brought minis that aren't recolored mini ducks).
+  const miniSheets = new Map<string, Awaited<ReturnType<typeof load>>>()
+  for (const item of groups.minis)
+    if (!miniSheets.has(item.sprite)) miniSheets.set(item.sprite, await load(item.sprite))
   cells.push(
     groups.minis.map((item) => {
+      const mini = miniSheets.get(item.sprite)
+      if (!mini) throw new Error(`no sprite ${item.sprite}`)
+      const miniIdle = frameOf(mini, 'idle')
       const frame = item.palette
         ? recolorFrame(miniIdle, buildRecolorMapping(mini.palette, item.palette))
         : miniIdle

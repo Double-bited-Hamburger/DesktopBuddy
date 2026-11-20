@@ -44,6 +44,7 @@ const GROUPS = [
   'general',
   'sounds',
   'duck',
+  'cozy',
   'names',
   'weather',
   'fullscreen',
@@ -59,6 +60,14 @@ const SEARCH_KEYS: Readonly<Record<GroupId, readonly string[]>> = {
   general: ['settings.language', 'settings.theme', 'settings.size', 'settings.pill'],
   sounds: ['settings.volume', 'settings.mute', 'settings.soundsHint', 'settings.test'],
   duck: [...DUCK_SWITCHES.map((name) => `settings.duck.${name}`), 'settings.snow'],
+  cozy: [
+    'settings.careNudges',
+    'settings.careEvery',
+    'settings.appAwareProps',
+    'settings.musicHeadbob',
+    'settings.cursorCuriosity',
+    'settings.cozyHint',
+  ],
   names: [
     'settings.names.duck',
     'settings.names.you',
@@ -118,6 +127,13 @@ function summary(t: Translator, view: SettingsView, id: GroupId): string {
       const on = DUCK_SWITCHES.filter((name) => view.duck[name]).length
       return t('settings.sum.count', { n: on, of: DUCK_SWITCHES.length })
     }
+    case 'cozy':
+      return t('settings.sum.count', {
+        n: [view.careNudges, view.appAwareProps, view.musicHeadbob, view.cursorCuriosity].filter(
+          Boolean,
+        ).length,
+        of: 4,
+      })
     case 'names':
       return [view.names.duck, view.names.you].filter(Boolean).join(' · ') || '—'
     case 'weather':
@@ -367,6 +383,55 @@ export function Settings({ t, onChange }: SettingsProps) {
             onChange={(e) => set({ snow: e.currentTarget.checked })}
           />
         </label>
+      </Group>
+
+      <Group id="cozy" {...group('cozy')}>
+        <label class="row">
+          <span>{t('settings.careNudges')}</span>
+          <input
+            type="checkbox"
+            checked={view.careNudges}
+            onChange={(e) => set({ careNudges: e.currentTarget.checked })}
+          />
+        </label>
+        <label class="row">
+          <span>{t('settings.careEvery')}</span>
+          <select
+            value={String(view.careNudgeMinutes)}
+            disabled={!view.careNudges}
+            onChange={(e) => set({ careNudgeMinutes: e.currentTarget.value === '60' ? 60 : 45 })}
+          >
+            <option value="45">{t('time.minutes', { m: 45 })}</option>
+            <option value="60">{t('time.minutes', { m: 60 })}</option>
+          </select>
+        </label>
+        <label class="row">
+          <span>{t('settings.appAwareProps')}</span>
+          <input
+            type="checkbox"
+            checked={view.appAwareProps}
+            disabled={!view.appAwareAvailable}
+            onChange={(e) => set({ appAwareProps: e.currentTarget.checked })}
+          />
+        </label>
+        {!view.appAwareAvailable && <p class="muted note">{t('settings.windowsOnlyHint')}</p>}
+        <label class="row">
+          <span>{t('settings.musicHeadbob')}</span>
+          <input
+            type="checkbox"
+            checked={view.musicHeadbob}
+            onChange={(e) => set({ musicHeadbob: e.currentTarget.checked })}
+          />
+        </label>
+        <label class="row">
+          <span>{t('settings.cursorCuriosity')}</span>
+          <input
+            type="checkbox"
+            checked={view.cursorCuriosity}
+            onChange={(e) => set({ cursorCuriosity: e.currentTarget.checked })}
+          />
+        </label>
+        <p class="muted note">{t('settings.cozyHint')}</p>
       </Group>
 
       <Group id="names" {...group('names')}>

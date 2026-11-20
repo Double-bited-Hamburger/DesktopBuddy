@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { FishingConfigSchema } from '../behavior/fishing'
 import { HungerConfigSchema } from '../care/hunger'
 import type { Catalog } from '../catalog/catalog'
 import { GardenConfigSchema } from '../toys/garden'
@@ -60,6 +61,8 @@ export const EconomyConfigSchema = z.object({
   earlyBird: RewardSchema,
   /** A seed left behind after a seed meal grows into a flower (core/toys/garden.ts). */
   garden: GardenConfigSchema,
+  /** Taskbar fishing's loot table (weights sum to 100; points from `sources.fishing`'s cap). */
+  fishing: FishingConfigSchema,
 })
 
 export type EconomyConfig = z.infer<typeof EconomyConfigSchema>
@@ -90,7 +93,17 @@ export function exclusiveIds(economy: EconomyConfig): Set<string> {
 /** Cross-checks economy.json against the catalog (throws: both ship with the app). */
 export function checkEconomy(economy: EconomyConfig, catalog: Catalog): void {
   const ids = new Set(catalog.items.map((item) => item.id))
-  for (const source of ['click', 'pet', 'snack', 'ball', 'bounce', 'flower', 'bubble'])
+  for (const source of [
+    'click',
+    'pet',
+    'snack',
+    'ball',
+    'bounce',
+    'flower',
+    'bubble',
+    'fishing',
+    'laser',
+  ])
     if (!economy.sources[source]) throw new Error(`Point source "${source}" is missing`)
   for (const source of economy.companions.boosted)
     if (!economy.sources[source]) throw new Error(`Boosted source "${source}" is missing`)
@@ -121,6 +134,14 @@ export function checkEconomy(economy: EconomyConfig, catalog: Catalog): void {
   for (const set of economy.albums)
     for (const id of set.items)
       if (!ids.has(id)) throw new Error(`Set "${set.id}" has an unknown item "${id}"`)
+  const weights = economy.fishing.table.reduce((sum, row) => sum + row.weight, 0)
+  if (weights !== 100) throw new Error(`Fishing weights add up to ${weights}, not 100`)
+  const catches = new Set(economy.fishing.table.map((row) => row.id))
+  for (const id of [
+    ...economy.fishing.golden,
+    ...(economy.fishing.seed ? [economy.fishing.seed] : []),
+  ])
+    if (!catches.has(id)) throw new Error(`Fishing names an unknown catch "${id}"`)
   const quests = new Set<string>()
   for (const quest of economy.quests.pool) {
     if (quests.has(quest.id)) throw new Error(`Duplicate quest id "${quest.id}"`)

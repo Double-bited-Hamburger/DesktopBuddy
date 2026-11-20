@@ -12,9 +12,10 @@ import { loadSpriteRef } from '../shared/sprites'
 export function DuckPreview({ loadout, class: className }: { loadout: Loadout; class?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const { skin, hat, face, neck } = loadout
+  const back = loadout.back ?? null
   useEffect(() => {
     let live = true
-    loadDressedDuck({ skin, hat, face, neck })
+    loadDressedDuck({ skin, hat, face, neck, back })
       .then((dressed) => {
         const image = drawDressed(dressed, 'idle')
         const ctx = canvas.current?.getContext('2d')
@@ -29,7 +30,7 @@ export function DuckPreview({ loadout, class: className }: { loadout: Loadout; c
     return () => {
       live = false
     }
-  }, [skin, hat, face, neck])
+  }, [skin, hat, face, neck, back])
   return (
     <canvas
       ref={canvas}

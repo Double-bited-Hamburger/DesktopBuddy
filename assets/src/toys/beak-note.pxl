@@ -1,0 +1,18 @@
+# A small yellow sticky note held in the beak (1.2.0): a reminder the duck carries. No anchor:
+# the code puts its top-left at the duck frame's `face` anchor + (7, 1), so its top edge sits in
+# the beak tip. Mirrored with the duck.
+name: beak-note
+size: 7x6
+palette:
+  K #2a1f2d
+  Y #ffe066
+  S #e6b800
+  L #b89400
+
+@frame beak-note
+.KKKKK.
+KYYYYYK
+KYLLYYK
+KYYYYYK
+KSSSSSK
+.KKKKK.

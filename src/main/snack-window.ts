@@ -46,6 +46,17 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
   onLifted: () => void = () => undefined
   /** The window is gone (taken, or closed by Windows). */
   onGone: () => void = () => undefined
+  /**
+   * Keepy-uppy (the ball, 1.2.0): clicked while in the air. A velocity bats it up again from
+   * where it is; undefined lets the click do what it always did.
+   */
+  airClick: (() => { vx: number; vy: number } | undefined) | undefined
+  /** Each flight frame (screen px, middle of the ball): a velocity sends it up again (a headbutt). */
+  inFlight:
+    | ((x: number, y: number, vy: number) => { vx: number; vy: number } | undefined)
+    | undefined
+  /** It touched the floor (a bounce or the landing). */
+  onFloor: () => void = () => undefined
 
   constructor(kind: K, scale: number, at: { x: number; y: number }, feel?: FlightFeel, offset = 0) {
     this.kind = kind
@@ -64,12 +75,24 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
     return this.resting
   }
 
+  /** Where the window is now (undefined once it is gone). */
+  get bounds(): Rectangle | undefined {
+    return this.win && !this.win.isDestroyed() ? this.win.getBounds() : undefined
+  }
+
   get carried(): boolean {
     return this.followTimer !== undefined
   }
 
   /** The page was clicked: drop/throw it if carried, pick it up if it is lying around. */
   click(): void {
+    if (this.flightTimer && !this.followTimer && this.airClick) {
+      const bat = this.airClick()
+      if (bat) {
+        this.toss(bat.vx, bat.vy)
+        return
+      }
+    }
     if (this.followTimer) this.release()
     else this.carry()
   }
@@ -187,6 +210,11 @@ export class SnackWindow<K extends Snack | 'ball' = Snack> {
       )
       last = now
       state = next
+      if (next.y >= floorY - 0.5) this.onFloor()
+      const up = next.landed
+        ? undefined
+        : this.inFlight?.(next.x + this.size / 2, next.y + this.size / 2, next.vy)
+      if (up) state = { ...next, vx: up.vx, vy: up.vy }
       this.win?.setBounds({
         x: Math.round(next.x),
         y: Math.round(next.y),

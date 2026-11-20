@@ -1,0 +1,25 @@
+# A gold-rimmed monocle round the eye (open glass with a glint, so the eye shows), a haughty
+# raised brow above it and a little gold chain hanging down the throat.
+name: monocle-brow
+size: 8x13
+anchor: face 4 5
+palette:
+  K #2a1f2d
+  G #d4a017
+  Y #ffe066
+  L #c7ecee
+
+@frame monocle-brow
+........
+..KKKK..
+.K......
+..KYYYK.
+.KYL..GK
+.KY...GK
+.KY...GK
+..KGGGK.
+..GKKK..
+..Y.....
+..G.....
+...Y....
+...G....

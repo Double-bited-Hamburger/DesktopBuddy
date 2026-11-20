@@ -1,0 +1,12 @@
+# The laser-pointer dot the duck chases (1.2.0): a hot pink-white core with a red glow round it.
+# It is light, so no dark outline. Never mirrored (it has no facing).
+name: laser-dot
+size: 3x3
+palette:
+  R #ff2a3a
+  W #ffd6dc
+
+@frame laser-dot
+.R.
+RWR
+.R.

@@ -1,0 +1,22 @@
+# A tiny two-leaf seedling growing from the top of the head, a dewdrop glinting on one leaf.
+name: sprout
+size: 11x8
+anchor: head 5 7
+palette:
+  K #2a1f2d
+  D #3f7a2e
+  M #7cc950
+  L #b5e88a
+  B #a8e4ff
+  I #ffffff
+  S #4f8a3a
+
+@frame sprout
+.KKK...KIK.
+KLLMK.KLBMK
+KLMMDKDLMDK
+.KMMDKDMMK.
+..KKDSDKK..
+....KSK....
+....KSK....
+....KSK....

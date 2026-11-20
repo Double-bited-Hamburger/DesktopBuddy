@@ -8,6 +8,7 @@ import { bloom } from './flower'
 import { pause, schedule, syncWalk, wake } from './loop'
 import type { DuckPage } from './page'
 import { behaviorFor, busy, loadOutfits } from './page'
+import { bellTing } from './play'
 import { render, sendShape } from './render'
 import { askedToBlow } from './soap'
 import { askedForTrick } from './tricks'
@@ -288,6 +289,7 @@ export function listen(page: DuckPage): void {
       return
     }
     page.landedAt = performance.now() // a quick squash and a bounce, hurt or not
+    bellTing(page, page.landedAt) // the bell collar tings on landing (1.2.0)
     if (event === 'hurt') {
       machine.hurt() // landed on its bottom: sits dazed for a moment
       sound.play('ouch')

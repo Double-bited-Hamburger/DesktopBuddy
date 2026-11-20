@@ -24,7 +24,8 @@ export type GardenConfig = z.infer<typeof GardenConfigSchema>
 export const GardenSaveSchema = z.object({
   version: z.literal(1),
   /** The seed in the ground, if one stayed behind. */
-  seed: z.object({ plantedAt: z.number().finite() }).optional(),
+  /** `rainy` (1.2.0): planted in the rain, it grows in half the time and blooms with sparkles. */
+  seed: z.object({ plantedAt: z.number().finite(), rainy: z.boolean().optional() }).optional(),
   /** Flowers grown so far (never reset). */
   flowers: z.number().int().nonnegative(),
 })
@@ -46,9 +47,18 @@ export function afterSeedMeal(
   now: number,
   rng: Rng,
   config: GardenConfig,
+  raining = false,
 ): GardenSave {
   if (save.seed || !leavesSeed(rng, config)) return save
-  return { ...save, seed: { plantedAt: now } }
+  return { ...save, seed: raining ? { plantedAt: now, rainy: true } : { plantedAt: now } }
+}
+
+/** Rain helps (1.2.0): a seed planted in the rain grows in half the time. */
+export const RAIN_GROWTH = 0.5
+
+/** How many hours the planted seed needs. */
+export function growHoursFor(save: GardenSave, config: GardenConfig): number {
+  return config.growHours * (save.seed?.rainy ? RAIN_GROWTH : 1)
 }
 
 /**
@@ -58,7 +68,10 @@ export function afterSeedMeal(
 export function bloomDue(save: GardenSave, now: number, config: GardenConfig): boolean {
   const planted = save.seed?.plantedAt
   if (planted === undefined || now < planted) return false
-  return localDayKey(now) > localDayKey(planted) && now - planted >= config.growHours * 3_600_000
+  return (
+    localDayKey(now) > localDayKey(planted) &&
+    now - planted >= growHoursFor(save, config) * 3_600_000
+  )
 }
 
 /** The flower was sniffed: the seed is gone and one more flower is counted. */

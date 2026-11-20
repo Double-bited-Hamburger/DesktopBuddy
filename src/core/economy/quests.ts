@@ -43,6 +43,18 @@ export const QUEST_EVENTS = [
   'trick',
   /** A soap bubble popped with a click (core/toys/bubbles.ts; one per paid-or-not pop). */
   'bubble',
+  // 1.2.0
+  /** Something caught fishing (a gag item from a missed bite doesn't count). */
+  'fish',
+  /** The duck pounced on the laser dot. */
+  'laser',
+  /** A keepy-uppy combo reached 5, and 10 (once per combo each). */
+  'combo-5',
+  'combo-10',
+  /** A note handed to the duck to hold. */
+  'note',
+  /** A rubber-duck debug walkthrough finished. */
+  'debug',
 ] as const
 export type QuestEvent = (typeof QUEST_EVENTS)[number]
 

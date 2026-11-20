@@ -1,7 +1,9 @@
+import { logCatch } from '../core/behavior/fishing'
 import type { Catalog } from '../core/catalog/catalog'
 import type { AchievementStat } from '../core/economy/achievements'
 import { achievementViews, countEvent } from '../core/economy/achievements'
 import type { EconomyConfig } from '../core/economy/config'
+import { cozyDayKey, cozyDaysNow, markCozyDay } from '../core/economy/cozy-streak'
 import { eggOdds, eggReady, hatchEgg, warmEggs } from '../core/economy/eggs'
 import type { LedgerEntry } from '../core/economy/ledger'
 import { localDayKey } from '../core/economy/ledger'
@@ -47,6 +49,8 @@ export interface ProgressionDeps {
   /** Seconds since the last mouse/keyboard input (eggs only warm while someone is there). */
   readonly idleSeconds: () => number
   readonly rng?: Rng
+  /** Outfit presets saved (the `fashion-planner` achievement, 1.2.0). */
+  readonly presets?: () => number
 }
 
 /**
@@ -127,7 +131,54 @@ export class ProgressionService {
       level: this.level(),
       sets: completeSets(this.economy.albums, owned),
       eggs: this.state.counters.eggs ?? 0,
+      'cozy-streak': this.state.cozyStreak.best,
+      presets: this.deps.presets?.() ?? 0,
     }
+  }
+
+  // 1.2.0 keepsakes (progression.json): the log, the best combo, the streak, walkthroughs.
+
+  /** One more catch in the Fisherman's Log. */
+  logCatch(id: string): void {
+    this.state = { ...this.state, fishingLog: logCatch(this.state.fishingLog, id) }
+    this.changed()
+  }
+
+  get fishingLog(): Readonly<Record<string, number>> {
+    return this.state.fishingLog
+  }
+
+  get bestKeepyUppy(): number {
+    return this.state.bestKeepyUppy
+  }
+
+  /** A combo ended or went on: the best is kept (never lowered). */
+  keepyUppy(combo: number): void {
+    if (combo <= this.state.bestKeepyUppy) return
+    this.state = { ...this.state, bestKeepyUppy: combo }
+    this.changed()
+  }
+
+  /** A cozy moment (pet, finished focus, catch): counts the day once. Returns the days now. */
+  cozyMoment(now = Date.now()): number {
+    const today = cozyDayKey(now)
+    const cozyStreak = markCozyDay(this.state.cozyStreak, today)
+    if (cozyStreak !== this.state.cozyStreak) {
+      this.state = { ...this.state, cozyStreak }
+      this.changed()
+    }
+    return cozyStreak.days
+  }
+
+  /** The Cozy Streak as it stands today (0 after a missed day). */
+  get cozyDays(): number {
+    return cozyDaysNow(this.state.cozyStreak, cozyDayKey(Date.now()))
+  }
+
+  /** A rubber-duck debug walkthrough was finished. */
+  debugDone(): void {
+    this.state = { ...this.state, debugWalkthroughs: this.state.debugWalkthroughs + 1 }
+    this.changed()
   }
 
   view(): ProgressionView {

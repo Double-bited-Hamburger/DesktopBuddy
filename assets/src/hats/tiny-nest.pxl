@@ -1,0 +1,24 @@
+# A little woven twig nest with one speckled pastel egg in it. Anchor: top of the head.
+name: tiny-nest
+size: 16x10
+anchor: head 8 9
+palette:
+  K #2a1f2d
+  D #6b4423
+  M #9c6b3b
+  L #c99b63
+  E #a8e6cf
+  e #78c2a8
+  I #ffffff
+
+@frame tiny-nest
+.......KKK......
+......KIEEK.....
+.....KIEEeEK....
+.....KEeEEEK....
+.K..KKEEEeEKK..K
+KLKKLMKKKKKKLKKD
+.KLMDLMLDLMDLMDK
+.KDLMDLMDLMDLMK.
+..KMDDMDDMDDMDK.
+...KKKKKKKKKKKK.

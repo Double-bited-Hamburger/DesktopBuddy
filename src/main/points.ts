@@ -42,6 +42,13 @@ export class PointsService {
     return result
   }
 
+  /** Pays a catch worth `amount` under the source's cooldown and daily cap (fishing). */
+  earnAmount(source: string, amount: number): EarnResult {
+    const result = this.ledger.earnAmount(source, amount)
+    if (result.granted > 0) this.scheduleSave()
+    return result
+  }
+
   /** The whole history (for Home's today and Stats' days). */
   get entries(): readonly LedgerEntry[] {
     return this.ledger.entries

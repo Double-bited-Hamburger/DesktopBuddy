@@ -25,6 +25,10 @@ export const FRIEND_STATES = [
   'snuggle',
   'nap',
   'parade',
+  // 1.2.0 leapfrog: one mini jumps over the other (leap), which ducks down (brace), then both cheer.
+  'leap',
+  'brace',
+  'cheer',
 ] as const
 export type FriendState = (typeof FRIEND_STATES)[number]
 
@@ -48,6 +52,10 @@ const DURATIONS: Readonly<Record<FriendState, readonly [number, number]>> = {
   nap: [120_000, 120_000],
   /** As long as your duck's parade trick. */
   parade: [TRICK_MS.parade, TRICK_MS.parade],
+  leap: [1500, 1500],
+  brace: [1500, 1500],
+  /** "!", then a little hop with a heart. */
+  cheer: [1400, 1400],
 }
 
 /** Multiples of the walking speed. */
@@ -64,6 +72,10 @@ export const FRIEND_SPEED: Readonly<Record<FriendState, number>> = {
   nap: 0,
   /** At most this fast while catching up with its place in the line; then it keeps step. */
   parade: 4,
+  /** Main moves a leaping mini along its arc itself (leapAt). */
+  leap: 0,
+  brace: 0,
+  cheer: 0,
 }
 
 /** What it may pick when idle, and how likely. Mostly resting: every window move costs CPU. */
@@ -177,6 +189,7 @@ export function nextFriendState(
 ): FriendState {
   if (quiet) return 'sleep'
   if (state === 'dance') return 'flee'
+  if (state === 'leap' || state === 'brace') return 'cheer'
   if (state !== 'idle') return 'idle'
   if (duckAsleep && rng() < SNUGGLE_CHANCE) return 'snuggle'
   let roll = rng()
@@ -200,4 +213,63 @@ export function besideDuck(friend: number, duck: number, scale: number): number 
 /** Which way to go to reach `target`. */
 export function towards(from: number, target: number): 1 | -1 {
   return target >= from ? 1 : -1
+}
+
+/**
+ * Mini leapfrog (1.2.0): two walking minis this close (middles, logical px), both just idling or
+ * walking on the same floor, may play it. Main rolls the chance once when they come this close
+ * and at each of their decisions while they stay close, with a cooldown between games.
+ */
+export const LEAPFROG_DISTANCE = 24
+export const LEAPFROG_CHANCE = 0.1
+export const LEAPFROG_COOLDOWN_MS = 3 * 60_000
+export const LEAPFROG_MS = 1500
+/** How high the jumper's arc goes, and how far past the other mini it lands (logical px). */
+export const LEAP_HEIGHT = 14
+export const LEAP_PAST = 12
+/** Main's beat while a mini is in the air (12 fps, like the duck). */
+export const LEAP_STEP_MS = 1000 / 12
+
+/** A mini as leapfrog sees it: its middle and window y (screen px) and what it is doing. */
+export interface LeapfrogMini {
+  readonly middle: number
+  readonly y: number
+  readonly state: FriendState
+}
+
+/** Whether these two minis can play leapfrog now (close, on one floor, idling or walking). */
+export function leapfrogClose(a: LeapfrogMini, b: LeapfrogMini, scale: number): boolean {
+  const free = (m: LeapfrogMini) => m.state === 'idle' || m.state === 'walk'
+  return (
+    free(a) &&
+    free(b) &&
+    Math.abs(a.y - b.y) <= scale &&
+    Math.abs(a.middle - b.middle) <= LEAPFROG_DISTANCE * scale
+  )
+}
+
+/** The roll: the cooldown since the last game (ms timestamps) is over, then a 10% chance. */
+export function mayLeapfrog(now: number, lastAt: number, rng: Rng): boolean {
+  return now - lastAt >= LEAPFROG_COOLDOWN_MS && rng() < LEAPFROG_CHANCE
+}
+
+/** Where the jumper lands (its middle, screen px): just past the other mini, on the far side. */
+export function leapLanding(jumper: number, other: number, scale: number): number {
+  return other + towards(jumper, other) * LEAP_PAST * scale
+}
+
+/**
+ * The jumper `ms` into its leap from middle `from` to middle `to` (screen px): where its middle
+ * is and how far its window is lifted (screen px, whole logical px so it stays crisp). A
+ * parabola: LEAP_HEIGHT up halfway, back on the floor at LEAPFROG_MS.
+ */
+export function leapAt(
+  ms: number,
+  from: number,
+  to: number,
+  scale: number,
+): { middle: number; lift: number; landed: boolean } {
+  const t = Math.min(Math.max(ms / LEAPFROG_MS, 0), 1)
+  const lift = Math.round(4 * LEAP_HEIGHT * t * (1 - t)) * scale
+  return { middle: from + (to - from) * t, lift, landed: t >= 1 }
 }

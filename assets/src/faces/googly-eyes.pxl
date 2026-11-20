@@ -1,0 +1,29 @@
+# Oversized, mismatched googly eyes stuck over the eye: a big one and a small one peeking past
+# the front of the head. `googly-eyes-wobble` has the pupils rattled to another spot.
+name: googly-eyes
+size: 10x8
+anchor: face 3 5
+palette:
+  K #2a1f2d
+  W #ffffff
+  P #1e1e1e
+
+@frame googly-eyes
+......KKK.
+..KKKKWWWK
+.KWWWKWPPK
+KWWWWKWPPK
+KWWWWWKKK.
+KWPPWWK...
+.KPPWK....
+..KKK.....
+
+@frame googly-eyes-wobble
+......KKK.
+..KKKKPPWK
+.KWPPKPPWK
+KWWPPKWWWK
+KWWWWWKKK.
+KWWWWWK...
+.KWWWK....
+..KKK.....

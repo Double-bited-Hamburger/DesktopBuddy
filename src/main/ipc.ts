@@ -1,7 +1,10 @@
 import type { WebContents } from 'electron'
 import { ipcMain } from 'electron'
+import { z } from 'zod'
 import { isTrickId } from '../core/anim/tricks'
+import { PRESET_COUNT, PRESET_NAME_MAX } from '../core/catalog/presets'
 import { FriendsActionSchema } from '../core/friends/actions'
+import { STICKY_NOTE_MAX } from '../core/settings/settings'
 import { ZOOM_SPEED } from '../core/toys/coffee'
 import { TURBO_SPEED } from '../core/toys/quack'
 import type { Snack } from '../core/toys/snacks'
@@ -17,6 +20,7 @@ import type {
   GiftResult,
   HatchResult,
   Loadout,
+  PlayView,
   ProgressionView,
   SettingsView,
   SmokeBarView,
@@ -25,6 +29,7 @@ import type {
   StatsView,
   StoreView,
   TodayView,
+  ToyResult,
   TrickResult,
   UpdateView,
 } from '../shared/ipc'
@@ -38,6 +43,7 @@ import type { FriendWindow } from './friend-window'
 import type { FriendsService } from './friends'
 import type { PanelWindow } from './panel-window'
 import type { PillWindow } from './pill-window'
+import type { PlayService } from './play'
 import type { ProgressService } from './progress'
 import type { ProgressionService } from './progression'
 import type { SettingsControls } from './settings-controls'
@@ -46,6 +52,23 @@ import type { SoapPlay } from './soap-play'
 import type { TalkWindow } from './talk-window'
 import type { TrickControl } from './tricks'
 import type { UpdateService } from './updates'
+
+// 1.2.0 payloads (zod, strict: nothing extra gets through).
+const ToggleSchema = z.strictObject({ enabled: z.boolean() })
+const NoteSchema = z.strictObject({ text: z.string().max(STICKY_NOTE_MAX).nullable() })
+const QuickActionSchema = z.strictObject({ action: z.enum(['toggle-pause', 'add-5m']) })
+const DebugSchema = z.strictObject({ markdown: z.string().max(4000).optional() })
+const SpecsSchema = z.strictObject({ active: z.boolean() })
+const PresetIndex = z
+  .number()
+  .int()
+  .min(0)
+  .max(PRESET_COUNT - 1)
+const PresetSaveSchema = z.strictObject({
+  index: PresetIndex,
+  name: z.string().max(PRESET_NAME_MAX).optional(),
+})
+const PresetWearSchema = z.strictObject({ index: PresetIndex })
 
 interface IpcDeps {
   /** The current config (the loadout changes when items are equipped). */
@@ -107,6 +130,10 @@ interface IpcDeps {
   readonly bubble: BubbleWindow
   /** The mini whose page sent a message, if it is one of the minis out. */
   readonly friendOf: (sender: WebContents) => FriendWindow | undefined
+  /** 1.2.0: fishing, the laser, the jam, Ask the Duck, the note, presets, debug walkthrough. */
+  readonly play: PlayService
+  /** Right-click on the duck: its little menu. */
+  readonly duckMenu: () => void
 }
 
 /**
@@ -147,6 +174,8 @@ export function registerIpc({
   updates,
   bubble,
   friendOf,
+  play,
+  duckMenu,
 }: IpcDeps): void {
   const fromDuck = (sender: WebContents) => sender === duck.window.webContents
   const fromPanel = (sender: WebContents) => sender === panel.webContents
@@ -307,6 +336,104 @@ export function registerIpc({
 
   ipcMain.on(IPC.openPanel, (event) => {
     if (fromDuck(event.sender)) panel.toggle()
+  })
+
+  // Right-click on the duck (1.2.0): its little menu, Open panel first, then the toys.
+  ipcMain.on(IPC.duckMenu, (event) => {
+    if (fromDuck(event.sender)) duckMenu()
+  })
+
+  // 1.2.0. Renderers only ask; PlayService rolls, times, caps and checks everything.
+  const duckOrPanel = (sender: WebContents) => fromDuck(sender) || fromPanel(sender)
+  ipcMain.handle(IPC.fishingStart, (event): ToyResult => {
+    if (!duckOrPanel(event.sender)) throw new Error('Unknown sender')
+    return play.startFishing()
+  })
+  ipcMain.handle(IPC.fishingCancel, (event): ToyResult => {
+    if (!duckOrPanel(event.sender)) throw new Error('Unknown sender')
+    play.stopFishing()
+    return 'ok'
+  })
+  // Duck only: a click while fishing. Main judges the bite window itself.
+  ipcMain.on(IPC.fishingReel, (event) => {
+    if (fromDuck(event.sender)) play.reel()
+  })
+  ipcMain.handle(IPC.laserToggle, (event, payload: unknown): ToyResult => {
+    if (!duckOrPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = ToggleSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('Invalid laser toggle')
+    if (!parsed.data.enabled) {
+      play.stopLaser()
+      return 'ok'
+    }
+    return play.startLaser()
+  })
+  ipcMain.handle(IPC.jamToggle, (event, payload: unknown): ToyResult => {
+    if (!duckOrPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = ToggleSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('Invalid jam toggle')
+    return play.setJam(parsed.data.enabled)
+  })
+  ipcMain.on(IPC.jamTap, (event) => {
+    if (fromDuck(event.sender)) play.jamTap()
+  })
+  ipcMain.handle(IPC.askDuck, (event): ToyResult => {
+    if (!duckOrPanel(event.sender)) throw new Error('Unknown sender')
+    return play.ask()
+  })
+  ipcMain.handle(IPC.playView, (event): PlayView => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    return play.view()
+  })
+  // The note: set from the panel only (text up to 140, or null); cleared from either.
+  ipcMain.handle(IPC.noteSet, (event, payload: unknown): Promise<PlayView> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = NoteSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('Invalid note')
+    return play.setNote(parsed.data.text)
+  })
+  ipcMain.handle(IPC.noteClear, (event): Promise<PlayView> => {
+    if (!duckOrPanel(event.sender)) throw new Error('Unknown sender')
+    return play.clearNote()
+  })
+  ipcMain.on(IPC.noteCopy, (event) => {
+    if (fromDuck(event.sender)) play.copyNote()
+  })
+  ipcMain.on(IPC.duckHover, (event, over: unknown) => {
+    if (fromDuck(event.sender) && typeof over === 'boolean') play.duckHover(over)
+  })
+  ipcMain.on(IPC.bubbleHover, (event, over: unknown) => {
+    if (event.sender === bubble.askingContents && typeof over === 'boolean') play.bubbleHover(over)
+  })
+  ipcMain.on(IPC.focusQuickAction, (event, payload: unknown) => {
+    if (!fromDuck(event.sender)) return
+    const parsed = QuickActionSchema.safeParse(payload)
+    if (parsed.success) play.focusAction(parsed.data.action)
+  })
+  ipcMain.handle(IPC.debugComplete, (event, payload: unknown): void => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = DebugSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('Invalid walkthrough')
+    play.debugComplete(parsed.data.markdown)
+  })
+  ipcMain.on(IPC.debugPreviewSpecs, (event, payload: unknown) => {
+    if (!fromPanel(event.sender)) return
+    const parsed = SpecsSchema.safeParse(payload)
+    if (parsed.success) play.previewSpecs(parsed.data.active)
+  })
+  ipcMain.handle(IPC.presetSave, (event, payload: unknown): Promise<PlayView> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = PresetSaveSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('Invalid preset')
+    return play.savePreset(parsed.data.index, parsed.data.name)
+  })
+  ipcMain.handle(IPC.presetWear, async (event, payload: unknown): Promise<Loadout> => {
+    if (!fromPanel(event.sender)) throw new Error('Unknown sender')
+    const parsed = PresetWearSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('Invalid preset')
+    const loadout = await play.wearPreset(parsed.data.index)
+    if (!loadout) throw new Error('Empty preset')
+    return loadout
   })
 
   ipcMain.on(IPC.panelClose, (event) => {

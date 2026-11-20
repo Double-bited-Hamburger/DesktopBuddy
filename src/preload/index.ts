@@ -14,6 +14,8 @@ import type {
   GiftResult,
   HatchResult,
   Loadout,
+  PlayEvent,
+  PlayView,
   PointsEvent,
   ProgressionView,
   ScreenTimeView,
@@ -22,6 +24,7 @@ import type {
   StatsView,
   StoreView,
   TodayView,
+  ToyResult,
   UpdateView,
   VisitorView,
 } from '../shared/ipc'
@@ -32,8 +35,14 @@ const idOrNull = (value: unknown) => value === null || typeof value === 'string'
 /** A loadout from main: a skin id and hat/face ids or null (main checked them against the catalog). */
 function isLoadout(value: unknown): value is Loadout {
   if (typeof value !== 'object' || value === null) return false
-  const { skin, hat, face, neck } = value as Record<string, unknown>
-  return typeof skin === 'string' && idOrNull(hat) && idOrNull(face) && idOrNull(neck ?? null)
+  const { skin, hat, face, neck, back } = value as Record<string, unknown>
+  return (
+    typeof skin === 'string' &&
+    idOrNull(hat) &&
+    idOrNull(face) &&
+    idOrNull(neck ?? null) &&
+    idOrNull(back ?? null)
+  )
 }
 
 // The duck page loads while main is still loading saves and registering its handlers. On a fast
@@ -147,6 +156,7 @@ const api: BuddyApi = {
             hat: loadout.hat,
             face: loadout.face,
             neck: loadout.neck ?? null,
+            back: loadout.back ?? null,
           })
       }
       ipcRenderer.on(IPC.loadout, handler)
@@ -183,6 +193,19 @@ const api: BuddyApi = {
     },
     blowAnswer: (answer, facing) => ipcRenderer.send(IPC.blowAnswer, answer, facing),
     openPanel: () => ipcRenderer.send(IPC.openPanel),
+    onPlay: (listener) => {
+      // Main builds these; plain data is passed on (structured clone already copied it).
+      const handler = (_event: unknown, play: PlayEvent) => {
+        if (typeof play === 'object' && play !== null && typeof play.kind === 'string')
+          listener(play)
+      }
+      ipcRenderer.on(IPC.play, handler)
+      return () => ipcRenderer.off(IPC.play, handler)
+    },
+    menu: () => ipcRenderer.send(IPC.duckMenu),
+    fishingReel: () => ipcRenderer.send(IPC.fishingReel),
+    jamTap: () => ipcRenderer.send(IPC.jamTap),
+    hover: (over) => ipcRenderer.send(IPC.duckHover, over === true),
   },
   panel: {
     close: () => ipcRenderer.send(IPC.panelClose),
@@ -226,6 +249,34 @@ const api: BuddyApi = {
       },
     },
     hatchEgg: (id): Promise<HatchResult> => ipcRenderer.invoke(IPC.hatchEgg, id),
+    onGo: (listener) => {
+      const handler = (_event: unknown, screen: unknown) => {
+        if (typeof screen === 'string') listener(screen)
+      }
+      ipcRenderer.on(IPC.panelGo, handler)
+      return () => ipcRenderer.off(IPC.panelGo, handler)
+    },
+    play: {
+      view: (): Promise<PlayView> => ipcRenderer.invoke(IPC.playView),
+      onChange: (listener) => {
+        const handler = (_event: unknown, view: PlayView) => listener(view)
+        ipcRenderer.on(IPC.playView, handler)
+        return () => ipcRenderer.off(IPC.playView, handler)
+      },
+      fishing: (on): Promise<ToyResult> =>
+        ipcRenderer.invoke(on ? IPC.fishingStart : IPC.fishingCancel),
+      laser: (on): Promise<ToyResult> => ipcRenderer.invoke(IPC.laserToggle, { enabled: on }),
+      jam: (on): Promise<ToyResult> => ipcRenderer.invoke(IPC.jamToggle, { enabled: on }),
+      ask: (): Promise<ToyResult> => ipcRenderer.invoke(IPC.askDuck),
+      setNote: (text): Promise<PlayView> => ipcRenderer.invoke(IPC.noteSet, { text }),
+      clearNote: (): Promise<PlayView> => ipcRenderer.invoke(IPC.noteClear),
+      savePreset: (index, name): Promise<PlayView> =>
+        ipcRenderer.invoke(IPC.presetSave, { index, name }),
+      wearPreset: (index): Promise<Loadout> => ipcRenderer.invoke(IPC.presetWear, { index }),
+      debugComplete: (markdown): Promise<void> =>
+        ipcRenderer.invoke(IPC.debugComplete, markdown === undefined ? {} : { markdown }),
+      previewSpecs: (active) => ipcRenderer.send(IPC.debugPreviewSpecs, { active }),
+    },
     activity: {
       today: (): Promise<TodayView> => ipcRenderer.invoke(IPC.activityToday),
       stats: (): Promise<StatsView> => ipcRenderer.invoke(IPC.activityStats),
@@ -271,6 +322,7 @@ const api: BuddyApi = {
   },
   bubble: {
     answer: (choice) => ipcRenderer.send(IPC.bubbleAnswer, choice),
+    hover: (over) => ipcRenderer.send(IPC.bubbleHover, over === true),
   },
   talk: {
     typed: () => ipcRenderer.send(IPC.talkTyped),

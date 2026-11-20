@@ -1,0 +1,21 @@
+# A bold question mark over a curious or thinking duck (1.2.0): sky-blue with a dark outline,
+# lit from the top-left. Matches emotes/exclaim. Never mirrored (it is a glyph).
+name: question
+size: 6x10
+palette:
+  K #2a1f2d
+  H #d6f1ff
+  B #7cc6f0
+  D #3f8fcf
+
+@frame question
+.KKKK.
+KHHBBK
+KHKKBK
+KKKBDK
+..KBK.
+..KKK.
+......
+..KKK.
+..KBK.
+..KKK.

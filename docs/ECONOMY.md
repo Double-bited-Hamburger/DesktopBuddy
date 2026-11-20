@@ -413,6 +413,73 @@ point, 0.25 s cooldown, **40 a day**) and counts `bubble` for the quest. Main ch
 against the session's own plan: the soap page of the live session only, a bubble that is out
 now and not popped yet. Up to 40 a day from about four sessions; minis don't multiply it.
 
+### 1.2.0 ("Cozy & Playful", 2026-11-20)
+
+**Two new capped sources** for the "while you're waiting" toys (economy.json `sources`):
+
+| Source | Points | Cooldown | Daily cap | From |
+| --- | --- | --- | --- | --- |
+| `fishing` | by catch (table below) | 3 s | 120 | Taskbar fishing: a click on the duck inside the 2.5 s bite window (+250 ms grace) |
+| `laser` | 2 | 2 s | 80 | Laser pointer: the duck pounces on a dot held still ≥ 0.35 s |
+
+Main owns everything: it rolls the wait, judges the bite window and rolls the catch with its own
+Rng (`PlayService`, core/behavior/fishing.ts); it detects pounces itself on its 12 fps laser beat.
+The pages never send a number. A fishing catch is paid with `PointsLedger.earnAmount` (the rule's
+cooldown and cap, the catch's own points). With these, the play caps add up to **1265 a day**
+(1065 before); the gifts test guard moved from 1100 to 1300.
+
+**Fishing loot table** (`fishing.table`, weights add up to 100, checked by `checkEconomy`; the odds
+are shown in the Fisherman's Log):
+
+| Catch | Weight (%) | Points |
+| --- | --- | --- |
+| pixel-carp | 30 | 4 |
+| shiny-cap | 24 | 5 |
+| tiny-crab | 18 | 6 |
+| rubber-fish | 13 | 8 |
+| golden-clip | 10 | 12 |
+| sunken-seed | 5 | 10, and a free seed is planted (if none is in the ground) |
+
+A missed bite reels up a gag item (soggy boot, tangled seaweed, corrupt floppy): no points, no
+penalty. `golden-clip` and `sunken-seed` count `fish-golden`.
+
+**Keepy-uppy** pays nothing new: kicks still pay `ball`. Main counts airborne hits itself (a click
+on the ball in the air bats it up; the duck headbutts one coming down by its head); the floor
+ends the combo. The best combo is kept in progression.json (`bestKeepyUppy`).
+
+**6 quests:** daily `daily-fish-3` (+45), `daily-laser-5` (+40), `daily-combo-5` (+50, event
+`combo-5` once per combo), `daily-note-1` (+30); weekly `weekly-fish-15` (+180), `weekly-combo-10`
+(+220).
+
+**6 achievements:** `first-catch` (+40), `golden-angler` (+100), `keepy-uppy-15` (unlocks
+`cardboard-jetpack`), `debug-scribe` (unlocks `bsod-duck`), `cozy-streak-7` (unlocks `tiny-nest`),
+`fashion-planner` (3 presets saved, +60). The three unlocks are exclusives: never in boxes, eggs or
+on the shelf.
+
+**3 album sets** (+150 each): `set-retro-dev`, `set-maximum-comfy`, `set-chaos-desk` (it uses the
+existing `traffic-cone`).
+
+**Cozy Streak:** local days in a row with a pet, a finished focus session or a catch
+(progression.json `cozyStreak`, with the best kept for the achievement). A missed day starts it
+over quietly; nothing is ever taken away. At 3 days the duck loafs and sips cocoa more often.
+
+**35 new items** (133 in all): 8 recolor skins, 9 hats (`fishing-hat`, `mushroom-cap` and `sprout`
+replace the spec's `bucket-hat`, `frog-hood` and `traffic-cone`, which already existed), 6 faces,
+4 neckwear, 5 items in the new **back** slot, 3 minis with their own sprites (the paper plane flies
+like the ghost). All but the three exclusives can come from boxes, the shelf and eggs.
+
+**Simulation** (tools/simulate-economy.ts, 12 seeds; the profiles now spend a few minutes a day
+fishing and with the laser: casual 4, normal 8, grinder 30):
+
+| Profile | Collect everything (median) | min–max |
+| --- | --- | --- |
+| casual | 53 days | 46–64 |
+| normal | 33.5 days | 30–39 |
+| grinder | 25 days | 18–28 |
+
+The normal player stays inside the owner's "about a month" target (25–35). Without the new toys
+the extra 32 box items would have pushed it to ~38 days.
+
 ## Saves and data safety
 
 Only main writes saves. The duck page may only _ask_ for `click` and `pet`; play, snacks and
@@ -483,6 +550,7 @@ Names: `quest.<event>`, `stat.<stat>` (stats that aren't quest events), `achieve
 
 ## Not verified
 
+- 1.2.0: fishing, the laser and keepy-uppy were only driven through IPC in a dev build (a real catch was paid and logged); a real mouse on a bite, a pounce and an airborne ball click were not tried, and the 120/80 caps were reached only in tests.
 - Real days of play: the month is a simulation with a modelled player, not a measured one.
 - The panel screens for levels, achievements, sets, stamps and eggs (Stage 7) don't exist yet;
   the new IPC was only typechecked and tested through the core, never called from a page.

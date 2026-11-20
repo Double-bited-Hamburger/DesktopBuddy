@@ -3,7 +3,7 @@ import type { CatalogItem, ItemSlot, Slot } from '../../core/catalog/catalog'
 import { itemsForSlot } from '../../core/catalog/catalog'
 import { multiplierLabel } from '../../core/economy/companions'
 import type { Translator } from '../../core/i18n/i18n'
-import type { CompanionsView, Loadout, SmokeBarView } from '../../shared/ipc'
+import type { CompanionsView, Loadout, PlayView, SmokeBarView } from '../../shared/ipc'
 import { catalog } from '../shared/outfit'
 import { DuckPreview, MiniPreview, RarityLabel, wearing } from './widgets'
 
@@ -12,6 +12,7 @@ const TABS: readonly { slot: ItemSlot; label: string }[] = [
   { slot: 'hat', label: 'bag.hats' },
   { slot: 'face', label: 'bag.faces' },
   { slot: 'neck', label: 'bag.necks' },
+  { slot: 'back', label: 'bag.backs' },
   { slot: 'friend', label: 'bag.friends' },
 ]
 
@@ -79,6 +80,102 @@ function SmokeMeter({ t }: { t: Translator }) {
 }
 
 /**
+ * Outfit presets (1.2.0): five buttons; a click wears one (unowned items stay off), Save keeps
+ * what the duck wears now in the next one you click. Auto-Dress (opt-in) picks one for the night
+ * and one for the rain, and puts your own outfit back for the day.
+ */
+function Presets({ t, onWorn }: { t: Translator; onWorn: (loadout: Loadout) => void }) {
+  const [view, setView] = useState<PlayView | undefined>()
+  const [saving, setSaving] = useState(false)
+  useEffect(() => {
+    window.buddy.panel.play.view().then(setView, () => setView(undefined))
+    return window.buddy.panel.play.onChange(setView)
+  }, [])
+  if (!view) return null
+  const pick = (index: number) => {
+    if (saving) {
+      setSaving(false)
+      window.buddy.panel.play
+        .savePreset(index)
+        .then(setView)
+        .catch((error) => console.error('Save preset failed', error))
+      return
+    }
+    if (!view.presets[index]) return
+    window.buddy.panel.play
+      .wearPreset(index)
+      .then(onWorn)
+      .catch((error) => console.error('Wear preset failed', error))
+  }
+  const setAuto = (patch: Partial<PlayView['autoDress']>) =>
+    window.buddy.panel.settings
+      .set({ autoDress: patch })
+      .then((settings) => setView({ ...view, autoDress: settings.autoDress }))
+      .catch((error) => console.error('Auto-Dress failed', error))
+  const choice = (value: number | null, set: (index: number | null) => void, label: string) => (
+    <label class="preset-pick">
+      <span>{t(label)}</span>
+      <select
+        value={value === null ? '' : String(value)}
+        onChange={(e) => {
+          const raw = (e.currentTarget as HTMLSelectElement).value
+          set(raw === '' ? null : Number(raw))
+        }}
+      >
+        <option value="">{t('bag.none')}</option>
+        {view.presets.map((preset, i) =>
+          preset ? (
+            <option key={String(i)} value={String(i)}>
+              {preset.name}
+            </option>
+          ) : null,
+        )}
+      </select>
+    </label>
+  )
+  return (
+    <div class="presets">
+      <div class="preset-row">
+        <span class="preset-title">{t('bag.presets')}</span>
+        {view.presets.map((preset, i) => (
+          <button
+            key={String(i)}
+            type="button"
+            class={`preset${preset ? '' : ' empty'}${saving ? ' saving' : ''}`}
+            title={preset?.name}
+            disabled={!saving && !preset}
+            onClick={() => pick(i)}
+          >
+            {i + 1}
+          </button>
+        ))}
+        <button type="button" aria-pressed={saving} onClick={() => setSaving(!saving)}>
+          {t('bag.presetSave')}
+        </button>
+      </div>
+      <div class="preset-row">
+        <label class="preset-pick">
+          <input
+            type="checkbox"
+            checked={view.autoDress.enabled}
+            onChange={(e) => setAuto({ enabled: (e.currentTarget as HTMLInputElement).checked })}
+          />
+          <span>{t('bag.autoDress')}</span>
+        </label>
+        {view.autoDress.enabled &&
+          choice(
+            view.autoDress.nightPreset,
+            (i) => setAuto({ nightPreset: i }),
+            'bag.autoDressNight',
+          )}
+        {view.autoDress.enabled &&
+          choice(view.autoDress.rainPreset, (i) => setAuto({ rainPreset: i }), 'bag.autoDressRain')}
+      </div>
+    </div>
+  )
+}
+
+/**
  * The Bag doubles as the collection book: everything in the catalog is listed, owned items can
  * be worn, the rest show as silhouettes with their rarity so progress is visible. The Friends tab
  * lists the mini ducks: up to two come out with your duck, each adding its points bonus.
@@ -88,11 +185,14 @@ export function Bag({
   loadout,
   owned,
   onEquip,
+  onWorn,
 }: {
   t: Translator
   loadout: Loadout
   owned: ReadonlySet<string>
   onEquip: (slot: Slot, id: string | null) => void
+  /** A preset was put on (1.2.0). */
+  onWorn: (loadout: Loadout) => void
 }) {
   const [slot, setSlot] = useState<ItemSlot>('skin')
   const [friends, setFriends] = useState<CompanionsView | undefined>()
@@ -118,6 +218,7 @@ export function Bag({
   return (
     <section class="bag">
       <SmokeMeter t={t} />
+      <Presets t={t} onWorn={onWorn} />
       <div class="tabs" role="tablist">
         {TABS.map((tab) => (
           <button

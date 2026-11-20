@@ -21,13 +21,21 @@ import {
 } from '../../core/anim/clips'
 import type { MotionInput } from '../../core/anim/motion'
 import { motionAt } from '../../core/anim/motion'
+import { fishAt, laserAt } from '../../core/anim/play'
 import {
   ARMCHAIR_SPOT,
+  BEAK_NOTE_FROM_FACE,
+  BLANKET_SPOT,
   BOOK_PAGE_EVERY_MS,
   BOOK_SPOT,
   BOOK_TURN_MS,
   BOOM_SPOT,
   BUZZ_SPOT,
+  CATCH_SPOT,
+  CONFETTI_MS,
+  CONFETTI_SPOT,
+  CONFETTI_STEP_MS,
+  CUP_SPOT,
   DIGIT_ADVANCE,
   DIZZY_SPOT,
   DIZZY_STEP_MS,
@@ -36,6 +44,8 @@ import {
   DUST_SPOT,
   DUST_STEP_MS,
   ESPRESSO_SPOT,
+  EXCLAIM_SPOT,
+  FISHING_DUCK_SHIFT,
   FLAME_STEP_MS,
   FLOWER_SPOT,
   GLINT_SPOT,
@@ -44,6 +54,8 @@ import {
   HEART_SPOT,
   HIC_FROM_HEAD,
   headSpot,
+  LAPTOP_SPOT,
+  LASER_DOT_SPOT,
   LOOK_TURN_MS,
   mirroredX,
   NO_SMOKE_SPOT,
@@ -54,13 +66,16 @@ import {
   PAPER_SPOT,
   PARASOL_SPOT,
   PARASOL_STEP_MS,
+  POPCORN_SPOT,
   POPUP_INSET,
   POPUP_MS,
   POPUP_STEP_MS,
   POPUP_Y,
   PUFF_SPOT,
+  QUESTION_SPOT,
   ROCKET_LIFT_PX,
   ROCKET_SPOT,
+  ROD_SPOT,
   SHOUT_SPOT,
   SNACK_SPOTS,
   SNOW_SPOT,
@@ -79,15 +94,18 @@ import {
   ZZZ_STEP_MS,
 } from '../../core/anim/spots'
 import { TRICK_PIVOT } from '../../core/anim/tricks'
+import { isCozyNight } from '../../core/behavior/cozy'
 import { dreamAt } from '../../core/behavior/dream'
-import type { Direction } from '../../core/behavior/machine'
+import type { BehaviorState, Direction } from '../../core/behavior/machine'
 import { listenAt } from '../../core/care/listen'
-import { needsUmbrella } from '../../core/care/weather'
+import { isRainy, needsUmbrella } from '../../core/care/weather'
 import { composeLayers, mirrorX } from '../../core/sprite/compositor'
+import { resolveCosmeticOverlays } from '../../core/sprite/cosmetics'
 import { opaqueRects } from '../../core/sprite/shape'
 import { flipY, rotateQuarter } from '../../core/sprite/transform'
 import type { Frame, RgbaImage } from '../../core/sprite/types'
-import { STAGE_SIZE } from '../../core/stage'
+import { DUCK_ORIGIN, STAGE_SIZE } from '../../core/stage'
+import { COMBO_BADGE_FROM } from '../../core/toys/ball'
 import { breadAt } from '../../core/toys/bread'
 import { smokeAt } from '../../core/toys/cigar'
 import { coffeeAt, paperAt } from '../../core/toys/coffee'
@@ -109,6 +127,14 @@ interface Layer {
 }
 
 const asFrame = (name: string, image: RgbaImage): Frame => ({ name, anchors: {}, ...image })
+/** Racing states: capes and scarves flutter, the wind-up key spins (core/sprite/cosmetics.ts). */
+const FAST_STATES: ReadonlySet<BehaviorState> = new Set([
+  'run',
+  'zoom',
+  'turbo',
+  'zoomies',
+  'laser',
+])
 const STILL: Point = { x: 0, y: 0 }
 
 /** A right-facing spot's x once the stage is mirrored to face `facing`. */
@@ -307,6 +333,16 @@ export function render(page: DuckPage): void {
   const landed = calm && page.landedAt !== undefined ? now - page.landedAt : -1
   // A trick (core/anim/tricks.ts): its own pose, maybe upside down, turned or nudged.
   const move = calm ? trickPose(page, now) : undefined
+  // 1.2.0: fishing and the laser draw their own poses (core/anim/play.ts).
+  const fishing =
+    calm && page.fish && machine.state === 'fish'
+      ? fishAt(page.fish.phase, now - page.fish.since, page.fish.item)
+      : undefined
+  const chasing =
+    calm && page.laser && machine.state === 'laser'
+      ? laserAt(page.laser.pose, now - page.laser.since, clock.frameName)
+      : undefined
+  const playPose = fishing?.pose ?? chasing?.pose
   const base = page.dragging
     ? alternating(HELD_POSES, moved, HELD_STEP_MS) // dangling, feet kicking
     : floating
@@ -315,7 +351,7 @@ export function render(page: DuckPage): void {
         ? alternating(AIRBORNE_POSES, moved, FLAP_STEP_MS) // flapping wildly
         : landed >= 0 && landed < LAND_MS
           ? LAND_POSE // squashed for a moment on landing
-          : (cup?.pose ?? (talk?.pose ? NOD_POSE : (move?.frame ?? clock.frameName)))
+          : (cup?.pose ?? (talk?.pose ? NOD_POSE : (playPose ?? move?.frame ?? clock.frameName)))
   const pose = (page.tired && TIRED_POSES[base]) || base
   cueSounds(page, pose, calm && cup !== undefined && 'shout' in cup && cup.shout !== undefined)
   if (move !== page.cuedMove) {
@@ -337,8 +373,9 @@ export function render(page: DuckPage): void {
         ? -1
         : 1
       : machine.direction
-  // A trick's nudge is drawn facing right: it mirrors with the duck.
-  const ox = motion.x + (move ? facing * move.offset.x : 0)
+  // A trick's nudge is drawn facing right: it mirrors with the duck. Fishing sits it further back.
+  const ox =
+    motion.x + (move ? facing * move.offset.x : 0) + (fishing ? facing * FISHING_DUCK_SHIFT : 0)
   const oy = motion.y + (move ? move.offset.y : 0)
   const transformed = move !== undefined && (move.flipY || move.turns !== 0)
   // Storytime: the book (a page turns now and then) and a sparkle; the song: a rising note.
@@ -418,11 +455,86 @@ export function render(page: DuckPage): void {
   }
   // Soap bubbles: the wand in its beak while it blows (the bubbles have their own window).
   const blowing = calm && machine.state === 'blow'
+  // 1.2.0 props: cocoa, the water cup, the laptop, popcorn, a night blanket, the note, emotes.
+  const sipNow = clock.frameName === 'savor'
+  const mug =
+    calm && machine.state === 'cocoa'
+      ? { pair: props.cocoa, name: sipNow ? 'cocoa-sip' : 'cocoa', at: sipNow ? 'sip' : 'held' }
+      : calm && machine.state === 'care-water'
+        ? { pair: props.cup, name: sipNow ? 'cup-sip' : 'cup', at: sipNow ? 'sip' : 'held' }
+        : undefined
+  const laptop =
+    calm && machine.state === 'laptop'
+      ? `laptop-${(Math.floor(sinceState / 1000) % 2) + 1}`
+      : undefined
+  const popcorn =
+    calm && machine.state === 'popcorn'
+      ? pose === 'peck'
+        ? 'popcorn-munch'
+        : 'popcorn'
+      : undefined
+  const hour = new Date().getHours()
+  const blanket =
+    sleepingFor >= 0 && (isCozyNight(hour) || page.december)
+      ? pose === 'sit'
+        ? 'blanket-1'
+        : pose === 'loaf-2'
+          ? 'blanket-2'
+          : undefined
+      : undefined
+  const bobNote =
+    calm && machine.state === 'headbob'
+      ? props.notes[Math.floor(sinceState / 1000) % props.notes.length]
+      : undefined
+  const asking =
+    calm && (machine.state === 'think' || machine.state === 'curious' || chasing?.question === true)
+  const biting = calm && fishing?.exclaim === true
+  const dot = calm && machine.state === 'laser' && page.laser?.dot === true
+  const beakBusy =
+    !calm ||
+    treat !== undefined ||
+    mug !== undefined ||
+    blowing ||
+    sipping ||
+    machine.state === 'fish' ||
+    NO_OUTFIT_POSES.has(pose) ||
+    transformed
+  const noteShown = page.note && !beakBusy
+  const comboShown =
+    page.combo && page.combo.value >= COMBO_BADGE_FROM ? `x${page.combo.value}` : undefined
+  const partyStep =
+    page.partySince !== undefined && now - page.partySince < CONFETTI_MS
+      ? Math.floor((now - page.partySince) / CONFETTI_STEP_MS) % props.confetti.length
+      : -1
+  const sparkleStep =
+    page.sparklesSince !== undefined && now - page.sparklesSince < CONFETTI_MS
+      ? Math.floor((now - page.sparklesSince) / CONFETTI_STEP_MS)
+      : -1
+  const overlays = resolveCosmeticOverlays({
+    state: machine.state,
+    nowMs: now,
+    moving:
+      machine.state === 'walk' || machine.state === 'turn'
+        ? 'walk'
+        : FAST_STATES.has(machine.state)
+          ? 'fast'
+          : 'still',
+    airborne: !calm || page.rocket !== undefined,
+    raining: isRainy(page.weather),
+    sinceWakeMs: page.wokeAt === undefined ? -1 : now - page.wokeAt,
+    items: {
+      hat: page.outfits.dressed.hat?.id,
+      face: page.outfits.dressed.face?.id,
+      neck: page.outfits.dressed.neck?.id,
+      back: page.outfits.dressed.back?.id,
+    },
+  })
+  const extraKey = `${JSON.stringify(overlays)}:${JSON.stringify(fishing)}:${JSON.stringify(chasing)}:${mug?.name}:${laptop}:${popcorn}:${blanket}:${bobNote?.name}:${asking}:${biting}:${dot}:${noteShown}:${comboShown}:${partyStep}:${sparkleStep}:${page.devSpecs}`
   // Everything that changes the picture is in the key: an unchanged key skips the redraw.
-  const key = `${blowing}:${bloomed}:${book}:${sparkle?.name}:${note?.name}:${noteRise}:${page.outfitVersion}:${ox}:${oy}:${move?.flipY}:${move?.turns}:${move?.hatOff}:${dream}:${Boolean(hic)}:${swirl?.name}:${shout?.name}:${lines}:${dust}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${newspaper}:${JSON.stringify(cup)}:${talk?.notebook}:${canopy?.name}`
+  const key = `${extraKey}:${blowing}:${bloomed}:${book}:${sparkle?.name}:${note?.name}:${noteRise}:${page.outfitVersion}:${ox}:${oy}:${move?.flipY}:${move?.turns}:${move?.hatOff}:${dream}:${Boolean(hic)}:${swirl?.name}:${shout?.name}:${lines}:${dust}:${wired}:${fizz}:${sipping}:${flake?.name}:${pose}:${facing}:${speaking}:${loved}:${dizzy?.name}:${zzz?.name}:${Boolean(sheltered)}:${declining}:${popup?.text}:${rise}:${treat?.kind}:${snack?.frame}:${snack?.onGround}:${snack?.puff}:${snack?.rise}:${newspaper}:${JSON.stringify(cup)}:${talk?.notebook}:${canopy?.name}`
   if (key === page.lastKey) return
   const offset = ox === motion.x && oy === motion.y ? motion : { x: ox, y: oy }
-  const worn = talk ? page.outfits.specs : page.outfits.dressed
+  const worn = talk ? page.outfits.specs : page.devSpecs ? page.outfits.dev : page.outfits.dressed
   // Upside down, a hat would stick into the floor: it comes off for that pose.
   const outfit = move?.hatOff ? { ...worn, hat: undefined } : worn
   // Preening turns the head back into the wing: glasses would float in front of it.
@@ -434,6 +546,7 @@ export function render(page: DuckPage): void {
         ? { ...outfit, face: undefined }
         : outfit,
     pose,
+    overlays,
   )
   if (!image) return
   page.lastKey = key
@@ -528,6 +641,59 @@ export function render(page: DuckPage): void {
       ESPRESSO_SPOT[tipped ? 'tipped' : 'beak'],
     )
   }
+  // 1.2.0 layers.
+  if (fishing) {
+    place(props.rod, fishing.rod, ROD_SPOT)
+    if (fishing.hanging) place(props.catches, fishing.hanging, CATCH_SPOT)
+  }
+  if (dot && props.laserDot) front(props.laserDot, LASER_DOT_SPOT)
+  if (chasing?.dust) place(props.dust, 'dust-1', DUST_SPOT)
+  if (mug) place(mug.pair, mug.name, CUP_SPOT[mug.at as 'held' | 'sip'])
+  if (mug && mug.at === 'held' && machine.state === 'cocoa')
+    place(props.steam, 'steam-1', STEAM_SPOT)
+  if (laptop) place(props.laptop, laptop, LAPTOP_SPOT)
+  if (popcorn) place(props.popcorn, popcorn, POPCORN_SPOT)
+  if (blanket) place(props.blanket, blanket, BLANKET_SPOT)
+  front(bobNote, NOTES_SPOT, Math.floor(sinceState / 250) % NOTE_RISE_STEPS)
+  if (noteShown) {
+    const face = outfit.duck.frames.find((f) => f.name === pose)?.anchors.face
+    const paper = pick(props.beakNote, 'beak-note')
+    if (face && paper) {
+      // Right-facing spot from the face anchor, mirrored with the duck, then moved with it.
+      const spot = {
+        x: DUCK_ORIGIN.x + face.x + BEAK_NOTE_FROM_FACE.x,
+        y: DUCK_ORIGIN.y + face.y + BEAK_NOTE_FROM_FACE.y,
+      }
+      layers.push({
+        frame: paper,
+        offset: { x: xAt(facing, spot, paper.width) + offset.x, y: spot.y + offset.y },
+      })
+    }
+  }
+  if (sparkleStep >= 0 && bloomed)
+    front(props.sparkle[sparkleStep % props.sparkle.length], { x: 31, y: 24 })
+  if (partyStep >= 0)
+    layers.push({ frame: props.confetti[partyStep] as Frame, offset: CONFETTI_SPOT })
+  // Glyphs read one way: never mirrored, on the side the duck faces.
+  if (asking && props.question)
+    layers.push({
+      frame: props.question,
+      offset: { x: xAt(facing, QUESTION_SPOT, props.question.width), y: QUESTION_SPOT.y },
+    })
+  if (biting && props.exclaim)
+    layers.push({
+      frame: props.exclaim,
+      offset: { x: xAt(facing, EXCLAIM_SPOT, props.exclaim.width), y: EXCLAIM_SPOT.y },
+    })
+  if (comboShown)
+    layers.push(
+      ...popupLayers(
+        page,
+        comboShown,
+        xAt(facing, { x: 24, y: 0 }, comboShown.length * DIGIT_ADVANCE + 1),
+        0,
+      ),
+    )
   // The QUAAACK! is text: never mirrored, on top of everything.
   if (shout) layers.push({ frame: shout, offset: SHOUT_SPOT })
   if (popup && rise !== undefined) {

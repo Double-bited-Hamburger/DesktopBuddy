@@ -1,0 +1,28 @@
+# A cardboard box pulled down over the head: taped top, the darker front face turned away from
+# the light, two cut-out eye holes with a glint of duck inside, and a slot for the beak.
+name: stealth-box
+size: 17x13
+anchor: head 8 4
+palette:
+  K #2a1f2d
+  E #5c3b1e
+  D #8c5e34
+  M #b88450
+  L #d6a674
+  T #ead7ad
+  I #ffffff
+
+@frame stealth-box
+.KKKKKKKKKKKKKKK.
+.KLLLLTTLLLLLLLK.
+.KMMMMTTMMMMEDDK.
+.KMMMMTMMMMMEDDK.
+.KMMMMMMMMMMEDDK.
+.KMMMMMMMMMMEDDK.
+.KMMMMMMMMMMEDDK.
+.KMMMMKIMKIMEDDK.
+.KMMMMKKMKKMEKKK.
+.KMMMMMMMMMMEKKK.
+.KLLMMMMMMMMEKKK.
+KLLLMMMMMMMMEKKKK
+KKKKKKKKKKKKKKKKK

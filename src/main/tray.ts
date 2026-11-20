@@ -2,6 +2,8 @@ import { Menu, nativeImage, Tray } from 'electron'
 import trayHead from '../../assets/baked/ui/tray-head/sheet.png?asset'
 import type { Translator } from '../core/i18n/i18n'
 import type { Snack } from '../core/toys/snacks'
+import type { PlayMenuActions } from './duck-menu'
+import { playMenuItems } from './duck-menu'
 
 interface TrayActions {
   togglePanel(): void
@@ -30,6 +32,8 @@ interface TrayActions {
   quit(): void
   /** The duck's name, shown in the tray tooltip when it has one. */
   duckName?: string
+  /** 1.2.0 toys: fishing, laser, jam, Ask the Duck, the note. */
+  play: PlayMenuActions
 }
 
 /** A bitmap (BGRA) blown up `by` times, every pixel a square block: pixel art stays sharp. */
@@ -78,6 +82,7 @@ export function createTray(t: Translator, actions: TrayActions): Tray {
       { label: t('tray.quack'), click: () => actions.feed('quack') },
       { label: t('tray.ball'), click: actions.throwBall },
       { label: t('tray.bubbles'), click: actions.blowBubbles },
+      { label: t('tray.play'), submenu: playMenuItems(t, actions.play) },
       ...(actions.tricks.length > 0
         ? [
             {

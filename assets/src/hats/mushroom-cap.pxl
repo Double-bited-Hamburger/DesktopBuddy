@@ -1,0 +1,24 @@
+# A round red toadstool cap with white spots, cream gills underneath. Anchor: top of the head.
+name: mushroom-cap
+size: 18x10
+anchor: head 9 7
+palette:
+  K #2a1f2d
+  D #a8323a
+  R #d94a4a
+  L #f07a6a
+  W #fff4e6
+  G #e8d9bf
+  g #c4b394
+
+@frame mushroom-cap
+.....KKKKKKKK.....
+...KKLLWWRRRRKK...
+..KLLWWWRRRRWWRK..
+.KLRRWWRRRRRWWRDK.
+.KRRRRRRRWWRRRRDK.
+KLWWRRRRWWWWRRRRDK
+KRWWRRRRRWWRRRDDDK
+KDDRRRRRRRRRRDDDDK
+.KGGgGGgGGgGGgGGK.
+..KKKKKKKKKKKKKK..

@@ -1,12 +1,18 @@
 import { trickOf } from '../../core/behavior/machine'
 import { alphaAt } from '../../core/sprite/compositor'
+import { DUCK_FRAME_SIZE, DUCK_ORIGIN, STAGE_SIZE } from '../../core/stage'
 import { leaveFlower, onFlower, pickFlower } from './flower'
 import { dropTreat, pause, schedule, wake } from './loop'
 import type { DuckPage } from './page'
+import { busy } from './page'
+import { playClick } from './play'
 import { render } from './render'
 
 /** A press that moves less than this (screen px) before release is a click, not a drag. */
 const CLICK_SLOP_PX = 4
+/** Cursor curiosity: parked this long nearby, or three zig-zags within this long. */
+const CURIOUS_PARK_MS = 1500
+const CURIOUS_FLIPS_MS = 1000
 
 /** Click-through, clicks, petting and dragging. */
 export function handleInput(page: DuckPage): void {
@@ -38,15 +44,64 @@ export function handleInput(page: DuckPage): void {
     })
   }
 
+  /** The cursor resting on the duck opens the note or focus bubble (main decides, 1.2.0). */
+  function tellHover(over: boolean): void {
+    const wanted = over && (page.note || page.focusing)
+    if (wanted === page.toldHover) return
+    page.toldHover = wanted
+    duck.hover(wanted)
+  }
+
+  // Cursor curiosity (1.2.0): only from the mouse moves the window already gets, no timers when
+  // the cursor is elsewhere. Parked nearby for a moment: a curious look; zig-zagging: a hop.
+  let curiousTimer: ReturnType<typeof setTimeout> | undefined
+  let lastX = 0
+  let lastDir = 0
+  let flips: number[] = []
+  const calmEnough = () =>
+    page.curiosity &&
+    !busy(page) &&
+    !page.treat &&
+    (machine.state === 'idle' || machine.state === 'loaf')
+  function curious(e: PointerEvent): void {
+    clearTimeout(curiousTimer)
+    if (!page.curiosity) return
+    const x = stageX(e)
+    const dir = Math.sign(x - lastX)
+    if (dir !== 0 && lastDir !== 0 && dir !== lastDir) {
+      flips = [...flips.filter((t) => e.timeStamp - t < CURIOUS_FLIPS_MS), e.timeStamp]
+      if (flips.length >= 3 && calmEnough()) {
+        flips = []
+        wake(page)
+        machine.enter('hop')
+        wake(page)
+      }
+    }
+    if (dir !== 0) lastDir = dir
+    lastX = x
+    curiousTimer = setTimeout(() => {
+      if (!calmEnough()) return
+      wake(page)
+      machine.face(x >= STAGE_SIZE / 2 ? 1 : -1)
+      machine.enter('curious')
+      wake(page)
+    }, CURIOUS_PARK_MS)
+  }
+
   document.addEventListener('pointermove', (e) => {
     if (page.dragging) return queueDragMove()
     const over = isOverDuck(e)
     setIgnore(!over)
+    tellHover(over)
+    if (!over && e.buttons === 0) curious(e)
+    else clearTimeout(curiousTimer)
     if (!over || e.buttons !== 0 || page.falling) return petting.reset()
     // Stroking back and forth across the duck pets it.
     if (petting.move(e.timeStamp, e.screenX)) {
       wake(page) // catch the machine up to now first, or the time since its last tick eats the pet
-      if (machine.state !== 'happy') sound.play('chirp')
+      // In the jam a stroke strums a little arpeggio instead of the chirp.
+      if (page.jam) sound.play('jam-pet-arp')
+      else if (machine.state !== 'happy') sound.play('chirp')
       machine.pet()
       clock.play(machine.state, true) // leaning into the hand again
       duck.earn('pet')
@@ -87,9 +142,15 @@ export function handleInput(page: DuckPage): void {
     duck.dragEnd()
     const moved = Math.hypot(e.screenX - pressedAt.x, e.screenY - pressedAt.y)
     if (e.type === 'pointerup' && moved < CLICK_SLOP_PX) {
-      machine.quack()
-      sound.play('quack')
-      duck.earn('click')
+      // Where across the duck's frame it was clicked (the jam's note).
+      const ratio = (stageX(e) - DUCK_ORIGIN.x) / DUCK_FRAME_SIZE
+      if (playClick(page, ratio)) {
+        // Fishing: the click reels in (main decides); no quack, no click points.
+      } else {
+        machine.quack()
+        if (!page.jam) sound.play('quack') // in the jam, the note was the sound
+        duck.earn('click')
+      }
     }
     page.lastTick = performance.now() // time held in the hand does not count as idling
     wake(page)
@@ -98,12 +159,14 @@ export function handleInput(page: DuckPage): void {
   document.addEventListener('pointercancel', endDrag)
 
   document.documentElement.addEventListener('pointerleave', () => {
+    clearTimeout(curiousTimer)
+    tellHover(false)
     petting.reset()
     if (!page.dragging) setIgnore(true)
   })
 
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault()
-    if (isOverDuck(e)) duck.openPanel()
+    if (isOverDuck(e)) duck.menu()
   })
 }

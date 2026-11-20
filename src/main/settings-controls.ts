@@ -59,6 +59,13 @@ export class SettingsControls {
         enabled: autostart.enabled(),
       },
       appVersion: app.getVersion(),
+      careNudges: s.careNudges,
+      careNudgeMinutes: s.careNudgeMinutes,
+      appAwareProps: s.appAwareProps,
+      appAwareAvailable: process.platform === 'win32',
+      musicHeadbob: s.musicHeadbob,
+      cursorCuriosity: s.cursorCuriosity,
+      autoDress: s.autoDress,
     }
   }
 

@@ -35,6 +35,16 @@
       "points": 1,
       "cooldownMs": 250,
       "dailyCap": 40
+    },
+    "fishing": {
+      "points": 4,
+      "cooldownMs": 3000,
+      "dailyCap": 120
+    },
+    "laser": {
+      "points": 2,
+      "cooldownMs": 2000,
+      "dailyCap": 80
     }
   },
   "throws": {
@@ -505,6 +515,48 @@
         "event": "handful",
         "target": 5,
         "reward": 250
+      },
+      {
+        "id": "daily-fish-3",
+        "period": "daily",
+        "event": "fish",
+        "target": 3,
+        "reward": 45
+      },
+      {
+        "id": "daily-laser-5",
+        "period": "daily",
+        "event": "laser",
+        "target": 5,
+        "reward": 40
+      },
+      {
+        "id": "daily-combo-5",
+        "period": "daily",
+        "event": "combo-5",
+        "target": 1,
+        "reward": 50
+      },
+      {
+        "id": "daily-note-1",
+        "period": "daily",
+        "event": "note",
+        "target": 1,
+        "reward": 30
+      },
+      {
+        "id": "weekly-fish-15",
+        "period": "weekly",
+        "event": "fish",
+        "target": 15,
+        "reward": 180
+      },
+      {
+        "id": "weekly-combo-10",
+        "period": "weekly",
+        "event": "combo-10",
+        "target": 1,
+        "reward": 220
       }
     ]
   },
@@ -1042,6 +1094,54 @@
         "reward": {
           "box": "ribbon"
         }
+      },
+      {
+        "id": "first-catch",
+        "stat": "fish",
+        "target": 1,
+        "reward": {
+          "points": 40
+        }
+      },
+      {
+        "id": "golden-angler",
+        "stat": "fish-golden",
+        "target": 1,
+        "reward": {
+          "points": 100
+        }
+      },
+      {
+        "id": "keepy-uppy-15",
+        "stat": "combo-15",
+        "target": 1,
+        "reward": {
+          "unlock": "cardboard-jetpack"
+        }
+      },
+      {
+        "id": "debug-scribe",
+        "stat": "debug",
+        "target": 1,
+        "reward": {
+          "unlock": "bsod-duck"
+        }
+      },
+      {
+        "id": "cozy-streak-7",
+        "stat": "cozy-streak",
+        "target": 7,
+        "reward": {
+          "unlock": "tiny-nest"
+        }
+      },
+      {
+        "id": "fashion-planner",
+        "stat": "presets",
+        "target": 3,
+        "reward": {
+          "points": 60
+        }
       }
     ]
   },
@@ -1110,6 +1210,27 @@
       "reward": {
         "unlock": "trick:parade"
       }
+    },
+    {
+      "id": "set-retro-dev",
+      "items": ["crt-terminal", "handheld-dmg", "bsod-duck", "bluelight-specs", "dev-lanyard"],
+      "reward": {
+        "points": 150
+      }
+    },
+    {
+      "id": "set-maximum-comfy",
+      "items": ["patchwork-quilt", "bear-beanie", "sleep-mask", "knit-scarf", "matcha-latte"],
+      "reward": {
+        "points": 150
+      }
+    },
+    {
+      "id": "set-chaos-desk",
+      "items": ["stealth-box", "traffic-cone", "googly-eyes", "duck-floatie", "cardboard-jetpack"],
+      "reward": {
+        "points": 150
+      }
     }
   ],
   "stamps": {
@@ -1148,5 +1269,41 @@
   "garden": {
     "leaveChance": 0.3,
     "growHours": 6
+  },
+  "fishing": {
+    "table": [
+      {
+        "id": "pixel-carp",
+        "weight": 30,
+        "points": 4
+      },
+      {
+        "id": "shiny-cap",
+        "weight": 24,
+        "points": 5
+      },
+      {
+        "id": "tiny-crab",
+        "weight": 18,
+        "points": 6
+      },
+      {
+        "id": "rubber-fish",
+        "weight": 13,
+        "points": 8
+      },
+      {
+        "id": "golden-clip",
+        "weight": 10,
+        "points": 12
+      },
+      {
+        "id": "sunken-seed",
+        "weight": 5,
+        "points": 10
+      }
+    ],
+    "golden": ["golden-clip", "sunken-seed"],
+    "seed": "sunken-seed"
   }
 }

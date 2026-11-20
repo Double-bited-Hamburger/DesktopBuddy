@@ -23,7 +23,7 @@ function app(name: string, local: Partial<LocalStatus> = {}) {
   let settings: FriendsSettings = FriendsSettingsSchema.parse({ relay })
   const status: LocalStatus = {
     name,
-    look: { skin: 'classic', hat: null, face: null, neck: null },
+    look: { skin: 'classic', hat: null, face: null, neck: null, back: null },
     here: true,
     focusing: false,
     song: undefined,

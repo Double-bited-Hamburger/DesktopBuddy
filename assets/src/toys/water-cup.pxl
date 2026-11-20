@@ -1,0 +1,30 @@
+# A small glass of water (1.2.0), for a drink break. Drawn for a duck facing right (duck frame
+# idle): `cup` held, `cup-sip` tipped into the beak. The glass is flat light tints (no partial
+# alpha): an empty pale top, the water darker towards the bottom right.
+name: water-cup
+size: 7x7
+palette:
+  K #2a1f2d
+  W #ffffff
+  g #e2f4fc
+  b #bfe6f5
+  B #6cc0ec
+  D #3f8fcf
+
+@frame cup
+.K....K
+.KWgggK
+.KbbbbK
+.KWBBDK
+.KWBBDK
+..KBDK.
+..KKKK.
+
+@frame cup-sip
+..KK...
+.KbbK..
+KbBBBK.
+.KBBDWK
+..KDggK
+...KgK.
+....K..

@@ -1,0 +1,56 @@
+# A pastel blanket burrito (1.2.0) drawn OVER the napping loaf: blanket-1 over duck frame `sit`,
+# blanket-2 over `loaf-2` (its back a pixel higher as it breathes in). Both go at stage (4,20)
+# (the duck frame at the usual (4,8)). It hugs the loaf one pixel out; only the tail tip, the head
+# with its closed eye and the beak stick out. Lilac with cream dots, a pink trim, lit top-left.
+name: blanket
+size: 27x19
+palette:
+  K #2a1f2d
+  H #ddd2fb
+  L #b9a6ea
+  l #8f7cc8
+  C #fff1d6
+  P #f7b8cf
+  p #d98aa8
+
+@frame blanket-1
+...........................
+............KK.............
+..........KKPPK............
+........KKPPHHPK...........
+......KKPPHHCLHPKKKKKKKKK..
+....KKPPHHLLLLLHPPPPPppppK.
+..KKPPHHLCLLLLLCHHHHHHHHHKK
+.KPPHHLLLLLLLLLLLLLLLLLlK..
+KPHHLLCLLLLLCLLLLLCLLLLLlK.
+KHLLLLLLLLLLLLLLLLLLLLLLlK.
+.KHCLLLLLCLLLLLCLLLLLCLLlK.
+.KHLLLLLLLLLLLLLLLLLLLLLlK.
+.KlLLLCLLLLLCLLLLLCLLLLLlK.
+..KHLLLLLLLLLLLLLLLLLLLlK..
+...KHLLLLCLLLLLCLLLLLClK...
+..KHLLLLLLLLLLLLLLLLLLLlK..
+..KlLLCLLLLLCLLLLLCLLLLlK..
+...KlllllllllllllllllllK...
+....KKKKKKKKKKKKKKKKKKK....
+
+@frame blanket-2
+............KK.............
+..........KKPPK............
+........KKPPHHPK...........
+......KKPPHHLLHPKKKKKKKKK..
+....KKPPHHLLCLLHPPPPPppppK.
+..KKPPHHLLLLLLLLHHHHHHHHHKK
+.KPPHHLLLCLLLLLCLLLLLCLlK..
+KPHHLLLLLLLLLLLLLLLLLLLLlK.
+KHLLLLCLLLLLCLLLLLCLLLLLlK.
+.KHLLLLLLLLLLLLLLLLLLLLLlK.
+.KHCLLLLLCLLLLLCLLLLLCLLlK.
+.KlLLLLLLLLLLLLLLLLLLLLLlK.
+..KHLLCLLLLLCLLLLLCLLLLlK..
+...KHLLLLLLLLLLLLLLLLLlK...
+...KHLLLLCLLLLLCLLLLLClK...
+..KHLLLLLLLLLLLLLLLLLLLlK..
+..KlLLCLLLLLCLLLLLCLLLLlK..
+...KlllllllllllllllllllK...
+....KKKKKKKKKKKKKKKKKKK....

@@ -1,0 +1,21 @@
+# A bold exclamation mark (1.2.0): sunny yellow with a dark outline, lit from the top-left.
+# Matches emotes/question. Never mirrored.
+name: exclaim
+size: 4x10
+palette:
+  K #2a1f2d
+  L #fff6b0
+  Y #f7d84a
+  y #c99a22
+
+@frame exclaim
+KKKK
+KLYK
+KLYK
+KYYK
+KYyK
+.KK.
+....
+KKKK
+KYyK
+KKKK

@@ -1197,6 +1197,327 @@
       "slot": "neck",
       "rarity": "epic",
       "sprite": "neck/cape"
+    },
+    {
+      "id": "crt-terminal",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#07120a",
+        "E": "#8ff0a4",
+        "I": "#e6ffe9",
+        "H": "#1c4a2b",
+        "A": "#0f2416",
+        "W": "#0f2416",
+        "S": "#09170e",
+        "C": "#1c4a2b",
+        "G": "#123020",
+        "V": "#33d17a",
+        "T": "#163a22",
+        "O": "#33d17a",
+        "D": "#1f9a52"
+      }
+    },
+    {
+      "id": "handheld-dmg",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#0f380f",
+        "E": "#0f380f",
+        "I": "#9bbc0f",
+        "H": "#9bbc0f",
+        "A": "#8bac0f",
+        "W": "#8bac0f",
+        "S": "#306230",
+        "C": "#9bbc0f",
+        "G": "#8bac0f",
+        "V": "#306230",
+        "T": "#8bac0f",
+        "O": "#306230",
+        "D": "#0f380f",
+        "P": "#306230",
+        "Y": "#9bbc0f"
+      }
+    },
+    {
+      "id": "bsod-duck",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#002659",
+        "E": "#002659",
+        "H": "#7cc4ff",
+        "A": "#0078d4",
+        "W": "#0078d4",
+        "S": "#0050b8",
+        "C": "#ffffff",
+        "G": "#0068c0",
+        "V": "#0050b8",
+        "T": "#0078d4",
+        "O": "#ffffff",
+        "D": "#c8dcf0"
+      }
+    },
+    {
+      "id": "patchwork-quilt",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#2a1f2d",
+        "H": "#e57a76",
+        "A": "#d9534f",
+        "W": "#f0c9a0",
+        "S": "#c9a07a",
+        "C": "#f7efe2",
+        "G": "#5cb85c",
+        "V": "#3d8a3d",
+        "T": "#5bc0de",
+        "O": "#f0ad4e",
+        "D": "#c07f22"
+      }
+    },
+    {
+      "id": "matcha-latte",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffffff",
+        "A": "#fff8ee",
+        "W": "#7eb36a",
+        "S": "#4a7c44",
+        "C": "#d8e8c8",
+        "G": "#6fa45c",
+        "V": "#4a7c44",
+        "T": "#7eb36a",
+        "O": "#b8895a",
+        "D": "#8a6238"
+      }
+    },
+    {
+      "id": "origami-paper",
+      "slot": "skin",
+      "rarity": "uncommon",
+      "sprite": "ducks/duck",
+      "palette": {
+        "H": "#ffffff",
+        "A": "#f2ede2",
+        "W": "#f2ede2",
+        "S": "#cfc6b4",
+        "C": "#faf7f0",
+        "G": "#e4ddcf",
+        "V": "#a89f8e",
+        "T": "#e4ddcf",
+        "O": "#e0a96d",
+        "D": "#b07a42"
+      }
+    },
+    {
+      "id": "lofi-dusk",
+      "slot": "skin",
+      "rarity": "rare",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#3b2654",
+        "H": "#ffe08a",
+        "A": "#f4a261",
+        "W": "#d96b6b",
+        "S": "#7a3b69",
+        "C": "#f4a261",
+        "G": "#7a3b69",
+        "V": "#3b2654",
+        "T": "#d96b6b",
+        "O": "#ffe08a",
+        "D": "#c99a3a"
+      }
+    },
+    {
+      "id": "midnight-ink",
+      "slot": "skin",
+      "rarity": "common",
+      "sprite": "ducks/duck",
+      "palette": {
+        "K": "#11122a",
+        "E": "#f7d84a",
+        "H": "#a9b4e8",
+        "A": "#2b2d5c",
+        "W": "#2b2d5c",
+        "S": "#1b1d3d",
+        "C": "#5c639c",
+        "G": "#363a72",
+        "V": "#1b1d3d",
+        "T": "#2b2d5c",
+        "O": "#f7d84a",
+        "D": "#c9a52a"
+      }
+    },
+    {
+      "id": "bear-beanie",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/bear-beanie"
+    },
+    {
+      "id": "fishing-hat",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/fishing-hat"
+    },
+    {
+      "id": "mushroom-cap",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/mushroom-cap"
+    },
+    {
+      "id": "sprout",
+      "slot": "hat",
+      "rarity": "uncommon",
+      "sprite": "hats/sprout"
+    },
+    {
+      "id": "paper-boat",
+      "slot": "hat",
+      "rarity": "common",
+      "sprite": "hats/paper-boat"
+    },
+    {
+      "id": "studio-headphones",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/studio-headphones"
+    },
+    {
+      "id": "tiny-nest",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/tiny-nest"
+    },
+    {
+      "id": "loading-halo",
+      "slot": "hat",
+      "rarity": "epic",
+      "sprite": "hats/loading-halo"
+    },
+    {
+      "id": "stealth-box",
+      "slot": "hat",
+      "rarity": "rare",
+      "sprite": "hats/stealth-box"
+    },
+    {
+      "id": "sleep-mask",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/sleep-mask"
+    },
+    {
+      "id": "bluelight-specs",
+      "slot": "face",
+      "rarity": "common",
+      "sprite": "faces/bluelight-specs"
+    },
+    {
+      "id": "monocle-brow",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/monocle-brow"
+    },
+    {
+      "id": "googly-eyes",
+      "slot": "face",
+      "rarity": "common",
+      "sprite": "faces/googly-eyes"
+    },
+    {
+      "id": "starry-eyes",
+      "slot": "face",
+      "rarity": "rare",
+      "sprite": "faces/starry-eyes"
+    },
+    {
+      "id": "retro-3d-glasses",
+      "slot": "face",
+      "rarity": "uncommon",
+      "sprite": "faces/retro-3d-glasses"
+    },
+    {
+      "id": "knit-scarf",
+      "slot": "neck",
+      "rarity": "common",
+      "sprite": "neck/knit-scarf"
+    },
+    {
+      "id": "dev-lanyard",
+      "slot": "neck",
+      "rarity": "common",
+      "sprite": "neck/dev-lanyard"
+    },
+    {
+      "id": "bell-collar",
+      "slot": "neck",
+      "rarity": "uncommon",
+      "sprite": "neck/bell-collar"
+    },
+    {
+      "id": "duck-floatie",
+      "slot": "neck",
+      "rarity": "rare",
+      "sprite": "neck/duck-floatie"
+    },
+    {
+      "id": "windup-key",
+      "slot": "back",
+      "rarity": "rare",
+      "sprite": "back/windup-key"
+    },
+    {
+      "id": "tiny-backpack",
+      "slot": "back",
+      "rarity": "common",
+      "sprite": "back/tiny-backpack"
+    },
+    {
+      "id": "bee-wings",
+      "slot": "back",
+      "rarity": "uncommon",
+      "sprite": "back/bee-wings"
+    },
+    {
+      "id": "giant-pencil",
+      "slot": "back",
+      "rarity": "uncommon",
+      "sprite": "back/giant-pencil"
+    },
+    {
+      "id": "cardboard-jetpack",
+      "slot": "back",
+      "rarity": "epic",
+      "sprite": "back/cardboard-jetpack"
+    },
+    {
+      "id": "mini-paper-plane",
+      "slot": "friend",
+      "rarity": "uncommon",
+      "sprite": "companions/mini-paper-plane",
+      "motion": "fly"
+    },
+    {
+      "id": "mini-roomba",
+      "slot": "friend",
+      "rarity": "rare",
+      "sprite": "companions/mini-roomba"
+    },
+    {
+      "id": "mini-bath-duck",
+      "slot": "friend",
+      "rarity": "common",
+      "sprite": "companions/mini-bath-duck"
     }
   ]
 }

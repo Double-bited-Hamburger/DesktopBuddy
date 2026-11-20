@@ -6,7 +6,7 @@ points when you pet and play with it or finish quests, and spends them in a stor
 focus tracking (Today/Stats), Settings with chip sounds, and a Windows installer. Friends comes
 last. It must stay **cheap on CPU and RAM**.
 
-Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **1.1.1** (released 2026-11-19: the flower is bigger, announced, and stays until clicked; 1.1.0 released 2026-11-17: 27 new items, tricks, flowers, soap bubbles; 1.0.1 Linux startup fix and 1.0.0 released 2026-11-12).
+Repo: <https://github.com/Double-bited-Hamburger/DesktopBuddy> (branch `main`). Version **1.2.0** ("Cozy & Playful", built 2026-11-20, not released yet: 35 items, a back slot, fishing, laser, keepy-uppy, Quack Jam, note, outfit presets, care nudges; 1.1.1 released 2026-11-19: the flower is bigger, announced, and stays until clicked; 1.1.0 released 2026-11-17: 27 new items, tricks, flowers, soap bubbles; 1.0.1 Linux startup fix and 1.0.0 released 2026-11-12).
 
 **Non-goals:** no paywalls or locked "wishlist" features, no real-money anything, no telemetry, no
 network unless the user asks (Check for updates, the opt-in daily check, or later Friends), no dark
@@ -34,6 +34,7 @@ patterns (pressure timers, hidden odds).
 | 1.0 | One big release: real duck, livelier animations, seeds, economy 2.0 (Journey: levels, achievements, sets, stamps, eggs), neck slot, panel polish, first run, snow/mute/hide | ✅ released 2026-11-12 (docs/ROADMAP.md "1.0.0" sections) |
 | 9 | Friends: encrypted, opt-in, Cloudflare relay (relay/, docs/FRIENDS.md) | ✅ in 1.0.0; relay deployed on the owner's Cloudflare account |
 | 1.1 | 20 skins (programmer, food, a seasonal one per month), 7 accessories + back layer (cape), real tricks (Journey/tray/random, parade with minis), seed → flower, soap bubbles | ✅ released 2026-11-17 (docs/ROADMAP.md "1.1.0"); not tried in the app by the owner yet |
+| 1.2 | "Cozy & Playful": 35 items + back slot, cosmetic synergies, 15 new states, fishing, laser, keepy-uppy, Quack Jam, Ask the Duck, sticky note, presets + Auto-Dress, debug 2.0, care nudges, focus mini-bar, smart context, Cozy Streak; right-click duck menu, Play Pond screen | 🟡 built 2026-11-20 (docs/ROADMAP.md "1.2.0"); needs the owner's eyes, ears and mouse, a perf pass, release |
 
 The full checklist, with what was and wasn't verified, is [docs/ROADMAP.md](docs/ROADMAP.md).
 What's next after 1.0.0: feedback from players and the Linux testers, Friends between real PCs,

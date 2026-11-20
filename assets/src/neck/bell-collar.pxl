@@ -1,0 +1,24 @@
+# A soft red ribbon collar with a tiny gold bell hanging at the front of the throat.
+name: bell-collar
+size: 13x11
+anchor: neck 9 2
+palette:
+  K #2a1f2d
+  R #d63031
+  r #9e2223
+  Y #f1c40f
+  L #fff3a1
+  d #b8920c
+
+@frame bell-collar
+.KKKKKKKKKKK.
+KRRRRRRRRRRRK
+KrrrrrrrrrrrK
+.KKKKKKKKKKK.
+........KK...
+.......KLYK..
+......KLYYdK.
+......KYYYdK.
+......KddddK.
+.......KKKK..
+........K....

@@ -1,0 +1,20 @@
+# White cardboard 3D glasses: the near lens cyan over the eye, a sliver of the far red lens
+# showing past the front of the head, the flat arm running back.
+name: retro-3d-glasses
+size: 14x6
+anchor: face 8 4
+palette:
+  K #2a1f2d
+  W #ffffff
+  G #d9d4cc
+  C #00b4d8
+  c #7fdcef
+  R #e63946
+
+@frame retro-3d-glasses
+.....KKKKKKKK.
+KKKKKKWWWWWWWK
+WWWWWKWcCCWRWK
+KKKKKKWCCCWRK.
+......KWWWWWK.
+.......KKKKK..

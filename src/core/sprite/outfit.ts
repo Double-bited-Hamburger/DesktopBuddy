@@ -21,9 +21,18 @@ export const BACK_SUFFIX = '-back'
 /**
  * Picks an accessory's frames from its sheet: the first frame that is not a back frame, plus the
  * frame named `<that name>-back` when the sheet has one. Undefined for an empty sheet.
+ * `variant` (a cosmetic synergy, core/sprite/cosmetics.ts) picks a named frame instead, when the
+ * sheet has it.
  */
-export function pickAccessoryFrames(frames: readonly Frame[]): AccessoryFrames | undefined {
-  const frame = frames.find((f) => !f.name.endsWith(BACK_SUFFIX))
+export function pickAccessoryFrames(
+  frames: readonly Frame[],
+  variant?: string,
+): AccessoryFrames | undefined {
+  const named =
+    variant !== undefined && !variant.endsWith(BACK_SUFFIX)
+      ? frames.find((f) => f.name === variant)
+      : undefined
+  const frame = named ?? frames.find((f) => !f.name.endsWith(BACK_SUFFIX))
   if (!frame) return undefined
   const back = frames.find((f) => f.name === `${frame.name}${BACK_SUFFIX}`)
   return back ? { frame, back } : { frame }

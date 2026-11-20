@@ -1,0 +1,20 @@
+# A ribbed brown knit beanie with two round bear ears. Anchor: where the top of the head sits.
+name: bear-beanie
+size: 15x9
+anchor: head 7 6
+palette:
+  K #2a1f2d
+  D #7a4f32
+  M #a6724c
+  L #d9b08c
+
+@frame bear-beanie
+.KKK.......KKK.
+KMLMK.....KMLDK
+KMLLKKKKKKKLLDK
+.KMMLLMMMMMMDK.
+.KLMMMMMMMMMDK.
+KLMMMMMMMMMMMDK
+KMDMDMDMDMDMDMK
+KMDMDMDMDMDMDMK
+KKKKKKKKKKKKKKK

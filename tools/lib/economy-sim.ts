@@ -1,3 +1,4 @@
+import { rollCatch } from '../../src/core/behavior/fishing'
 import type { Catalog, Rarity } from '../../src/core/catalog/catalog'
 import { RARITIES } from '../../src/core/catalog/catalog'
 import type { AchievementStat } from '../../src/core/economy/achievements'
@@ -77,9 +78,20 @@ export interface Profile {
    * seed that blooms into a flower on a later day (`garden`, the one-time `flower` source).
    */
   readonly seedMeals: number
+  /**
+   * 1.2.0: minutes a day of the "while you're waiting" toys, half fishing and half the laser
+   * (both capped: `fishing` and `laser` in economy.json).
+   */
+  readonly waitingMinutes: number
   /** Other things done a day, for achievements (naps, coffee, outfit changes…). */
   readonly extras: Readonly<Partial<Record<QuestEvent, number>>>
 }
+
+/** A cast takes ~10 s from flick to the next flick; a human clicks most bites in time. */
+const CASTS_PER_MINUTE = 6
+const BITES_CAUGHT = 0.8
+/** The laser: a pounce every few seconds. */
+const POUNCES_PER_MINUTE = 15
 
 export const PROFILES: readonly Profile[] = [
   {
@@ -94,6 +106,7 @@ export const PROFILES: readonly Profile[] = [
     freeGifts: 1,
     bubbleSessions: 1,
     seedMeals: 0,
+    waitingMinutes: 4,
     extras: { nap: 1, equip: 1 },
   },
   {
@@ -108,6 +121,7 @@ export const PROFILES: readonly Profile[] = [
     freeGifts: 2,
     bubbleSessions: 2,
     seedMeals: 1,
+    waitingMinutes: 8,
     extras: { nap: 2, coffee: 1, equip: 2, float: 1, friend: 1 },
   },
   {
@@ -122,6 +136,7 @@ export const PROFILES: readonly Profile[] = [
     freeGifts: 5,
     bubbleSessions: 4,
     seedMeals: 2,
+    waitingMinutes: 30,
     extras: { nap: 4, coffee: 3, equip: 5, float: 3, friend: 2, talk: 1, rocket: 0 },
   },
 ]
@@ -302,6 +317,26 @@ export function simulate(
         quests.record('bubble')
         ledger.earn('bubble')
       }
+
+    // 1.2.0: fishing (rolled catches, capped) and the laser (pounces, capped).
+    const casts = Math.round((CASTS_PER_MINUTE * profile.waitingMinutes) / 2)
+    for (let i = 0; i < casts; i++) {
+      now += Math.round(60_000 / CASTS_PER_MINUTE)
+      if (rng() >= BITES_CAUGHT) continue
+      const caught = rollCatch(economy.fishing.table, rng)
+      count('fish')
+      quests.record('fish')
+      if (economy.fishing.golden.includes(caught.id)) count('fish-golden')
+      ledger.earnAmount('fishing', caught.points)
+    }
+    const pounces = Math.round((POUNCES_PER_MINUTE * profile.waitingMinutes) / 2)
+    for (let i = 0; i < pounces; i++) {
+      now += Math.round(60_000 / POUNCES_PER_MINUTE)
+      if (ledger.earn('laser').granted > 0) {
+        count('laser')
+        quests.record('laser')
+      }
+    }
 
     // The garden: a seed left behind by an earlier day's seed meal blooms (the duck sniffs it).
     if (bloomDue(garden, now, economy.garden)) {

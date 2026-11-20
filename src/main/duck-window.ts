@@ -10,7 +10,7 @@ import {
   opensUmbrella,
   releaseVelocity,
 } from '../core/flight'
-import { duckCenterX, floorAt } from '../core/floor'
+import { duckCenterX, floorAt, isOuterEdge } from '../core/floor'
 import { isValidShape } from '../core/sprite/shape'
 import type { FloorBounds } from '../core/stage'
 import {
@@ -55,6 +55,11 @@ const RUN_FRAME_MS = 1000 / 30
 const MAX_JUMPS = 2
 /** Pause after a landing before setting off again (longer after a painful one). */
 const RESUME_MS = { land: 250, hurt: 2300 } as const
+/** Edge-peek (1.2.0): how far past an outer edge it steps (logical px), in steps, and how long. */
+const PEEK_PX = 12
+const PEEK_STEPS = 3
+const PEEK_STEP_MS = 170
+const PEEK_HOLD_MS = 2200
 
 /**
  * The always-on-top transparent window the duck lives in. It is tiny (the stage), so moving it
@@ -110,6 +115,14 @@ export class DuckWindow {
   onPageBack: () => void = () => undefined
   /** Called when the duck reaches the snack it was chasing. */
   onCaught: () => void = () => undefined
+  /** Picked up by the user (1.2.0: ends fishing and the laser, P0). */
+  onGrab: () => void = () => undefined
+  /**
+   * Edge-peek (1.2.0): asked when a walking duck reaches an OUTER edge of the desktop (never a
+   * seam between monitors); true lets it step past and peek back in.
+   */
+  mayPeek: () => boolean = () => false
+  private peekTimer: ReturnType<typeof setTimeout> | undefined
   /** A snack lying on a floor that the duck is going for. */
   private target: SnackSpot | undefined
   private runTimer: ReturnType<typeof setInterval> | undefined
@@ -196,6 +209,8 @@ export class DuckWindow {
   }
 
   dragStart(): void {
+    this.stopPeek()
+    this.onGrab()
     this.endRocket(false) // grabbed on purpose: the show simply ends
     this.walk(0) // held in the hand: the renderer restarts the walk after the drop
     this.stopRun() // a chase resumes after the drop
@@ -272,8 +287,10 @@ export class DuckWindow {
       this.stepPx * this.walkStride * this.scale,
       this.floor,
     )
+    const going = this.walkDirection
     this.x = next.x
     this.walkDirection = next.direction
+    if (next.turned && this.tryPeek(going)) return
     if (next.turned) this.window.webContents.send(IPC.turned, next.direction)
 
     // Crossing onto another monitor can change the floor height under the duck.
@@ -285,6 +302,93 @@ export class DuckWindow {
     }
     this.y = this.floor.y // a shorter neighbour: hop up onto its floor
     this.place()
+  }
+
+  /**
+   * At the end of the floor: an outer edge of the desktop (no monitor joined there) may get a
+   * peek. It steps a little past the edge (the screen clips it), the page shows its head poking
+   * back in, then it steps back and the page turns it round. Main's walk is off meanwhile.
+   */
+  private tryPeek(side: 1 | -1): boolean {
+    const edgeX = side === 1 ? this.x + this.size : this.x
+    const footY = this.y + this.size - FLOOR_INSET * this.scale - 1
+    if (!isOuterEdge(this.areas, edgeX, side, footY) || !this.mayPeek()) return false
+    clearInterval(this.walkTimer)
+    this.walkTimer = undefined
+    const home = this.x
+    const stepPx = (PEEK_PX * this.scale) / PEEK_STEPS
+    this.window.webContents.send(IPC.play, { kind: 'peek', on: true })
+    let steps = 0
+    const out = (): void => {
+      steps++
+      this.x = home + side * stepPx * steps
+      this.place()
+      this.peekTimer =
+        steps < PEEK_STEPS ? setTimeout(out, PEEK_STEP_MS) : setTimeout(back, PEEK_HOLD_MS)
+    }
+    const back = (): void => {
+      steps--
+      this.x = home + side * stepPx * steps
+      this.place()
+      if (steps > 0) {
+        this.peekTimer = setTimeout(back, PEEK_STEP_MS)
+        return
+      }
+      this.peekTimer = undefined
+      this.window.webContents.send(IPC.play, { kind: 'peek', on: false })
+    }
+    this.peekTimer = setTimeout(out, PEEK_STEP_MS)
+    return true
+  }
+
+  /** A peek cut short (grabbed, hidden, resized): straight back onto the floor. */
+  private stopPeek(): void {
+    if (this.peekTimer === undefined) return
+    clearTimeout(this.peekTimer)
+    this.peekTimer = undefined
+    this.x = clamp(this.x, this.floor.minX, this.floor.maxX)
+    this.place()
+    this.window.webContents.send(IPC.play, { kind: 'peek', on: false })
+  }
+
+  /** Peeking past an edge right now. */
+  get peeking(): boolean {
+    return this.peekTimer !== undefined
+  }
+
+  /**
+   * The laser (1.2.0): main moves the duck's middle to `middleX` along its floor (clamped), on
+   * the laser's own beat. Nothing happens while it is held, flying or lying.
+   */
+  laserMove(middleX: number): void {
+    if (this.drag || this.flightTimer || this.lying || this.rocketing) return
+    this.walk(0)
+    const x = clamp(middleX - (duckCenterX(0, this.scale) - 0), this.floor.minX, this.floor.maxX)
+    if (Math.round(x) === Math.round(this.x)) return
+    this.x = x
+    const under = floorAt(this.areas, duckCenterX(this.x, this.scale), this.scale, this.y)
+    if (under) this.floor = under
+    this.y = this.floor.y
+    this.place()
+  }
+
+  /** Where a laser chase may run: the duck's middle from…to (screen px). */
+  get laserLane(): { readonly min: number; readonly max: number } {
+    return {
+      min: duckCenterX(this.floor.minX, this.scale),
+      max: duckCenterX(this.floor.maxX, this.scale),
+    }
+  }
+
+  /** Held, flying, lying, on the rocket or peeking: no toys now. */
+  get busyMoving(): boolean {
+    return (
+      this.drag !== undefined ||
+      this.flightTimer !== undefined ||
+      this.lying ||
+      this.rocketing ||
+      this.peeking
+    )
   }
 
   /** The floor under the duck; the friend duck walks on the same one. */
@@ -468,6 +572,7 @@ export class DuckWindow {
    */
   setScale(scale: number): void {
     if (scale === this.scale) return
+    this.stopPeek()
     this.endRocket()
     this.walk(0)
     this.stopRun()
@@ -490,6 +595,7 @@ export class DuckWindow {
    * stays its target (whoever sent it still thinks so), and the chase goes on once it is back.
    */
   hide(): void {
+    this.stopPeek()
     this.endRocket()
     this.walk(0)
     this.stopRun()
@@ -544,6 +650,7 @@ export class DuckWindow {
     if (lying === this.lying) return
     this.lying = lying
     if (lying) {
+      this.stopPeek()
       this.endRocket()
       this.walk(0)
       this.stopRun()
@@ -571,6 +678,7 @@ export class DuckWindow {
    */
   launchRocket(burst: Burst, maxHits: number, onHit: () => void): boolean {
     if (!this.canLaunch) return false
+    this.stopPeek()
     this.rocketing = true
     this.walk(0)
     this.stopRun()

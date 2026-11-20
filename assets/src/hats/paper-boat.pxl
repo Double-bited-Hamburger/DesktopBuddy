@@ -1,0 +1,21 @@
+# A folded white origami boat perched on the head: a sail fold in the middle, the hull sloping
+# in to a flat keel. Anchor: top of the head.
+name: paper-boat
+size: 15x9
+anchor: head 7 8
+palette:
+  K #2a1f2d
+  W #ffffff
+  M #e4dfd5
+  S #b8b0a2
+
+@frame paper-boat
+.......K.......
+......KWK......
+.....KWWMK.....
+....KWWWMSK....
+KKKKWWWWMSSKKKK
+KWWWWWWWMMSSSSK
+.KWWWWWWMMSSSK.
+..KMMMMMMMMSK..
+...KKKKKKKKK...

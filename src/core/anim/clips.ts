@@ -1,10 +1,13 @@
 import type { BehaviorState } from '../behavior/machine'
 import {
   BURP_MS,
+  CARE_MS,
+  CURIOUS_MS,
   DANCE_MS,
   GETUP_MS,
   HOP_MS,
   PREEN_MS,
+  RUFFLE_MS,
   SCRATCH_MS,
   SHAKE_MS,
   SNEEZE_MS,
@@ -12,6 +15,8 @@ import {
   SONG_MS,
   STRETCH_MS,
   STUFFED_MS,
+  THINK_STATE_MS,
+  TRIP_MS,
   TURN_MS,
   TWIRL_MS,
   WAG_MS,
@@ -235,6 +240,46 @@ export const DUCK_CLIPS: Readonly<Record<BehaviorState, Animation>> = {
   },
   // Soap bubbles (core/toys/bubbles.ts): the wand at the beak, eyes shut, a breath in, a long puff.
   blow: { frames: ['happy', 'sing', 'sing', 'sing'], frameMs: 300, loop: true },
+  // 1.2.0. A cozy loaf, feet tucked in, a slow blink (2 fps).
+  loaf: { frames: [...times(7, 'loaf'), 'loaf-blink'], frameMs: 500, loop: true },
+  // Cocoa: sipping with the eyes shut (the mug and steam: render), at 4 fps.
+  cocoa: { frames: ['idle', 'savor', 'savor', 'idle', 'blink'], frameMs: 250, loop: true },
+  // Puffed up, a shake left and right, smoothed down again.
+  ruffle: { frames: ['bulge', 'shake-l', 'shake-r', 'idle'], frameMs: RUFFLE_MS / 4, loop: false },
+  // Trips onto its belly, lies there a moment, pushes up, looks round sheepishly.
+  trip: {
+    frames: ['walk-2', 'lie', 'lie', 'getup-1', 'idle', 'blink'],
+    frameMs: TRIP_MS / 6,
+    loop: false,
+  },
+  // Peeking back in past an outer screen edge, head cocked.
+  peek: { frames: ['idle', 'tilt', 'tilt', 'blink', 'tilt', 'idle'], frameMs: 500, loop: true },
+  zoomies: { frames: runCycle, frameMs: RUN_FRAME_MS, loop: true },
+  // Fishing: sat by the puddle as a loaf (the rod, line and catch: render, core/anim/play.ts).
+  fish: { frames: ['loaf', 'loaf', 'loaf', 'loaf-blink'], frameMs: 500, loop: true },
+  // The laser: racing after the dot (skid and pounce poses: core/anim/play.ts).
+  laser: { frames: runCycle, frameMs: RUN_FRAME_MS, loop: true },
+  think: { frames: ['tilt', 'tilt', 'tilt'], frameMs: THINK_STATE_MS / 3, loop: false },
+  // Water check: the cup at the beak (render), a sip with the eyes shut.
+  'care-water': {
+    frames: ['idle', 'savor', 'savor', 'idle', 'blink', 'idle'],
+    frameMs: CARE_MS / 6,
+    loop: false,
+  },
+  // A big overhead wing stretch.
+  'care-stretch': {
+    frames: ['idle', 'stretch', 'stretch', 'stretch', 'idle', 'happy'],
+    frameMs: CARE_MS / 6,
+    loop: false,
+  },
+  // At its tiny laptop (render), typing along with you.
+  laptop: { frames: ['loaf', 'loaf', 'loaf', 'loaf-blink'], frameMs: 500, loop: true },
+  // Popcorn and a film: a peck into the bucket now and then.
+  popcorn: { frames: ['loaf', 'loaf', 'peck', 'loaf'], frameMs: 500, loop: true },
+  // Head-bob to the music (2 fps), a note floating up (render).
+  headbob: { frames: ['idle', 'bob'], frameMs: 500, loop: true },
+  // A cursor parked nearby: a curious head tilt.
+  curious: { frames: ['tilt', 'tilt', 'blink', 'tilt'], frameMs: CURIOUS_MS / 4, loop: false },
 }
 
 /** The twirl's step that faces the other way (the duck turning round). */
@@ -244,7 +289,7 @@ export const TWIRL_STEP_MS = TWIRL_MS / 7
 /** Sounds that go with a frame as it comes up; `chatty` ones stay quiet with chatter off. */
 export const FRAME_SOUNDS: Readonly<Record<string, { sound: SoundName; chatty: boolean }>> = {
   hiccup: { sound: 'chirp', chatty: false }, // hic! (the QUACK can's crash)
-  sneeze: { sound: 'tick', chatty: true }, // a tiny "tchoo"
+  sneeze: { sound: 'sneeze-puff', chatty: true }, // a tiny "tchoo"
 }
 
 /** Poses that turn the head away: glasses (the face accessory) are left off. */

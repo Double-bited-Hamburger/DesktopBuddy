@@ -100,7 +100,8 @@ export class FriendsService {
     return {
       member,
       name: status?.name ?? '',
-      ...(status?.look ? { look: status.look } : {}),
+      // Friends' looks carry no back item (1.1 peers would reject one): shown without.
+      ...(status?.look ? { look: { ...status.look, back: null } } : {}),
       presence: !friend.online ? 'offline' : (status?.presence ?? 'unknown'),
       focusing: friend.online && status?.focusing === true,
       ...(friend.online && status?.music ? { music: status.music } : {}),
@@ -275,7 +276,17 @@ export class FriendsService {
       kind: 'status',
       from: s.member,
       name: local.name,
-      ...(s.share.look ? { look: local.look } : {}),
+      // The 1.1 shape: a back item isn't sent, so friends on 1.1 still accept the status.
+      ...(s.share.look
+        ? {
+            look: {
+              skin: local.look.skin,
+              hat: local.look.hat,
+              face: local.look.face,
+              neck: local.look.neck,
+            },
+          }
+        : {}),
       ...(s.share.presence ? { presence: local.here ? 'here' : 'away' } : {}),
       ...(s.share.focus ? { focusing: local.focusing } : {}),
       ...(s.share.music && local.song ? { music: song ? { song } : {} } : {}),

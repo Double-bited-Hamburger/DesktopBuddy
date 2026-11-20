@@ -30,6 +30,11 @@ export function weatherKind(code: number): WeatherKind {
 }
 
 /** Rain, snow or a storm: the duck holds its umbrella. */
+/** Rain proper (1.2.0: cocoa, the scarf flutter, the rain outfit, rainy seeds). */
+export function isRainy(kind: WeatherKind | undefined): boolean {
+  return kind === 'rain' || kind === 'storm'
+}
+
 export function needsUmbrella(kind: WeatherKind | undefined): boolean {
   return kind === 'rain' || kind === 'snow' || kind === 'storm'
 }

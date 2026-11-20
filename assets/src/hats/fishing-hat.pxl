@@ -1,0 +1,26 @@
+# A slouchy olive fisherman's hat, the brim drooping lower at the back, with a tiny red-and-white
+# fishing lure hooked on the band. Anchor: where the top of the head sits.
+name: fishing-hat
+size: 18x10
+anchor: head 9 5
+palette:
+  K #2a1f2d
+  D #5f6b3a
+  M #8a9a5b
+  L #c2c58f
+  B #4b3b2a
+  R #d94436
+  W #fff4e6
+  g #a9b3b8
+
+@frame fishing-hat
+......KKKKKK......
+.....KLLMMMMK.....
+....KLMMMMMMDK....
+....KMMMMMMMDK....
+....KBBBBBBBgBK...
+..KKLLMMMMMKRWKK..
+.KLMMMMMMMMKWRDDK.
+KMMDDDDDDDDDKKDK..
+KDDKKKKKKKKKKKK...
+.KK...............

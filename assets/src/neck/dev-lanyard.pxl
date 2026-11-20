@@ -1,0 +1,25 @@
+# A blue conference lanyard round the neck, a grey clip and a tiny ID badge on the chest (blue
+# header, a photo, a name line).
+name: dev-lanyard
+size: 11x12
+anchor: neck 8 2
+palette:
+  K #2a1f2d
+  B #2980b9
+  L #5dade2
+  W #ffffff
+  g #95a5a6
+
+@frame dev-lanyard
+.L.........
+.BL.......L
+..BL.....LB
+...BL...LB.
+....BL.LB..
+.....KgK...
+...KKKKKKK.
+...KBBBBBK.
+...KgWLLLK.
+...KgWWWWK.
+...KWLLLWK.
+...KKKKKKK.

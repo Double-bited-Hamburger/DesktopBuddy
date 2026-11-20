@@ -1,6 +1,7 @@
 import type { Rectangle, SaveDialogOptions, SaveDialogReturnValue, WebContents } from 'electron'
 import { BrowserWindow, dialog, screen } from 'electron'
 import { clamp } from '../core/stage'
+import { IPC } from '../shared/ipc'
 import { loadPage, webPreferences } from './pages'
 
 const PANEL_WIDTH = 360
@@ -31,8 +32,10 @@ export class PanelWindow {
     else this.open()
   }
 
-  open(): void {
+  /** Opens the panel; `screen` (1.2.0: e.g. `play` for the note box) is the page it starts on. */
+  open(start?: string): void {
     if (this.win && !this.win.isDestroyed()) {
+      if (start) this.win.webContents.send(IPC.panelGo, start)
       this.win.show()
       return
     }
@@ -80,7 +83,7 @@ export class PanelWindow {
     win.on('closed', () => {
       if (this.win === win) this.win = null
     })
-    void loadPage(win, 'panel')
+    void loadPage(win, 'panel', start)
   }
 
   /**

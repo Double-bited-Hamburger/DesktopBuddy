@@ -28,6 +28,15 @@ export const SOUND_NAMES = [
   'boom',
   'whoosh',
   'pop',
+  // 1.2.0
+  'fish-cast',
+  'fish-bite',
+  'fish-catch',
+  'fish-miss',
+  'bell-ting',
+  'windup-tick',
+  'sneeze-puff',
+  'jam-pet-arp',
 ] as const
 export type SoundName = (typeof SOUND_NAMES)[number]
 
@@ -91,6 +100,47 @@ export const SOUNDS: Readonly<Record<SoundName, readonly Tone[]>> = {
   whoosh: [{ wave: 'sawtooth', from: 90, to: 320, ms: 750, gain: 0.2 }],
   /** A soap bubble pops: a soft, very short upward blip. */
   pop: [{ wave: 'triangle', from: 900, to: 1700, ms: 40, gain: 0.22 }],
+  /** Fishing: the line flicked out, a soft swoosh. */
+  'fish-cast': [{ wave: 'triangle', from: 520, to: 260, ms: 140, gain: 0.25 }],
+  /** A bite! E5 then A5: click now. */
+  'fish-bite': [
+    { wave: 'square', from: 659, to: 659, ms: 80, gain: 0.3 },
+    { wave: 'square', from: 880, to: 880, ms: 80, gain: 0.3 },
+  ],
+  /** Caught one: a tiny fanfare. */
+  'fish-catch': [
+    { wave: 'square', from: 523, to: 523, ms: 80, gain: 0.28 },
+    { wave: 'square', from: 659, to: 659, ms: 80, gain: 0.28 },
+    { wave: 'square', from: 784, to: 784, ms: 80, gain: 0.28 },
+    { wave: 'square', from: 1046, to: 1046, ms: 80, gain: 0.3 },
+  ],
+  /** Just a soggy boot: a playful womp, Eb4 down to Bb3. */
+  'fish-miss': [{ wave: 'triangle', from: 311, to: 233, ms: 220, gain: 0.35 }],
+  /** The bell collar on a hop: very soft, very short (G6). */
+  'bell-ting': [{ wave: 'triangle', from: 1568, to: 1500, ms: 90, gain: 0.5 * 0.25 }],
+  /** The wind-up key ratchets on waking: five clicks, 90 ms apart. */
+  'windup-tick': [
+    { wave: 'square', from: 980, to: 980, ms: 18, gain: 0.15 },
+    { rest: 72 },
+    { wave: 'square', from: 980, to: 980, ms: 18, gain: 0.15 },
+    { rest: 72 },
+    { wave: 'square', from: 980, to: 980, ms: 18, gain: 0.15 },
+    { rest: 72 },
+    { wave: 'square', from: 980, to: 980, ms: 18, gain: 0.15 },
+    { rest: 72 },
+    { wave: 'square', from: 980, to: 980, ms: 18, gain: 0.15 },
+  ],
+  /** ACHOO: a short breathy burst (a fast sawtooth sweep stands in for noise). */
+  'sneeze-puff': [
+    { wave: 'sawtooth', from: 2400, to: 900, ms: 50, gain: 0.12 },
+    { wave: 'sawtooth', from: 1200, to: 300, ms: 70, gain: 0.16 },
+  ],
+  /** Petting during a jam: C5, E5, G5 shimmer. */
+  'jam-pet-arp': [
+    { wave: 'triangle', from: 523, to: 523, ms: 60, gain: 0.25 },
+    { wave: 'triangle', from: 659, to: 659, ms: 60, gain: 0.25 },
+    { wave: 'triangle', from: 784, to: 784, ms: 60, gain: 0.25 },
+  ],
 }
 
 export function isSoundName(value: unknown): value is SoundName {

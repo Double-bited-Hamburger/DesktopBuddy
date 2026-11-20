@@ -1,0 +1,48 @@
+# Junk from a missed bite (1.2.0), 8x8 each, hung from the line like a catch: a soggy boot, a
+# tangle of seaweed, a floppy disk with a glitch stripe.
+name: junk
+size: 8x8
+palette:
+  K #2a1f2d
+  b #9a6438
+  d #5c3a22
+  B #8fd0f0
+  G #6cbc58
+  g #2f7a3c
+  L #b4e68a
+  F #4a6fa5
+  f #2f4a75
+  M #c0c8d4
+  P #efe8da
+  X #ff4fd8
+  Z #4ff0ff
+
+@frame soggy-boot
+.KKKK...
+.KBBK.B.
+.KbdK...
+.KbdK.B.
+.KbdKKK.
+KbbbbbbK
+KddddddK
+.KKKKKK.
+
+@frame tangled-seaweed
+.K...K..
+KLK.KGK.
+KGgKGgK.
+.KGKgK.K
+.KgGKKLK
+KGKgGGgK
+KgK.KgK.
+.K...K..
+
+@frame corrupt-floppy
+KKKKKKK.
+KfMMMfFK
+KfMKMfFK
+KFFFFFFK
+XZXZXZXK
+KFPPPPFK
+KFPPPPFK
+KKKKKKKK

@@ -9,6 +9,7 @@ import type { BehaviorState } from '../core/behavior/machine'
 import { BEHAVIOR_STATES } from '../core/behavior/machine'
 import { partOfDay } from '../core/care/day'
 import { FIRST_RUN_TIPS, FIRST_TIP_DELAY_MS, languageFromLocales } from '../core/care/first-run'
+import { leapfrogClose, mayLeapfrog } from '../core/care/friend'
 import type { FullscreenMode } from '../core/care/fullscreen'
 import { coversScreen, fullscreenMode } from '../core/care/fullscreen'
 import {
@@ -21,7 +22,7 @@ import {
   saveHunger,
   shouldSayHungry,
 } from '../core/care/hunger'
-import { needsUmbrella } from '../core/care/weather'
+import { isRainy, needsUmbrella } from '../core/care/weather'
 import { shouldWelcome, welcomeLine } from '../core/care/welcome'
 import {
   equipItem,
@@ -30,6 +31,7 @@ import {
   parseCatalog,
   UMBRELLA_HAT,
 } from '../core/catalog/catalog'
+import { savedPresets } from '../core/catalog/presets'
 import { activeTimePointsDue } from '../core/economy/active-time'
 import {
   companionBonus,
@@ -39,6 +41,7 @@ import {
 } from '../core/economy/companions'
 import { checkEconomy } from '../core/economy/config'
 import { capBars, EarnLog, earnedOn, pointsPerDay } from '../core/economy/earn-log'
+import type { EarnResult } from '../core/economy/ledger'
 import { localDayKey } from '../core/economy/ledger'
 import { questFeatures } from '../core/economy/quests'
 import { parseEconomy } from '../core/economy/save'
@@ -49,6 +52,7 @@ import { pageOfUrl } from '../core/log/log'
 import type { Settings } from '../core/settings/settings'
 import { loadSettings, SETTINGS_KEY, saveSettings, soundVolume } from '../core/settings/settings'
 import { FLOOR_INSET, STAGE_SIZE } from '../core/stage'
+import { COMBO_JETPACK, COMBO_PARTY_FROM } from '../core/toys/ball'
 import { soapBounds } from '../core/toys/bubbles'
 import { loadCoffeeLog, recordCoffee, saveCoffeeLog, tiredToday } from '../core/toys/coffee'
 import { dropOffset } from '../core/toys/meal'
@@ -83,6 +87,7 @@ import { BallPlay } from './ball-play'
 import { BreakBuddy } from './break-buddy'
 import { BubbleWindow } from './bubble-window'
 import { windowsBusy, windowsFullscreen } from './busy-windows'
+import { showDuckMenu } from './duck-menu'
 import { DuckWindow, SHAPED } from './duck-window'
 import { FileStorage } from './file-storage'
 import { windowsForeground } from './foreground-windows'
@@ -94,6 +99,7 @@ import { eraseLog, initLog, logError, logInfo, logPath, logWarn } from './log'
 import { windowsNowPlaying } from './now-playing'
 import { PanelWindow } from './panel-window'
 import { PillWindow } from './pill-window'
+import { PlayService } from './play'
 import { PointsService } from './points'
 import { ProgressService } from './progress'
 import { ProgressionService } from './progression'
@@ -228,6 +234,7 @@ async function start(): Promise<void> {
     language: () => settings.language,
     onKind: (kind) => {
       if (duckReady) duck.window.webContents.send(IPC.weather, kind)
+      dressSoon() // rain may call for the rain outfit (Auto-Dress, 1.2.0)
     },
     // "It'll rain in about 5 hours ☂️" [OK], once per rainy spell, when it is a good moment.
     onAlert: (alert) => {
@@ -246,6 +253,8 @@ async function start(): Promise<void> {
   })
   /** Tricks on request and the duck's own (set up once the minis and progression exist). */
   let trickControl: TrickControl | undefined
+  /** The Cozy Streak for the duck's config (set once progression is loaded). */
+  let progressionRef: ProgressionService | undefined
   const config = (): AppConfig => ({
     scale: settings.scale,
     language: settings.language,
@@ -261,6 +270,9 @@ async function start(): Promise<void> {
     shapeClickThrough: SHAPED,
     pinState,
     tricks: trickControl?.playable ?? [],
+    note: settings.stickyNote !== null,
+    cursorCuriosity: settings.cursorCuriosity,
+    cozyDays: progressionRef?.cozyDays ?? 0,
   })
 
   const duck = new DuckWindow(settings.scale)
@@ -299,6 +311,7 @@ async function start(): Promise<void> {
       settings.loadout.hat,
       settings.loadout.face,
       settings.loadout.neck,
+      settings.loadout.back,
     ].flatMap((id) => (id === null ? [] : [id])),
     // The trick quests are drawn once the duck could have learned a trick (core/economy/quests.ts).
     questFeatures(isSnack, economy.levels, () => points.entries),
@@ -323,11 +336,13 @@ async function start(): Promise<void> {
     },
     entries: () => points.entries,
     idleSeconds: () => powerMonitor.getSystemIdleTime(),
+    presets: () => savedPresets(settings.outfitPresets),
   })
   progression.onChange = () => {
     const contents = panel.webContents
     if (contents) contents.send(IPC.progressionChanged, progression.view())
   }
+  progressionRef = progression
   progress.onCount = (event) => progression.count(event)
   progress.onEgg = () => progression.addEgg()
   // Data safety: anyone who switched the friend on before it became an item keeps it.
@@ -372,16 +387,23 @@ async function start(): Promise<void> {
   const earn = (source: string) => {
     if (source === 'click' || source === 'pet') progress.record(source)
     if (source === 'pet' && companionsOut().length > 0) progress.record('pet-mini')
+    if (source === 'pet') play?.cozy() // a pet makes today a cozy day
     const multiplier = multiplierFor(source)
-    const result = points.earn(source, multiplier)
+    return paid(source, points.earn(source, multiplier))
+  }
+  /** Logs and announces what an earn paid; returns the points granted. */
+  const paid = (source: string, result: EarnResult): number => {
     if (result.reason === 'cooldown' || result.reason === 'daily-cap')
       earnLog.add(Date.now(), source, 0, result.reason)
-    if (result.granted <= 0) return
+    if (result.granted <= 0) return 0
     // Filled today's limit with this one: the duck says MAX (once, since the next pays nothing).
     // Economy 2.0: the minis raise the points, never the cap.
     const cap = economy.sources[source]?.dailyCap ?? Number.POSITIVE_INFINITY
     announce(source, result.granted, points.earnedToday(source) >= cap)
+    return result.granted
   }
+  /** 1.2.0's toys and keepsakes: set once everything they need exists (further down). */
+  let play: PlayService | undefined
   duck.onThrown = () => progress.record('throw')
   // A throw pays for each screen edge the duck hits (economy.json `bounce`, `throws`).
   duck.maxHits = economy.throws.maxHitsPerThrow
@@ -496,6 +518,7 @@ async function start(): Promise<void> {
     const rocket = economy.boosts.rocket
     if (!duck.canLaunch) return { ok: false, reason: 'busy' }
     if (!points.spend('rocket', rocket.price)) return { ok: false, reason: 'short' }
+    play?.stopToys()
     announce('rocket', -rocket.price)
     panel.closeUnlessPinned() // out of the way of the show
     snacks.clear()
@@ -564,7 +587,8 @@ async function start(): Promise<void> {
         )
       }
       // Now and then a seed stays behind and grows into a flower by another day.
-      if (snackCaught === 'seeds') garden.seedMealEaten(Date.now())
+      if (snackCaught === 'seeds')
+        garden.seedMealEaten(Date.now(), Math.random, isRainy(weather.kind))
       snackCaught = undefined
       // Every snack pays from its own source, whose cooldown is shorter than eating takes, so
       // each slice of a handful is paid (sharing `play`'s cooldown used to drop every other one).
@@ -595,7 +619,10 @@ async function start(): Promise<void> {
       points.grant('focus', reward)
       announce('focus', reward)
     }
-    if (focusCounts(run, present)) progress.record('focus')
+    if (focusCounts(run, present)) {
+      progress.record('focus')
+      play?.cozy() // a finished focus session makes today a cozy day
+    }
     // A cycle goes straight on to its break (focus-break); a single session ends with a dance.
     if (!run.cycle) duck.window.webContents.send(IPC.care, 'focus-done')
   }
@@ -655,8 +682,29 @@ async function start(): Promise<void> {
     onMeet: () => duck.window.webContents.send(IPC.care, 'friend-dance' satisfies CareEvent),
     duckAsleep: () => duckAsleep,
     grabbable: !SHAPED,
+    moved: (friend: FriendWindow, decided: boolean) => checkLeapfrog(friend, decided),
   }
   let friends: FriendWindow[] = []
+  // Mini leapfrog (1.2.0): two walking minis that come close (or decide what to do while close)
+  // may play it, 10% each time, at most once every 3 minutes. Never while something serious goes on.
+  let leapfrogAt = Number.NEGATIVE_INFINITY
+  let minisClose = false
+  const checkLeapfrog = (friend: FriendWindow, decided: boolean) => {
+    const other = friends.find((f) => f !== friend && f.out && f.walks)
+    const a = friend.spot
+    const b = other?.spot
+    const close = a !== undefined && b !== undefined && leapfrogClose(a, b, settings.scale)
+    const fresh = close && !minisClose
+    minisClose = close
+    if (!other || !a || !b || !(fresh || (close && decided)) || friendDeps.quiet()) return
+    const now = Date.now()
+    // Dev only: BUDDY_LEAPFROG=1 plays it every time they are close (to see it without waiting).
+    const always = !app.isPackaged && process.env.BUDDY_LEAPFROG === '1'
+    if (!always && !mayLeapfrog(now, leapfrogAt, Math.random)) return
+    if (!friend.leapOver(b.middle)) return
+    other.brace(a.middle)
+    leapfrogAt = now
+  }
   /** Lets out the minis that should be out and sends the rest home. */
   const syncFriends = () => {
     const wanted = companionsOut()
@@ -692,6 +740,7 @@ async function start(): Promise<void> {
     }
     duck.setLying(mode === 'lie')
     if (mode !== 'normal') soap.end() // no bubbles over a video or a game
+    if (mode !== 'normal') play?.stopToys() // P0: fishing and the laser stop too
     for (const friend of friends) friend.setHidden(mode !== 'normal')
     if (mode === 'hide') {
       bubble.close()
@@ -850,6 +899,8 @@ async function start(): Promise<void> {
   // While it waits, a later check sends it again (the page ignores a flower it already has).
   const tryBloom = () => {
     if (!garden.due(Date.now()) || !canTalk()) return
+    // Planted in the rain (1.2.0): it blooms with a few sparkles.
+    if (garden.rainySeed) duck.window.webContents.send(IPC.play, { kind: 'sparkles' })
     duck.window.webContents.send(IPC.care, 'bloom' satisfies CareEvent)
   }
   const sniffed = () => {
@@ -867,6 +918,7 @@ async function start(): Promise<void> {
     announceUpdate() // a new version it couldn't announce yet
     askAutoCheck()
     tryBloom() // a seed planted yesterday may be ready (this check also sees the day change)
+    dressSoon() // night may have fallen (Auto-Dress)
     const now = Date.now()
     if (!settings.hungerTalk || powerMonitor.getSystemIdleTime() >= HUNGER_IDLE_SECONDS) return
     if (awaySince !== undefined || busyNow() || breaks.busy || talk.isOpen) return
@@ -1003,6 +1055,7 @@ async function start(): Promise<void> {
       awayTimer = setTimeout(() => setAway(false), AWAY_MS)
       bubble.close()
       soap.end()
+      play?.stopToys()
       duck.setAway(true)
       snacks.setHidden(true)
       ball.setHidden(true)
@@ -1019,6 +1072,39 @@ async function start(): Promise<void> {
     }
     buildTray()
   }
+  /** The toys in the tray and the duck's right-click menu. */
+  const playMenu = () => ({
+    fishing: play?.fishingOn ?? false,
+    laser: play?.laserOn ?? false,
+    jam: play?.jamOn ?? false,
+    note: settings.stickyNote !== null,
+    toggleFishing: () => {
+      if (play?.fishingOn) play.stopFishing()
+      else if (play?.startFishing() === 'busy') sayBusy()
+    },
+    toggleLaser: () => {
+      if (play?.laserOn) play.stopLaser()
+      else if (play?.startLaser() === 'busy') sayBusy()
+    },
+    toggleJam: () => {
+      if (play?.jamOn) play.setJam(false)
+      else play?.setJam(true)
+    },
+    ask: () => {
+      if (play?.ask() === 'busy') sayBusy()
+    },
+    holdNote: () => panel.open('play'),
+    clearNote: () => void play?.clearNote(),
+  })
+  const sayBusy = () => {
+    if (!duck.window.isVisible() || talk.isOpen || bubble.asking) return
+    bubble.say(t('play.busy'), settings.names.duck, duck.window.getBounds(), settings.scale)
+  }
+  /** Auto-Dress, a moment later (it saves settings; never in the middle of another save). */
+  const dressSoon = () =>
+    setTimeout(() => {
+      void play?.autoDress().catch((error) => logError('Auto-Dress failed', error))
+    }, 50)
   const buildTray = () => {
     tray?.destroy()
     tray = createTray(t, {
@@ -1053,6 +1139,7 @@ async function start(): Promise<void> {
       update: trayUpdate(),
       quit: () => app.quit(),
       duckName: settings.names.duck,
+      play: playMenu(),
     })
   }
   /** Saves settings from the Settings screen and applies what changed right away. */
@@ -1072,6 +1159,7 @@ async function start(): Promise<void> {
       buildTray()
     pill.setVisible(next.showPointsPill)
     if (next.scale !== before.scale) {
+      play?.stopToys() // P0: a new size ends fishing and the laser
       duck.setScale(next.scale)
       snacks.setScale(next.scale)
       ball.setScale(next.scale)
@@ -1084,6 +1172,14 @@ async function start(): Promise<void> {
     if (next.updates.autoCheck !== before.updates.autoCheck) updates.sync()
     if (JSON.stringify(next.fullscreen) !== JSON.stringify(before.fullscreen)) checkFullscreen()
     if (next.weatherCity !== before.weatherCity) await weather.sync() // so the view has the result
+    if (
+      next.careNudges !== before.careNudges ||
+      next.appAwareProps !== before.appAwareProps ||
+      next.musicHeadbob !== before.musicHeadbob ||
+      next.cursorCuriosity !== before.cursorCuriosity
+    )
+      play?.sync()
+    if (JSON.stringify(next.autoDress) !== JSON.stringify(before.autoDress)) dressSoon()
     if (
       next.scale !== before.scale ||
       soundVolume(next) !== soundVolume(before) ||
@@ -1192,6 +1288,81 @@ async function start(): Promise<void> {
     log: (text, error) => logWarn(`${text}: ${String(error)}`),
   })
   friendsNetChanged = () => friendsNet.localChanged()
+  // 1.2.0 ("Cozy & Playful"): fishing, the laser, the jam, Ask the Duck, the note, presets and
+  // Auto-Dress, care nudges, the Cozy Streak (main/play.ts). Main owns every roll and cap.
+  const playService = new PlayService({
+    duck,
+    bubble,
+    catalog,
+    economy,
+    progression,
+    settings: () => settings,
+    applySettings,
+    wear: async (loadout) => {
+      settings = { ...settings, loadout }
+      await saveSettings(storage, settings)
+      duck.window.webContents.send(IPC.loadout, loadout)
+      friendsNetChanged()
+    },
+    owned: () => progress.ownedSet,
+    t: (key, vars) => t(key, vars),
+    earnAmount: (source, amount) => paid(source, points.earnAmount(source, amount)),
+    earn: (source) => earn(source),
+    record: (event) => progress.record(event),
+    count: (stat) => progression.count(stat),
+    canTalk: () => canTalk(),
+    quiet: () => fullscreen !== 'normal' || busyNow() || breaks.busy || talk.isOpen,
+    focusWork: () => tracker.focusing,
+    idleSeconds: () => powerMonitor.getSystemIdleTime(),
+    raining: () => isRainy(weather.kind),
+    minisCheer: () => {
+      for (const friend of friends) if (friend.cheer()) return
+    },
+    plantSeed: (raining) => garden.plantSeed(Date.now(), raining),
+    clearToys: () => {
+      snacks.clear()
+      ball.takeAway()
+      soap.end()
+    },
+    closePanel: () => panel.closeUnlessPinned(),
+    panelChanged: (view) => panel.webContents?.send(IPC.playView, view),
+    currentApp: () => tracker.currentApp,
+    musicPlaying: async () => {
+      if (!nowPlaying) return undefined
+      return listeningTo(await nowPlaying()) !== undefined
+    },
+    focus: {
+      left: () => tracker.focusLeft,
+      togglePause: () => tracker.togglePause(),
+      extend: (minutes) => tracker.extendFocus(minutes),
+    },
+    duckName: () => settings.names.duck,
+    scale: () => settings.scale,
+  })
+  play = playService
+  ball.bestCombo = progression.bestKeepyUppy
+  // Keepy-uppy: every airborne hit counts (main/ball-play.ts); the duck shows the combo.
+  ball.onCombo = (combo, newBest) => {
+    progression.keepyUppy(combo)
+    if (combo === 5) progress.record('combo-5')
+    if (combo === 10) progress.record('combo-10')
+    if (combo === COMBO_JETPACK) progression.count('combo-15')
+    const party = newBest && combo >= COMBO_PARTY_FROM
+    duck.window.webContents.send(IPC.play, { kind: 'combo', combo, party })
+  }
+  // An airborne ball coming down by the duck's head gets headbutted back up (when it can).
+  ball.headZone = () => {
+    if (!duck.canLaunch || duck.busyMoving || playService.fishingOn || playService.laserOn)
+      return undefined
+    const at = duck.window.getBounds()
+    const scale = settings.scale
+    return {
+      x: duck.middleX,
+      top: at.y + 2 * scale,
+      bottom: at.y + 22 * scale,
+      reach: 16 * scale,
+    }
+  }
   registerIpc({
     dashboard,
     friendsNet,
@@ -1233,10 +1404,14 @@ async function start(): Promise<void> {
     talk,
     updates,
     bubble,
+    play: playService,
+    duckMenu: () => showDuckMenu(t, duck.window, () => panel.toggle(), playMenu()),
   })
 
   buildTray()
   started = true
+  playService.sync()
+  dressSoon()
   friendsNet.sync()
   // First run: three tips, one bubble each. Ignoring one ends them (no nagging).
   const tip = (index: number) => {
@@ -1275,6 +1450,7 @@ async function start(): Promise<void> {
     for (const friend of friends) friend.setEnabled(false)
     ball.takeAway()
     soap.stop()
+    play?.stop()
     weather.stop()
     progression.stop()
     tricks.stop()

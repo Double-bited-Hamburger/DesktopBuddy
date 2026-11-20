@@ -40,6 +40,23 @@ export const ProgressionSaveSchema = z.object({
    * goes into the inventory as soon as an update adds it.
    */
   unlocks: z.array(z.string()),
+  // 1.2.0: all with defaults, so a 1.0/1.1 file loads as it was.
+  /** The longest airborne ball combo (keepy-uppy). */
+  bestKeepyUppy: z.number().int().min(0).default(0),
+  /** Fisherman's Log: catches by id. */
+  fishingLog: z.record(z.string(), z.number().int().min(0)).default({}),
+  /** Cozy Streak: local days in a row with a pet, a finished focus session or a catch. */
+  cozyStreak: z
+    .object({
+      days: z.number().int().min(0).default(0),
+      /** YYYY-MM-DD, local. */
+      lastActiveDay: z.string().nullable().default(null),
+      /** The longest streak so far (the `cozy-streak-7` achievement). */
+      best: z.number().int().min(0).default(0),
+    })
+    .prefault({}),
+  /** Rubber-duck debug walkthroughs finished. */
+  debugWalkthroughs: z.number().int().min(0).default(0),
 })
 
 export type ProgressionSave = z.infer<typeof ProgressionSaveSchema>
@@ -77,5 +94,9 @@ export function newProgression(entries: readonly LedgerEntry[], now: number): Pr
     eggs: [],
     nextEgg: 0,
     unlocks: [],
+    bestKeepyUppy: 0,
+    fishingLog: {},
+    cozyStreak: { days: 0, lastActiveDay: null, best: 0 },
+    debugWalkthroughs: 0,
   }
 }

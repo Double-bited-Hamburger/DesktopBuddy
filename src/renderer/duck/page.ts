@@ -3,7 +3,11 @@ import { AnimationClock } from '../../core/anim/clock'
 import type { MotionInput } from '../../core/anim/motion'
 import type { TrickId, TrickPose } from '../../core/anim/tricks'
 import { trickPoseAt } from '../../core/anim/tricks'
+import type { AppContextKind } from '../../core/behavior/app-context'
+import { cozyBehaviorConfig } from '../../core/behavior/cozy'
 import type { Dream } from '../../core/behavior/dream'
+import type { FishingPhase } from '../../core/behavior/fishing'
+import type { LaserPose } from '../../core/behavior/laser'
 import type {
   BehaviorConfig,
   BehaviorPrefs,
@@ -21,6 +25,7 @@ import { PetDetector } from '../../core/behavior/pet'
 import { dayBehaviorConfig, isDecember, partOfDay } from '../../core/care/day'
 import type { Listening } from '../../core/care/listen'
 import type { WeatherKind } from '../../core/care/weather'
+import { isRainy } from '../../core/care/weather'
 import type { RgbaImage } from '../../core/sprite/types'
 import { STAGE_SIZE } from '../../core/stage'
 import { treatElapsed } from '../../core/toys/meal'
@@ -40,16 +45,19 @@ export interface Outfits {
   /** For the Rocket Boost: the bare skin (the front-facing frame has no hat spot), and shades. */
   readonly bare: DressedDuck
   readonly shades: DressedDuck
+  /** Rubber-duck debug (1.2.0): dev specs while the walkthrough is open (never saved). */
+  readonly dev: DressedDuck
 }
 
 export async function loadOutfits(loadout: Loadout): Promise<Outfits> {
-  const [dressed, specs, bare, shades] = await Promise.all([
+  const [dressed, specs, bare, shades, dev] = await Promise.all([
     loadDressedDuck(loadout),
     loadDressedDuck({ ...loadout, face: loadout.face ?? 'nerd-glasses' }),
-    loadDressedDuck({ skin: loadout.skin, hat: null, face: null, neck: null }),
+    loadDressedDuck({ skin: loadout.skin, hat: null, face: null, neck: null, back: null }),
     loadDressedDuck({ ...loadout, face: 'sunglasses' }),
+    loadDressedDuck({ ...loadout, face: 'bluelight-specs' }),
   ])
-  return { dressed, specs, bare, shades }
+  return { dressed, specs, bare, shades, dev }
 }
 
 /** The snack being eaten or smoked, and when the duck caught it (same time base as `lastTick`). */
@@ -146,14 +154,50 @@ export interface DuckPage {
   flower: { since: number | undefined; told: boolean; facing: Direction } | undefined
   /** Where the flower was last drawn (stage pixels), for clicking it; undefined when not shown. */
   flowerBox: { x: number; y: number; width: number; height: number } | undefined
+
+  // 1.2.0 ("Cozy & Playful"): what main told it, and when.
+  /** Fishing: the phase, the catch or gag item, since when. */
+  fish: { phase: FishingPhase; item: string | null; since: number } | undefined
+  /** The laser: its pose (from main), whether the dot shows, since when. */
+  laser: { pose: LaserPose; dot: boolean; since: number } | undefined
+  /** The Quack Jam is on: clicks play notes (and how many so far, for the minis' answers). */
+  jam: boolean
+  jamTaps: number
+  /** The keepy-uppy combo badge (`x5`), and when a new best's party started. */
+  combo: { value: number; since: number } | undefined
+  partySince: number | undefined
+  /** Sparkles round a flower planted in the rain. */
+  sparklesSince: number | undefined
+  /** The app in front (opt-in) and music (head-bob switch): cozy props and moves. */
+  app: AppContextKind
+  music: boolean
+  /** Dev specs on (the debug walkthrough). */
+  devSpecs: boolean
+  /** A note in its beak. */
+  note: boolean
+  cozyDays: number
+  /** Cursor curiosity (Settings). */
+  curiosity: boolean
+  /** When it last woke from a nap (the wind-up key winds), and the last bell ting. */
+  wokeAt: number | undefined
+  bellAt: number
+  /** What main was last told about the cursor resting on the duck. */
+  toldHover: boolean
 }
 
 /** The local clock shifts the mood: sleepy at night, stretchy in the morning (core/care/day). */
 export function behaviorFor(page: DuckPage): BehaviorConfig {
   const base = behaviorConfigFor(page.prefs)
-  return dayBehaviorConfig(
-    page.tired ? tiredBehaviorConfig(base) : base,
-    partOfDay(new Date().getHours()),
+  const hour = new Date().getHours()
+  return cozyBehaviorConfig(
+    dayBehaviorConfig(page.tired ? tiredBehaviorConfig(base) : base, partOfDay(hour)),
+    {
+      hour,
+      raining: isRainy(page.weather),
+      cozyDays: page.cozyDays,
+      app: page.app,
+      music: page.music,
+    },
   )
 }
 
@@ -190,9 +234,18 @@ export async function createPage(): Promise<DuckPage> {
   const prefs = config.duck
   const startConfig = config.pinState
     ? pinnedBehaviorConfig()
-    : dayBehaviorConfig(
-        tired ? tiredBehaviorConfig(behaviorConfigFor(prefs)) : behaviorConfigFor(prefs),
-        partOfDay(new Date().getHours()),
+    : cozyBehaviorConfig(
+        dayBehaviorConfig(
+          tired ? tiredBehaviorConfig(behaviorConfigFor(prefs)) : behaviorConfigFor(prefs),
+          partOfDay(new Date().getHours()),
+        ),
+        {
+          hour: new Date().getHours(),
+          raining: isRainy(config.weather),
+          cozyDays: config.cozyDays ?? 0,
+          app: 'none',
+          music: false,
+        },
       )
   const machine = new BehaviorMachine(Math.random, startConfig)
   const clock = new AnimationClock(DUCK_CLIPS, 'idle')
@@ -252,5 +305,21 @@ export async function createPage(): Promise<DuckPage> {
     toldAsleep: false,
     flower: undefined,
     flowerBox: undefined,
+    fish: undefined,
+    laser: undefined,
+    jam: false,
+    jamTaps: 0,
+    combo: undefined,
+    partySince: undefined,
+    sparklesSince: undefined,
+    app: 'none',
+    music: false,
+    devSpecs: false,
+    note: config.note === true,
+    cozyDays: config.cozyDays ?? 0,
+    curiosity: config.cursorCuriosity !== false,
+    wokeAt: undefined,
+    bellAt: 0,
+    toldHover: false,
   }
 }

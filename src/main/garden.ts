@@ -51,11 +51,34 @@ export class GardenService {
   }
 
   /** A seed meal was finished: maybe one seed stays planted (one at a time). */
-  seedMealEaten(now: number, rng: Rng = Math.random): void {
-    const next = afterSeedMeal(this.state, now, rng, this.config)
+  seedMealEaten(now: number, rng: Rng = Math.random, raining = false): void {
+    const next = afterSeedMeal(this.state, now, rng, this.config, raining)
     if (next === this.state) return
     this.state = next
     this.save()
+  }
+
+  /**
+   * A free seed (a Sunken Seed caught fishing, 1.2.0): planted for sure, unless one is in the
+   * ground already. Planted in the rain, it grows in half the time.
+   */
+  plantSeed(now: number, raining = false): boolean {
+    const next = afterSeedMeal(
+      this.state,
+      now,
+      () => 0,
+      { ...this.config, leaveChance: 1 },
+      raining,
+    )
+    if (next === this.state) return false
+    this.state = next
+    this.save()
+    return true
+  }
+
+  /** The seed in the ground was planted in the rain (it blooms with sparkles). */
+  get rainySeed(): boolean {
+    return this.state.seed?.rainy === true
   }
 
   /** A flower is ready to bloom. */

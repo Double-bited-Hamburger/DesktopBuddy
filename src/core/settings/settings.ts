@@ -2,6 +2,12 @@ import { z } from 'zod'
 import { FullscreenSettingsSchema } from '../care/fullscreen'
 import { CITY_MAX } from '../care/weather'
 import { isCleanName } from '../care/welcome'
+import {
+  AutoDressSchema,
+  AutoDressStateSchema,
+  OutfitPresetSchema,
+  PRESET_COUNT,
+} from '../catalog/presets'
 import type { Migrations } from '../storage/migrate'
 import { migrateSave } from '../storage/migrate'
 import type { StorageAdapter } from '../storage/storage'
@@ -13,7 +19,12 @@ export const LoadoutSchema = z.object({
   face: z.string().nullable().default(null),
   /** Scarf, bow tie, bell, medal (1.0.0); older saves have none and load with nothing worn. */
   neck: z.string().nullable().default(null),
+  /** Wind-up key, backpack, wings… (1.2.0); older saves have none and load with nothing worn. */
+  back: z.string().nullable().default(null),
 })
+
+/** The 1-line note the duck holds in its beak (1.2.0). */
+export const STICKY_NOTE_MAX = 140
 
 /** What the duck does on its own. Each switch removes that behavior from its idle choices. */
 export const DuckPrefsSchema = z.object({
@@ -143,6 +154,27 @@ export const SettingsSchema = z.object({
     .prefault({}),
   /** Friends (docs/FRIENDS.md): off, and no network, until the user turns it on and joins. */
   friends: FriendsSettingsSchema.prefault({}),
+  // 1.2.0 ("Cozy & Playful"). Every field has a default, so a 1.1.x file loads as it was.
+  /** "Hold this, duck": a short note it keeps in its beak until Done (null: none). */
+  stickyNote: z.string().max(STICKY_NOTE_MAX).nullable().default(null),
+  /** Five saved outfits (Bag); null = an empty button. */
+  outfitPresets: z
+    .array(OutfitPresetSchema.nullable())
+    .length(PRESET_COUNT)
+    .default([null, null, null, null, null]),
+  /** Auto-Dress (opt-in): a preset for the night and one for the rain. */
+  autoDress: AutoDressSchema.prefault({}),
+  /** What Auto-Dress last did, and the user's own outfit while an automatic one is on. */
+  autoDressState: AutoDressStateSchema.prefault({}),
+  /** Water and stretch nudges now and then (never during focus work, calls or fullscreen). */
+  careNudges: z.boolean().default(true),
+  careNudgeMinutes: z.union([z.literal(45), z.literal(60)]).default(45),
+  /** Cozy props for the app in front (laptop for code, popcorn for films). Windows, opt-in. */
+  appAwareProps: z.boolean().default(false),
+  /** Bobs its head while music plays (the same "now playing" signal Friends uses). */
+  musicHeadbob: z.boolean().default(false),
+  /** Looks at a cursor parked nearby. */
+  cursorCuriosity: z.boolean().default(true),
 })
 
 export type Settings = z.infer<typeof SettingsSchema>
@@ -231,6 +263,18 @@ export const SettingsPatchSchema = z.strictObject({
       games: FullscreenSettingsSchema.shape.games.unwrap().optional(),
     })
     .optional(),
+  autoDress: z
+    .strictObject({
+      enabled: AutoDressSchema.shape.enabled.unwrap().optional(),
+      nightPreset: AutoDressSchema.shape.nightPreset.unwrap().optional(),
+      rainPreset: AutoDressSchema.shape.rainPreset.unwrap().optional(),
+    })
+    .optional(),
+  careNudges: SettingsSchema.shape.careNudges.unwrap().optional(),
+  careNudgeMinutes: SettingsSchema.shape.careNudgeMinutes.unwrap().optional(),
+  appAwareProps: SettingsSchema.shape.appAwareProps.unwrap().optional(),
+  musicHeadbob: SettingsSchema.shape.musicHeadbob.unwrap().optional(),
+  cursorCuriosity: SettingsSchema.shape.cursorCuriosity.unwrap().optional(),
 })
 
 export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
@@ -239,10 +283,11 @@ export type SettingsPatch = z.infer<typeof SettingsPatchSchema>
 export function applySettingsPatch(settings: Settings, patch: unknown): Settings | undefined {
   const parsed = SettingsPatchSchema.safeParse(patch)
   if (!parsed.success) return undefined
-  const { duck, breaks, updates, names, fullscreen, ...rest } = parsed.data
+  const { duck, breaks, updates, names, fullscreen, autoDress, ...rest } = parsed.data
   return SettingsSchema.parse({
     ...settings,
     ...definedOnly(rest),
+    autoDress: { ...settings.autoDress, ...definedOnly(autoDress ?? {}) },
     duck: { ...settings.duck, ...definedOnly(duck ?? {}) },
     breaks: { ...settings.breaks, ...definedOnly(breaks ?? {}) },
     updates: { ...settings.updates, ...definedOnly(updates ?? {}) },

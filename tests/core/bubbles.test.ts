@@ -271,7 +271,8 @@ describe('the soap bubbles art and the duck', () => {
   })
 
   it('blows from calm moments only, then goes back to idling', () => {
-    expect(BEHAVIOR_STATES.at(-1)).toBe('blow') // new states go last
+    // New states go after the old ones (1.2.0 added more after `blow`).
+    expect(BEHAVIOR_STATES.indexOf('blow')).toBeGreaterThan(BEHAVIOR_STATES.indexOf('sniff'))
     expect(DUCK_CLIPS.blow.frames).toContain('sing')
     const machine = new BehaviorMachine(sequence([0.5]))
     expect(machine.blow()).toBe('ok')

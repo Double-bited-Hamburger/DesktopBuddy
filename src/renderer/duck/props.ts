@@ -53,6 +53,20 @@ export interface Props {
   readonly flower: FramePair
   /** The soap bubble wand, held in the beak while it blows (core/toys/bubbles.ts). */
   readonly wand: FramePair
+  // 1.2.0
+  readonly rod: FramePair
+  /** Catches, gag items and the log's `unknown`, by name. */
+  readonly catches: FramePair
+  readonly laptop: FramePair
+  readonly popcorn: FramePair
+  readonly cocoa: FramePair
+  readonly cup: FramePair
+  readonly blanket: FramePair
+  readonly laserDot: Frame | undefined
+  readonly beakNote: FramePair
+  readonly question: Frame | undefined // a glyph: never mirrored
+  readonly exclaim: Frame | undefined
+  readonly confetti: readonly Frame[]
 }
 
 const withMirrored = (frames: readonly Frame[]): FramePair => ({
@@ -114,5 +128,20 @@ export async function loadProps(): Promise<Props> {
     notes: await frames('emotes', 'notes'),
     flower: withMirrored(await frames('toys', 'flower')),
     wand: withMirrored(await frames('toys', 'bubble-wand')),
+    rod: withMirrored(await frames('toys', 'fishing-rod')),
+    catches: withMirrored([
+      ...(await frames('toys', 'catches')),
+      ...(await frames('toys', 'junk')),
+    ]),
+    laptop: withMirrored(await frames('toys', 'laptop')),
+    popcorn: withMirrored(await frames('toys', 'popcorn')),
+    cocoa: withMirrored(await frames('toys', 'cocoa')),
+    cup: withMirrored(await frames('toys', 'water-cup')),
+    blanket: withMirrored(await frames('toys', 'blanket')),
+    laserDot: (await frames('toys', 'laser-dot'))[0],
+    beakNote: withMirrored(await frames('toys', 'beak-note')),
+    question: (await frames('emotes', 'question'))[0],
+    exclaim: (await frames('emotes', 'exclaim'))[0],
+    confetti: await frames('emotes', 'confetti'),
   }
 }

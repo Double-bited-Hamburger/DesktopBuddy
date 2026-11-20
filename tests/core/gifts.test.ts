@@ -125,7 +125,8 @@ describe('economy 2.0 boxes', () => {
     expect(economy.throws.maxHitsPerThrow).toBe(5)
     const caps = Object.values(economy.sources).reduce((sum, rule) => sum + rule.dailyCap, 0)
     expect(caps).toBeGreaterThanOrEqual(900)
-    expect(caps).toBeLessThanOrEqual(1100)
+    // 1.2.0 added fishing (120) and the laser (80) for the waiting moments: 1265 in all.
+    expect(caps).toBeLessThanOrEqual(1300)
     expect(economy.focus.dailyCap).toBe(400)
     expect(economy.boxes.find((b) => b.id === 'royal')?.jackpot?.rarity).toBe('exotic')
     // The star box is never sold, and the shelf never sells legendary or exotic.

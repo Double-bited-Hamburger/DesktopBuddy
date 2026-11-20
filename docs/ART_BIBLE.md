@@ -48,21 +48,28 @@ A hat or face declares the **same-named** anchor for _its own_ attachment point.
 places the accessory at `duckAnchor - accessoryAnchor` (`attachOffset`). If a duck frame moves its
 head (a bob, a hop), override the anchor on that frame.
 
-Current slots: `head` (hats), `face` (glasses/masks). More slots (`neck`, `hand`) are added as
+Current slots: `head` (hats), `face` (glasses/masks), `neck` (neckwear) and, since 1.2.0, the
+**back** slot (`assets/src/back/`): the duck has no back anchor, so back items declare the `neck`
+anchor and put what shows behind the body in a `<frame>-back` frame. More slots are added as
 needed — the format doesn't change.
+
+**Animated accessories (1.2.0):** code picks named frames (core/sprite/cosmetics.ts):
+`sleep-mask-up`/`-down`, `windup-key-0..2`, `<cape|knit-scarf>-flutter-0/1`,
+`cardboard-jetpack-flame-0/1`, `loading-halo-0..3`, `googly-eyes-wobble`, `bee-wings-0/1`; each
+may have its `-back` partner. Everything else draws its first frame.
 
 ## Frames
 
-The duck is `ducks/duck.pxl` (53 frames, redrawn for 1.0.0). Code refers to frames by name, so
+The duck is `ducks/duck.pxl` (66 frames: redrawn for 1.0.0, 4 added in 1.2.0). Code refers to frames by name, so
 **never rename one**; add new ones. Animation timing lives in code (`core/anim/clips.ts`), not in
 the art files. Head anchor `head 20 5`, `face 22 10` unless the frame overrides it.
 
 | Group | Frames |
 | --- | --- |
-| Standing | `idle`, `blink`, `happy` (^ eyes, cheek), `wide` (big eye), `tired` (lid), `stare` (brow), `savor`, `wag` (tail up; alternate with idle), `pet-lean` (head up into the hand, eyes shut) |
+| Standing | `idle`, `blink`, `happy` (^ eyes, cheek), `wide` (big eye), `tired` (lid), `stare` (brow), `savor`, `wag` (tail up; alternate with idle), `pet-lean` (head up into the hand, eyes shut), `bob` (1.2.0: head 1 px lower, chin to chest, ^ eyes; alternate with idle to music), `tilt` (1.2.0: curious, crown tipped back, beak up, wide eye) |
 | Beak | `quack`, `yawn-small`, `yawn`, `cough`, `sneeze`, `burp` (chest out, cheeks), `foam` (white foam on the beak) |
 | Walking | `step`, `walk-1..4` (waddle: out, dip, out, dip), `wide-step`, `tired-step`, `run-1..4` (leaning in, big leg swing, 4 = feet off the ground) |
-| Resting | `sit` = napping **loaf** breathing out, `loaf-2` breathing in (back 1 px higher), `crouch`, `getup-1` (half up from the loaf, sleepy), `wake` (poked awake: wide eyes, feathers puffed) |
+| Resting | `sit` = napping **loaf** breathing out, `loaf-2` breathing in (back 1 px higher), `loaf` (1.2.0: the same pose **awake**, calm open eye, cheek), `loaf-blink` (its slow ^ blink), `crouch`, `getup-1` (half up from the loaf, sleepy), `wake` (poked awake: wide eyes, feathers puffed) |
 | Watching a film | `lie` (on its belly, head up, heavy lid, cheek), `lie-blink` |
 | Moved by you | `held-1`/`held-2` (dangling, feet kicking in turn, beak open), `flap-1`/`flap-2` (wings up/down, panicked eyes), `land` (squashed 2 px shorter, wider), `ouch`/`ouch-2` (sat down, swirly eyes, stars going round) |
 | Fidgets | `shake-l`/`shake-r`, `stretch`, `hop`, `preen` (head turned back into the wing), `scratch` (one foot up behind the head) |
@@ -174,3 +181,36 @@ own sprite (rare tiers and up may have their own silhouette). A skin that only s
   their own window, never mirrored (the light stays top-left whichever way the duck faces).
 - Checked by eye at 10× on a dark and a light background and on screen at 3× (dark desktop);
   not checked on a light desktop on screen. Original: drawn for this project.
+
+## Props and emotes added in 1.2.0 ("Cozy & Playful")
+
+Props have no anchors: the code puts each one's top-left at a right-facing stage spot (duck frame
+at (4, 8) unless noted) and mirrors everything when the duck faces left. Spots below are the ones
+the art was drawn against; they live in `src/core/anim/spots.ts` once wired.
+
+| Sprite | Size | Frames | Spot (stage, right-facing) | Drawn against |
+| --- | --- | --- | --- | --- |
+| `toys/fishing-rod` | 20×32 | `rod-cast`, `rod-wait-1`, `rod-wait-2`, `rod-bite`, `rod-reel` | (20, 8), all frames | `loaf` drawn at **(0, 8)** (4 px left) |
+| `toys/catches` | 8×8 | `pixel-carp`, `shiny-cap`, `tiny-crab`, `rubber-fish`, `golden-clip`, `sunken-seed`, `unknown` | (32, 21) on `rod-reel`; 2–3× in the log | — |
+| `toys/junk` | 8×8 | `soggy-boot`, `tangled-seaweed`, `corrupt-floppy` | (32, 21) on `rod-reel` | — |
+| `toys/laptop` | 12×11 | `laptop-1`, `laptop-2` (code scrolls a line) | (28, 28) | `loaf` |
+| `toys/popcorn` | 10×18 | `popcorn`, `popcorn-munch` (a kernel at the beak tip) | (29, 21) | `loaf` |
+| `toys/cocoa` | 8×7 | `cocoa` (hugged at the chest), `cocoa-sip` (tipped, like coffee-sip) | (26, 24); sip (32, 13) | `idle` / `savor` |
+| `toys/water-cup` | 7×7 | `cup`, `cup-sip` | (26, 24); sip (32, 13) | `idle` / `savor` |
+| `toys/blanket` | 27×19 | `blanket-1`, `blanket-2` | (4, 20), both | `sit`, `loaf-2` |
+| `toys/laser-dot` | 3×3 | `laser-dot` (no outline: it is light) | wherever it is | — |
+| `toys/beak-note` | 7×6 | `beak-note` | duck `face` anchor + (7, 1) | any frame with a `face` anchor |
+| `emotes/question` | 6×10 | `question` | e.g. (31, 2) by the head; never mirrored | `tilt` |
+| `emotes/exclaim` | 4×10 | `exclaim` | e.g. (32, 2); never mirrored | — |
+| `emotes/confetti` | 16×10 | `confetti-1..3` (pop, spread, flutter down) | e.g. (14, 0) over the head | — |
+
+- Fishing: the puddle (8×4, its bottom on the duck's floor row, stage y 38) is part of every rod
+  frame. On `rod-reel` the rod tip is at stage (36, 18) and the line drops two pixels; a catch's
+  top-left goes at **(32, 21)** so the line meets its top middle, one pixel clear of the beak.
+- The blanket hugs the loaf one pixel out (the duck's own silhouette grown by 1 px), so only the
+  tail tip, the head with its closed eye and the beak show; blanket-2 is a pixel taller on top.
+- Steam over the hugged cocoa (emotes/steam at about (27, 19)) overlaps the chin; the sip pose
+  can use the coffee's STEAM_SPOT instead.
+- Checked by eye at 6–8× on a dark and a light background (and once at 3×) in a throwaway
+  compositor that draws the prop over the source frames; not checked in the running app, and
+  not checked mirrored on screen. Original: drawn for this project.

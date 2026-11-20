@@ -1,0 +1,16 @@
+# Sleek dark developer frames: a heavy brow bar, an open lens with a pale-cyan glint so the eye
+# still shows, the arm running back over the head.
+name: bluelight-specs
+size: 11x5
+anchor: face 7 3
+palette:
+  F #2d3436
+  B #74b9ff
+  G #dff9fb
+
+@frame bluelight-specs
+.....FFFFFF
+FFFFFF...GF
+.....F...BF
+.....F....F
+.....FFFFFF

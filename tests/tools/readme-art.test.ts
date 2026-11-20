@@ -17,6 +17,7 @@ describe('README wardrobe picture', () => {
       ...groups.hats,
       ...groups.faces,
       ...groups.necks,
+      ...groups.backs,
       ...groups.minis,
     ]
     expect(shown.length).toBe(catalog.items.length)

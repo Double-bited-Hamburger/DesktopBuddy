@@ -9,10 +9,12 @@ import type { Translator } from '../../core/i18n/i18n'
 import type {
   ClaimResult,
   HatchResult,
+  PlayView,
   ProgressionView,
   RewardKind,
   TrickResult,
 } from '../../shared/ipc'
+import { FishingLog } from './play'
 import { SpriteIcon } from './widgets'
 
 /** A 12×12 Journey icon (level, trophy, stamp, egg, album), drawn 2×. */
@@ -90,6 +92,12 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
   const [note, setNote] = useState<string | undefined>()
   /** How many minis are out (the parade needs one). */
   const [minis, setMinis] = useState(0)
+  /** The Fisherman's Log (1.2.0). */
+  const [play, setPlay] = useState<PlayView | undefined>()
+  useEffect(() => {
+    window.buddy.panel.play.view().then(setPlay, () => setPlay(undefined))
+    return window.buddy.panel.play.onChange(setPlay)
+  }, [])
 
   useEffect(() => {
     window.buddy.panel.progression().then(
@@ -370,6 +378,7 @@ export function Journey({ t, language }: { t: Translator; language: string }) {
             .join(' · ')}
         </p>
       )}
+      {play && <FishingLog t={t} view={play} />}
     </section>
   )
 }

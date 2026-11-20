@@ -50,3 +50,18 @@ export function floorAt(
     y: floorBounds(home, scale).y,
   }
 }
+
+/**
+ * Edge-peek (1.2.0): whether the floor's edge at screen x `edgeX` on `side` is an outer edge of
+ * the desktop, with no display joined there (a seam between two monitors never counts). `y` is a
+ * height on the floor's display, to tell side-by-side displays from stacked ones.
+ */
+export function isOuterEdge(
+  areas: readonly Rect[],
+  edgeX: number,
+  side: -1 | 1,
+  y: number,
+): boolean {
+  const probe = side === 1 ? edgeX + 1 : edgeX - 2
+  return !areas.some((a) => probe >= a.x && probe < a.x + a.width && y >= a.y && y < a.y + a.height)
+}

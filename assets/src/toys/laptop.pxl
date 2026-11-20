@@ -1,0 +1,40 @@
+# A tiny laptop on the floor in front of an awake loaf (1.2.0): drawn for duck frame `loaf` at the
+# usual (4,8); this sprite goes at stage (28,28). laptop-1/laptop-2: the code on screen scrolls up
+# a line. Lit from the top-left (light bezel corner, shaded right edge).
+name: laptop
+size: 12x11
+palette:
+  K #2a1f2d
+  L #dfe4ec
+  M #a3acbd
+  m #6f788b
+  N #1f2a44
+  G #6cdc8c
+  C #7ad0ff
+  Y #f7d84a
+
+@frame laptop-1
+.KKKKKKKKKK.
+.KLMMMMMMMK.
+.KMGGGNNNmK.
+.KMNCCCCNmK.
+.KMNCCNNNmK.
+.KMYYNNNNmK.
+.KMGGGGNNmK.
+.KMmmmmmmmK.
+KKKKKKKKKKKK
+KLLLLLLLLLmK
+.KKKKKKKKKK.
+
+@frame laptop-2
+.KKKKKKKKKK.
+.KLMMMMMMMK.
+.KMNCCCCNmK.
+.KMNCCNNNmK.
+.KMYYNNNNmK.
+.KMGGGGNNmK.
+.KMNYYYGNmK.
+.KMmmmmmmmK.
+KKKKKKKKKKKK
+KLLLLLLLLLmK
+.KKKKKKKKKK.

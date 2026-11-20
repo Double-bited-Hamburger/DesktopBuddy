@@ -18,12 +18,16 @@ import { presentNow } from '../core/tracker/focus'
 import type { FocusRun } from '../core/tracker/pomodoro'
 import {
   afterPhase,
+  extendRun,
   FocusRunSchema,
   nextRound,
+  pauseRun,
   phaseEndsAt,
+  phaseLeftMs,
   resumeRun,
   setBonus,
   startRun,
+  unpauseRun,
 } from '../core/tracker/pomodoro'
 import type { AppHistory } from '../core/tracker/screen-time'
 import { activeMinutesOf, appHistory, screenTimeOfDay } from '../core/tracker/screen-time'
@@ -65,6 +69,8 @@ export class TrackerService {
   private readonly storage: StorageAdapter
   private readonly idleSeconds: () => number
   private readonly foreground: ForegroundSource
+  /** The app in front at the last sample (app-aware props, 1.2.0). Memory only. */
+  private lastApp: string | undefined
   private readonly settings: () => TrackingSettings
   private readonly focusConfig: FocusConfig
   private readonly bucketer = new MinuteBucketer(IDLE_AFTER_SECONDS)
@@ -137,6 +143,7 @@ export class TrackerService {
     let app = idle < IDLE_AFTER_SECONDS ? await this.foreground.current() : undefined
     if (app !== undefined && this.settings().ignore.includes(app.toLowerCase())) app = undefined
     if (!this.settings().enabled) return // turned off while waiting for the app name
+    this.lastApp = app?.toLowerCase()
     const day = localDayKey(now)
     if (this.today && this.today.day !== day) await this.finishMinute() // midnight
     const done = this.bucketer.add(minuteOfDay(now), { app, idleSeconds: idle })
@@ -301,6 +308,42 @@ export class TrackerService {
     if (was.phase === 'focus') this.onFocusChange(false)
   }
 
+  /**
+   * The duck's mini-bar (1.2.0): pause or resume the focus phase. The time paused is added back,
+   * so nothing is lost and nothing is paid for minutes away. False when no focus is running.
+   */
+  togglePause(): boolean {
+    const run = this.run
+    if (run?.phase !== 'focus') return false
+    const now = Date.now()
+    const current: FocusRun = { ...run, ...this.presence }
+    this.begin(run.pausedAt === undefined ? pauseRun(current, now) : unpauseRun(current, now))
+    return true
+  }
+
+  /** +5m from the duck's mini-bar: the focus phase runs `minutes` longer. */
+  extendFocus(minutes: number): boolean {
+    const run = this.run
+    if (run?.phase !== 'focus') return false
+    this.begin(extendRun({ ...run, ...this.presence }, minutes))
+    return true
+  }
+
+  /** The running focus phase for the mini-bar: time left and whether it is paused. */
+  get focusLeft(): { readonly ms: number; readonly paused: boolean } | undefined {
+    const run = this.run
+    if (run?.phase !== 'focus') return undefined
+    return {
+      ms: phaseLeftMs(run, Date.now(), this.minuteMs) ?? 0,
+      paused: run.pausedAt !== undefined,
+    }
+  }
+
+  /** The app in front at the last sample (lowercase process name), while tracking is on. */
+  get currentApp(): string | undefined {
+    return this.settings().enabled ? this.lastApp : undefined
+  }
+
   /** Focus time is running (headphones on). */
   get focusing(): boolean {
     return this.run?.phase === 'focus'
@@ -335,6 +378,7 @@ export class TrackerService {
     this.presence = { checked: run.checked ?? 0, present: run.present ?? 0 }
     void this.saveRun()
     const end = phaseEndsAt(run, this.minuteMs)
+    if (run.pausedAt !== undefined) return // paused: no clock runs until it is resumed
     if (run.phase === 'focus')
       this.presenceTimer = setInterval(() => this.checkMinute(run), this.minuteMs)
     if (end !== undefined) {
@@ -430,6 +474,7 @@ export class TrackerService {
       focusMinutes: run.focusMinutes,
       endsAt: phaseEndsAt(run, this.minuteMs),
       ...(run.label ? { label: run.label } : {}),
+      ...(run.pausedAt !== undefined ? { paused: true } : {}),
     }
   }
 

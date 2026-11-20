@@ -1,0 +1,122 @@
+# A glossy classic bath duckling: round head and body, a flat bottom (no feet), a white shine on
+# the top-left, a little tail flick. It waddles by rocking (step) and squeak-hops; quack opens the
+# beak. Its own shape, rounder than the mini duck.
+name: mini-bath-duck
+size: 16x16
+palette:
+  K #2a1f2d
+  E #1e1620
+  Y #ffea00
+  S #e6b800
+  W #ffffff
+  O #ffaa00
+  o #d97f00
+  P #c2410c
+
+@frame idle
+................
+................
+................
+.........KKKK...
+........KWWYYK..
+.......KWYYYYYK.
+.......KYYYYEYK.
+.......KYYYYYYOK
+..K.....KYYYYOOK
+.KYK.KKKKYYYKoK.
+.KYYKYYYYYYYYYK.
+KYWYYYYYYYYYYYK.
+KYWYYYYYYYYYYSK.
+KSYYYYYYYYYYSSK.
+.KSSYYYYYYYSSK..
+..KKKKKKKKKKK...
+
+@frame blink
+................
+................
+................
+.........KKKK...
+........KWWYYK..
+.......KWYYYYYK.
+.......KYYYYYYK.
+.......KYYYKKYOK
+..K.....KYYYYOOK
+.KYK.KKKKYYYKoK.
+.KYYKYYYYYYYYYK.
+KYWYYYYYYYYYYYK.
+KYWYYYYYYYYYYSK.
+KSYYYYYYYYYYSSK.
+.KSSYYYYYYYSSK..
+..KKKKKKKKKKK...
+
+@frame step
+................
+................
+................
+.........KKKK...
+........KWWYY...
+.......KWYYYYK..
+.......KYYYYEYK.
+..K....KYYYYYYK.
+.KY.....KYYYYYOK
+.KYK.KKKKYYYKOOK
+KYWYKYYYYYYYYoK.
+KYWYYYYYYYYYYYK.
+KSYYYYYYYYYYYYK.
+.KSYYYYYYYYYSSK.
+..KSYYYYYYYSSSK.
+...KKKKKKKKKKK..
+
+@frame quack
+................
+................
+................
+.........KKKK...
+........KWWYYK..
+.......KWYYYYYK.
+.......KYYYYEYK.
+.......KYYYYYYOK
+..K.....KYYYYKPK
+.KYK.KKKKYYYKOOK
+.KYYKYYYYYYYYYK.
+KYWYYYYYYYYYYYK.
+KYWYYYYYYYYYYSK.
+KSYYYYYYYYYYSSK.
+.KSSYYYYYYYSSK..
+..KKKKKKKKKKK...
+
+@frame sit
+................
+................
+................
+................
+.........KKKK...
+........KWWYYK..
+.......KWYYYYYK.
+.......KYYYYEYK.
+.......KYYYYYYOK
+..K.....KYYYYOOK
+.KYK.KKKKYYYKoK.
+.KYYKYYYYYYYYYK.
+KYWYYYYYYYYYYYK.
+KYWYYYYYYYYYYSK.
+KSSYYYYYYYYSSSK.
+.KKKKKKKKKKKKK..
+
+@frame hop
+................
+.........KKKK...
+........KWWYYK..
+.......KWYYYYYK.
+.......KYYYYEYK.
+.......KYYYYYYOK
+..K.....KYYYYOOK
+.KYK.KKKKYYYKoK.
+.KYYKYYYYYYYYYK.
+KYWYYYYYYYYYYYK.
+KYWYYYYYYYYYYSK.
+KSYYYYYYYYYYSSK.
+.KSSYYYYYYYSSK..
+..KKKKKKKKKKK...
+................
+................

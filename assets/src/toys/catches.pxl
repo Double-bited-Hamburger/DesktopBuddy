@@ -1,0 +1,91 @@
+# Fishing catches (1.2.0), 8x8 each: hung from the line on rod-reel (top-left at stage (32,21),
+# the line meets the top middle) and shown at 2-3x in the fishing log. Facing right like the duck.
+# `unknown` is the dark silhouette shown for a species not caught yet.
+name: catches
+size: 8x8
+palette:
+  K #2a1f2d
+  O #f08a3c
+  o #c4561f
+  C #fff1d6
+  R #e0463c
+  r #9e2a2a
+  Y #f7d84a
+  y #c99a22
+  T #4fc8d0
+  t #2f8a9a
+  B #9fdcf2
+  N #c9a45a
+  n #8a6a2e
+  W #ffffff
+  U #4a4050
+
+@frame pixel-carp
+....KK..
+K..KooK.
+KoKOOOOK
+KooOOKOK
+KoKOCCOK
+K..KCCK.
+....KK..
+........
+
+@frame shiny-cap
+......W.
+.....WYW
+.KKKKKW.
+KRWRRRRK
+KrrrrrrK
+KRrRrRrK
+.KKKKKK.
+........
+
+@frame tiny-crab
+K.K..K.K
+KRK..KRK
+.KKKKKK.
+KRKRRKRK
+KRRRRRrK
+.KrrrrK.
+K.KKKK.K
+.K....K.
+
+@frame rubber-fish
+...KKK..
+KK.KWTK.
+KtKTTTWK
+KttTTWKK
+KtKTTTTK
+KK.KttK.
+...KKK..
+........
+
+@frame golden-clip
+.KKKKK..
+KYYYYyK.
+KYKKKyK.
+KYKYKyK.
+KYKYKyK.
+KYKYKyK.
+KYKyyyK.
+.K.KKK..
+
+@frame sunken-seed
+.....BB.
+....BW.B
+....B..B
+..KKKBB.
+.KNNNK..
+KNCNNnK.
+KNNnnK..
+.KKKK...
+
+@frame unknown
+....KK..
+K..KCCK.
+KUKUUUCK
+KUUUUCUK
+KUKUUUUK
+K..KUCK.
+....KK..
+........

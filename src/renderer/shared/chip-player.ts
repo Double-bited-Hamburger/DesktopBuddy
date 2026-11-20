@@ -1,4 +1,4 @@
-import type { SoundName } from '../../core/sound/chip'
+import type { SoundName, Tone } from '../../core/sound/chip'
 import { SOUNDS, soundLengthMs, toneSchedule } from '../../core/sound/chip'
 
 /** The audio device is let go this long after the last sound ends. */
@@ -23,11 +23,16 @@ export class ChipPlayer {
   }
 
   play(name: SoundName): void {
+    this.playTones(SOUNDS[name])
+  }
+
+  /** Plays tones worked out on the spot (the jam's notes, the ball's rising combo). */
+  playTones(tones: readonly Tone[]): void {
     if (this.volume <= 0) return
     const context = this.context ?? new AudioContext()
     this.context = context
     const start = context.currentTime + 0.01
-    for (const { at, tone } of toneSchedule(SOUNDS[name])) {
+    for (const { at, tone } of toneSchedule(tones)) {
       const begin = start + at / 1000
       const end = begin + tone.ms / 1000
       const osc = context.createOscillator()
@@ -45,7 +50,7 @@ export class ChipPlayer {
       osc.stop(end)
     }
     // Close once the longest sound still playing has ended (a short quack can't cut a chomp).
-    this.quietAt = Math.max(this.quietAt, performance.now() + soundLengthMs(SOUNDS[name]))
+    this.quietAt = Math.max(this.quietAt, performance.now() + soundLengthMs(tones))
     clearTimeout(this.closeTimer)
     this.closeTimer = setTimeout(
       () => {

@@ -90,6 +90,25 @@ export class PointsLedger {
     return { granted }
   }
 
+  /**
+   * Pays `amount` from a source whose payout varies (a fishing catch), with the source's cooldown
+   * and daily cap from economy.json. The rule's own `points` is not used.
+   */
+  earnAmount(source: string, amount: number): EarnResult {
+    const rule = this.rules[source]
+    if (!rule) return { granted: 0, reason: 'unknown-source' }
+    if (!Number.isInteger(amount) || amount <= 0) return { granted: 0, reason: 'unknown-source' }
+    const now = this.clock()
+    const last = this.lastBySource.get(source)
+    if (last !== undefined && now - last < rule.cooldownMs)
+      return { granted: 0, reason: 'cooldown' }
+    const remaining = rule.dailyCap - this.earnedToday(source)
+    if (remaining <= 0) return { granted: 0, reason: 'daily-cap' }
+    const granted = Math.min(amount, remaining)
+    this.append({ ts: now, source, delta: granted })
+    return { granted }
+  }
+
   grant(source: string, amount: number): void {
     if (!Number.isInteger(amount) || amount <= 0)
       throw new RangeError('grant needs a positive integer')

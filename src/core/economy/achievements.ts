@@ -21,6 +21,11 @@ export const ACHIEVEMENT_STATS = [
   'sets',
   'eggs',
   'flowers',
+  // 1.2.0: a golden catch, a 15× ball combo (counted), the best Cozy Streak and saved outfits.
+  'fish-golden',
+  'combo-15',
+  'cozy-streak',
+  'presets',
 ] as const
 export type AchievementStat = (typeof ACHIEVEMENT_STATS)[number]
 

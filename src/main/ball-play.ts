@@ -1,8 +1,13 @@
 import type { WebContents } from 'electron'
 import { screen } from 'electron'
+import type { KeepyUppy } from '../core/toys/ball'
 import {
+  airHit,
   BALL_FEEL,
   BALL_REST_MS,
+  batVelocity,
+  floorHit,
+  headbuttVelocity,
   kickDirection,
   kicksForPlay,
   kickVelocity,
@@ -29,10 +34,28 @@ export class BallPlay {
   onTarget: (spot: SnackSpot | undefined) => void = () => undefined
   /** The duck headbutted the ball (main pays for it and tells the duck page). */
   onKick: () => void = () => undefined
+  /** Keepy-uppy (1.2.0): an airborne hit; the combo so far and whether it is a new best. */
+  onCombo: (combo: number, newBest: boolean) => void = () => undefined
+  /** The duck's head: where an airborne ball gets headbutted back up (screen px), if it can. */
+  headZone: () => { x: number; top: number; bottom: number; reach: number } | undefined = () =>
+    undefined
+  /** The combo is counted here, from real hits only (never a number from a page). */
+  private keepy: KeepyUppy = { combo: 0, best: 0 }
 
   constructor(scale: number, duckX: () => number) {
     this.scale = scale
     this.duckX = duckX
+  }
+
+  /** The best combo from before (progression.json), so a new best is told apart. */
+  set bestCombo(best: number) {
+    this.keepy = { ...this.keepy, best: Math.max(this.keepy.best, best) }
+  }
+
+  private airHit(): void {
+    const next = airHit(this.keepy)
+    this.keepy = { combo: next.combo, best: next.best }
+    this.onCombo(next.combo, next.newBest)
   }
 
   get out(): boolean {
@@ -91,6 +114,26 @@ export class BallPlay {
   private create(at: { x: number; y: number }): SnackWindow<'ball'> {
     const ball = new SnackWindow('ball', this.scale, at, BALL_FEEL)
     ball.onLanded = () => this.landed()
+    ball.onFloor = () => {
+      if (this.keepy.combo > 0) this.keepy = floorHit(this.keepy)
+    }
+    // Clicked in the air: batted up again, drifting towards the duck.
+    ball.airClick = () => {
+      const box = ball.bounds
+      if (!box) return undefined
+      this.airHit()
+      return batVelocity(box.x + box.width / 2, this.duckX(), Math.random)
+    }
+    // Coming down by the duck's head: a headbutt sends it back up.
+    ball.inFlight = (x, y, vy) => {
+      if (vy <= 0 || this.keepy.combo === 0) return undefined
+      const head = this.headZone()
+      if (!head || Math.abs(x - head.x) > head.reach || y < head.top || y > head.bottom)
+        return undefined
+      this.airHit()
+      this.onKick()
+      return headbuttVelocity(Math.random)
+    }
     ball.onLifted = () => {
       // In the hand again: a fresh play once it's thrown.
       clearTimeout(this.restTimer)

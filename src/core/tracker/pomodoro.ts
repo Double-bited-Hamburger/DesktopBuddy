@@ -33,6 +33,8 @@ export interface FocusRun extends FocusSession {
   /** Focus phase: minutes checked so far, and how many of them the user was at the PC. */
   readonly checked?: number
   readonly present?: number
+  /** Paused from the duck's mini-bar (1.2.0): when; the phase doesn't end while paused. */
+  readonly pausedAt?: number
 }
 
 export const FocusRunSchema = z.object({
@@ -45,6 +47,7 @@ export const FocusRunSchema = z.object({
   label: z.string().max(80).optional(),
   checked: z.number().int().nonnegative().optional(),
   present: z.number().int().nonnegative().optional(),
+  pausedAt: z.number().int().nonnegative().optional(),
 })
 
 /** The longest "what are you working on" label. */
@@ -71,7 +74,34 @@ export function startRun(minutes: number, now: number, cycle: boolean, label?: s
 
 /** When the current phase ends; a waiting run never ends on its own. */
 export function phaseEndsAt(run: FocusRun, minuteMs = 60_000): number | undefined {
-  return run.phase === 'waiting' ? undefined : run.startedAt + run.minutes * minuteMs
+  if (run.phase === 'waiting' || run.pausedAt !== undefined) return undefined
+  return run.startedAt + run.minutes * minuteMs
+}
+
+/** Milliseconds left in the phase at `now` (frozen while paused; undefined while waiting). */
+export function phaseLeftMs(run: FocusRun, now: number, minuteMs = 60_000): number | undefined {
+  if (run.phase === 'waiting') return undefined
+  const at = run.pausedAt ?? now
+  return Math.max(0, run.startedAt + run.minutes * minuteMs - at)
+}
+
+/** Pause (1.2.0, the duck's mini-bar): a focus phase stops counting down. */
+export function pauseRun(run: FocusRun, now: number): FocusRun {
+  if (run.phase !== 'focus' || run.pausedAt !== undefined) return run
+  return { ...run, pausedAt: now }
+}
+
+/** Resume: the time spent paused is added back, so nothing is lost. */
+export function unpauseRun(run: FocusRun, now: number): FocusRun {
+  if (run.pausedAt === undefined) return run
+  const { pausedAt, ...rest } = run
+  return { ...rest, startedAt: run.startedAt + Math.max(0, now - pausedAt) }
+}
+
+/** +5m from the mini-bar: a focus phase runs `extra` minutes longer. */
+export function extendRun(run: FocusRun, extra: number): FocusRun {
+  if (run.phase !== 'focus' || !Number.isInteger(extra) || extra <= 0) return run
+  return { ...run, minutes: run.minutes + extra }
 }
 
 /**

@@ -1,0 +1,31 @@
+# A small red mug of cocoa with a marshmallow (1.2.0). Drawn for a duck facing right, the handle
+# away from the beak: `cocoa` held at the chest (duck frame idle or savor), `cocoa-sip` tipped up
+# into the beak like toys/coffee-sip. emotes/steam rises over the held mug.
+name: cocoa
+size: 8x7
+palette:
+  K #2a1f2d
+  W #fffaf0
+  w #e8dccb
+  c #7a4a2e
+  L #f08a7a
+  R #d8504a
+  r #9e2a2a
+
+@frame cocoa
+..KK....
+KKWwKK..
+KcWwcKK.
+KLRRRK.K
+KLRRrKK.
+KRRrrK..
+.KKKK...
+
+@frame cocoa-sip
+..KK....
+.KccK...
+KcWwcK..
+.KccLRK.
+..KLRRrK
+...KRrKK
+....KK.K

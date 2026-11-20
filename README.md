@@ -53,7 +53,7 @@ throw it, dress it up. Free and open source, with no paywalls.
 
 <div align="center">
 <img src="docs/media/wardrobe.svg" alt="Every duck skin, hat, pair of glasses and mini friend in the game" width="720">
-<br><sub>49 skins · 26 hats · 8 glasses · 7 neckwear · 8 mini friends, all original pixel art, all earnable in play</sub>
+<br><sub>57 skins · 35 hats · 14 glasses · 11 neckwear · 5 back items · 11 mini friends, all original pixel art, all earnable in play</sub>
 </div>
 
 Every source has a **cooldown and a daily cap**, so mashing an auto-clicker gets you nowhere:

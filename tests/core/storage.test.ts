@@ -80,8 +80,18 @@ describe('settings', () => {
       weatherCity: '', // no weather (and no network) until the user types a city
       weatherAlerts: true, // only matters once a city is typed
       fullscreen: { video: 'lie', games: 'hide' }, // lie flat over videos, leave for games
-      loadout: { skin: 'classic', hat: null, face: null, neck: null },
+      loadout: { skin: 'classic', hat: null, face: null, neck: null, back: null },
       tracking: { enabled: false, ignore: [], categories: {} }, // tracking is opt-in
+      // 1.2.0: no note, empty presets, Auto-Dress off; nudges on; smart context opt-in.
+      stickyNote: null,
+      outfitPresets: [null, null, null, null, null],
+      autoDress: { enabled: false, nightPreset: null, rainPreset: null },
+      autoDressState: { mode: 'day', snapshot: null },
+      careNudges: true,
+      careNudgeMinutes: 45,
+      appAwareProps: false,
+      musicHeadbob: false,
+      cursorCuriosity: true,
     })
   })
 
@@ -100,6 +110,7 @@ describe('settings', () => {
       hat: 'green-bucket-hat',
       face: null,
       neck: null, // a 0.9 loadout: nothing on the neck
+      back: null, // nor on the back (1.2.0)
     })
     // The friend duck dresses in mint until it's given something else.
     expect(settings.friendLoadout).toEqual({ skin: 'mint', hat: null, face: null })

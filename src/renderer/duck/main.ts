@@ -4,6 +4,7 @@ import { bloom } from './flower'
 import { handleInput } from './input'
 import { pause, schedule, wake } from './loop'
 import { createPage } from './page'
+import { listenPlay } from './play'
 import { render } from './render'
 import { startBlow } from './soap'
 import { startTrick } from './tricks'
@@ -16,6 +17,7 @@ import { startTrick } from './tricks'
 async function main(): Promise<void> {
   const page = await createPage()
   listen(page)
+  listenPlay(page)
   handleInput(page)
   render(page)
   schedule(page)

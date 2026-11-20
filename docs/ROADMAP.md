@@ -791,6 +791,67 @@ from one screen onto a lower or higher one with the eyes (unit-tested lane math 
 icon at 125/150% scaling, the MAX popup seen on screen, the new quests counting in a real play
 session (unit-tested), the light theme screenshots, Linux.
 
+## 1.2.0 — "Cozy & Playful" (built 2026-11-20)
+
+From the owner's 1.2.0 spec. Resting app is still one window; every new toy draws in the duck
+window, the existing bubble window or the on-demand panel. Main owns every roll, cap and cooldown
+(`src/main/play.ts`); the pages only ask and draw (`duck:play`).
+
+- **Wardrobe, 35 items (133 in all):** 8 recolor skins, 9 hats, 6 faces, 4 neckwear, 5 items in a
+  new **back** slot (they hang on the neck anchor, drawn behind the body), 3 minis with their own
+  sprites. `bucket-hat`, `frog-hood` and `traffic-cone` already existed, so `fishing-hat`,
+  `mushroom-cap` and `sprout` take their places. Bag: a Back tab.
+- **Cosmetic synergies** (core/sprite/cosmetics.ts): the sleep mask slides down for a nap, the
+  wind-up key turns while walking and winds on waking (a ratchet tick), the cape and knit scarf
+  flutter at speed and in the rain, the jetpack puffs flames in flight, the bell collar tings on
+  hops and landings (1.5 s apart), the loading halo spins, googly eyes wobble, wings flutter.
+- **New moments** (15 states, 4 new duck frames: `loaf`, `loaf-blink`, `bob`, `tilt`): loaf, a
+  blanket nap at night or in December, cocoa (rain or evening), ruffle, trip, edge-peek (outer
+  screen edges only, never a seam between monitors), zoomies, sneeze puff, curious, head-bob.
+  A priority matrix (core/behavior/priority.ts) says who interrupts whom.
+- **Mini leapfrog:** two walking minis within 24 px of each other may play it (10% when they come
+  close or decide what to do while close, at most once every 3 min, never during anything
+  serious): one crouches and arcs 14 px up over the other, which ducks down, then both pop a "!"
+  and a heart (core/care/friend.ts, main moves the jumper on a 12 fps beat for 1.5 s).
+- **While you're waiting:** taskbar fishing with a Fisherman's Log (Journey and the new Play
+  screen), a laser pointer chase (25 s, cursor read on main's 12 fps beat only while it is on,
+  `try/catch` for Wayland), keepy-uppy ball combos (rising pentatonic notes, `x3` badge, a party
+  for a new best ≥ 5), the Pentatonic Quack Jam (auto-off after 15 s), Ask the Duck (12 answers).
+- **Daily utilities:** "Hold this, duck" (a note in its beak; hover the duck: Copy / Done), 5 outfit
+  presets and opt-in Auto-Dress (night and rain presets, the day outfit put back), Rubber-Duck
+  Debug 2.0 (5 offline questions, dev specs on the duck meanwhile, Copy as Markdown), water and
+  stretch nudges (on by default, every 45 or 60 min, never during focus work, calls, fullscreen
+  or play), the focus mini-bar on hover (time left, Pause/Resume, +5m).
+- **Smart context:** app-aware props (opt-in, Windows, needs tracking: laptop for code editors,
+  popcorn for players; process names only), music head-bob (opt-in, the "now playing" signal
+  Friends uses), cursor curiosity (from the mouse moves the window already gets, no polling).
+- **Right-click on the duck** opens a menu: Open panel first, then the toys and the note. The tray
+  has a Play submenu. New panel screen **Play Pond**; Settings has a **Cozy touches** group.
+- **Economy:** sources `fishing` (120/day) and `laser` (80/day), 6 quests, 6 achievements, 3 album
+  sets, the Cozy Streak; normal player median 33.5 days (docs/ECONOMY.md "1.2.0").
+- **Saves:** new settings and progression fields all have defaults; a 1.1.x save loads as it was
+  (tests). Friends still sends the 1.1 look (no back item), so 1.1 peers keep accepting it.
+
+Evidence: `npm run check` green (863 tests), `npm run bake` (130 sprites), `npm run build`,
+`npm run readme-art`, `npm run dist` (`release/DesktopBuddy-Setup-1.2.0.exe`, 117 MB, unsigned,
+not installed or run). Dev build on a throwaway `BUDDY_DATA_DIR`, driven over CDP: the smoke check
+passes; fishing (a real catch paid and logged), laser, note, presets, Ask the Duck, jam, debug
+walkthrough and the strict IPC payload checks all answered as expected, no console errors; duck
+canvas shots looked at enlarged (blanket nap, cast, bobber, catch, laser, note, "?"). Leapfrog
+seen live with two minis out (`BUDDY_FRIEND=1,mini-peach`, dev-only `BUDDY_LEAPFROG=1` to skip
+the roll): window y followed the arc (14 px up at 3×, landed on the far side in ~1.5 s), both
+mini canvases showed the "!" then the heart, no console errors.
+
+**Not verified (needs the owner):** how the 35 items and new states look at 3× on the real
+desktop (only enlarged canvas shots and the README sheet were seen); every new sound by ear;
+fishing, laser skids and pounces, keepy-uppy clicks and the hover bubbles with a real mouse; the
+right-click menu and tray submenu by hand; edge-peek on real monitors; app-aware props and the
+head-bob against real apps; care nudges firing after 45 min; Auto-Dress at night and in real rain;
+Italian strings fitting in the Bag presets row, the debug card and Settings; leapfrog happening
+on its own (10% roll) and how it looks at 3× on the taskbar; the installer UI and an update over
+1.1.1. Perf: only a quick check while the owner was using the PC (docs/ARCHITECTURE.md "Quick
+check of 1.2.0"): idle 1.93% / sleep 0.76% CPU, 98–100 MB; a quiet baseline run is still owed.
+
 ## 1.1.1 — a flower you can see (2026-11-19)
 
 The owner's first flower bloomed on 18 Nov (+25 paid) and they never saw it: it was 5×7 px,

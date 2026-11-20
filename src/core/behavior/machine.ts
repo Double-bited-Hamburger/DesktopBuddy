@@ -87,6 +87,22 @@ export const BEHAVIOR_STATES = [
   'sniff',
   // Blowing soap bubbles through its wand (core/toys/bubbles.ts).
   'blow',
+  // 1.2.0 ("Cozy & Playful"); core/behavior/priority.ts says who interrupts whom.
+  'loaf',
+  'cocoa',
+  'ruffle',
+  'trip',
+  'peek',
+  'zoomies',
+  'fish',
+  'laser',
+  'think',
+  'care-water',
+  'care-stretch',
+  'laptop',
+  'popcorn',
+  'headbob',
+  'curious',
 ] as const
 export type BehaviorState = (typeof BEHAVIOR_STATES)[number]
 export type Direction = 1 | -1
@@ -96,7 +112,22 @@ export interface BehaviorConfig {
   readonly durationMs: Readonly<Record<BehaviorState, readonly [number, number]>>
   /** Relative weights for what to do after each state. Missing/zero entries never happen. */
   readonly next: Readonly<Record<BehaviorState, Readonly<Partial<Record<BehaviorState, number>>>>>
+  /**
+   * The least time between two of these the duck picks by itself (1.2.0: a sneeze every few
+   * minutes at most). States asked for with `enter` ignore it.
+   */
+  readonly cooldownMs?: Readonly<Partial<Record<BehaviorState, number>>>
 }
+
+/** 1.2.0 lengths. */
+export const LOAF_MS: readonly [number, number] = [8000, 18000]
+export const COCOA_MS = 6000
+export const RUFFLE_MS = 600
+export const TRIP_MS = 2400
+export const ZOOMIES_MS = 3200
+export const THINK_STATE_MS = 900
+export const CARE_MS = 6000
+export const CURIOUS_MS = 2000
 
 /** The happy dance after a finished focus session (eight frames). */
 export const DANCE_MS = 2400
@@ -164,6 +195,21 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     parade: [TRICK_MS.parade, TRICK_MS.parade],
     sniff: [SNIFF_MS, SNIFF_MS],
     blow: [BLOW_MS, BLOW_MS], // the bubbles come out meanwhile; they float on after it
+    loaf: LOAF_MS, // a cozy bread loaf, feet tucked in
+    cocoa: [COCOA_MS - 1000, COCOA_MS + 1000], // a mug of cocoa (rain or evening)
+    ruffle: [RUFFLE_MS, RUFFLE_MS], // puffs up and shakes its feathers straight
+    trip: [TRIP_MS, TRIP_MS], // trips over nothing, looks round sheepishly, walks on
+    peek: [10_000, 10_000], // past an outer screen edge: main ends it (a safety net)
+    zoomies: [ZOOMIES_MS, ZOOMIES_MS], // two mad sprints, then a loaf
+    fish: [30 * 60_000, 30 * 60_000], // main ends fishing (a safety net)
+    laser: [60_000, 60_000], // main ends the laser (a safety net)
+    think: [THINK_STATE_MS, THINK_STATE_MS], // asked something: a head tilt, then the answer
+    'care-water': [CARE_MS, CARE_MS],
+    'care-stretch': [CARE_MS, CARE_MS],
+    laptop: [8000, 14000], // the app in front is a code editor
+    popcorn: [6000, 10000], // a film is on
+    headbob: [6000, 12000], // music
+    curious: [CURIOUS_MS, CURIOUS_MS], // the cursor parked nearby
   },
   next: {
     // Order matters for tests that roll exact numbers: append new entries at the end.
@@ -184,11 +230,12 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
       story: 0.015,
       song: 0.02,
       twirl: 0.015,
+      ruffle: 0.07,
     },
-    walk: { idle: 1 },
+    walk: { idle: 0.98, trip: 0.02 },
     sleep: { getup: 1 }, // sat down for a rest: it gets up before anything else
     quack: { idle: 0.85, wink: 0.15 }, // and sometimes a wink
-    ouch: { shake: 1 }, // shakes its head clear
+    ouch: { shake: 0.6, ruffle: 0.4 }, // shakes its head clear, or ruffles its feathers
     happy: { wag: 0.75, wink: 0.25 }, // and wags its tail, or winks
     eat: { wiggle: 1 }, // a happy wiggle after the bread
     run: { idle: 1 },
@@ -202,7 +249,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     cough: { idle: 1 },
     refuse: { idle: 1 },
     turn: { walk: 1 }, // back the other way (see `hitEdge`)
-    getup: { idle: 0.7, yawn: 0.3 }, // often a yawn on waking up
+    getup: { idle: 0.69, yawn: 0.3, zoomies: 0.01 }, // often a yawn, very rarely the zoomies
     look: { idle: 1 },
     shake: { idle: 1 },
     stretch: { idle: 1 },
@@ -238,6 +285,27 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
     parade: { idle: 1 },
     sniff: { happy: 1 }, // and a heart: it smells lovely
     blow: { idle: 1 },
+    loaf: { getup: 1 },
+    cocoa: { happy: 1 }, // and a little heart
+    ruffle: { idle: 1 },
+    trip: { walk: 1 }, // and off it goes again, the same way (see `update`)
+    peek: { idle: 1 },
+    zoomies: { loaf: 1 }, // and flops into a loaf
+    fish: { idle: 1 },
+    laser: { idle: 1 },
+    think: { idle: 1 },
+    'care-water': { idle: 1 },
+    'care-stretch': { idle: 1 },
+    laptop: { idle: 1 },
+    popcorn: { idle: 1 },
+    headbob: { idle: 1 },
+    curious: { idle: 1 },
+  },
+  cooldownMs: {
+    sneeze: 6 * 60_000,
+    trip: 5 * 60_000,
+    cocoa: 4 * 60_000,
+    zoomies: 10 * 60_000,
   },
 }
 
@@ -276,6 +344,7 @@ export const FIDGETS: readonly BehaviorState[] = [
   'wag',
   'song',
   'twirl',
+  'ruffle',
 ]
 
 /** Longer rests the duck picks by itself, switched off with the naps (`naps`). */
@@ -341,6 +410,10 @@ const TRICK_BLOCKERS: ReadonlySet<BehaviorState> = new Set<BehaviorState>([
   'listen',
   'sniff',
   'blow',
+  'fish',
+  'laser',
+  'think',
+  'peek',
   ...TRICK_IDS,
 ])
 
@@ -366,6 +439,12 @@ export const SNIFF_FROM: ReadonlySet<BehaviorState> = new Set<BehaviorState>([
   'wag',
   'wink',
   'wiggle',
+  'loaf',
+  'ruffle',
+  'curious',
+  'headbob',
+  'laptop',
+  'popcorn',
 ])
 
 /** The trick a state plays, if it is one. */
@@ -380,8 +459,12 @@ function between(range: readonly [number, number], rng: Rng): number {
 function pickWeighted(
   weights: Readonly<Partial<Record<BehaviorState, number>>>,
   rng: Rng,
+  resting: (state: BehaviorState) => boolean = () => false,
 ): BehaviorState {
-  const entries = Object.entries(weights) as [BehaviorState, number][]
+  const all = Object.entries(weights) as [BehaviorState, number][]
+  // States still cooling down are left out (unless nothing else is left).
+  const ready = all.filter(([state]) => !resting(state))
+  const entries = ready.length > 0 ? ready : all
   const total = entries.reduce((sum, [, weight]) => sum + weight, 0)
   let roll = rng() * total
   for (const [state, weight] of entries) {
@@ -405,6 +488,9 @@ export class BehaviorMachine {
   private remainingMs: number
   /** Milliseconds spent in the current state so far (a trick's place on its timeline). */
   private elapsedMs = 0
+  /** The machine's own running time, and when each state was last entered (for cooldowns). */
+  private ageMs = 0
+  private readonly enteredAt = new Map<BehaviorState, number>()
 
   constructor(rng: Rng, config: BehaviorConfig = DEFAULT_BEHAVIOR_CONFIG) {
     this.rng = rng
@@ -439,10 +525,16 @@ export class BehaviorMachine {
   update(dtMs: number): boolean {
     this.remainingMs -= Math.max(0, dtMs)
     this.elapsedMs += Math.max(0, dtMs)
+    this.ageMs += Math.max(0, dtMs)
     if (this.remainingMs > 0) return false
     const before = this.current
-    this.enter(pickWeighted(this.config.next[this.current], this.rng))
+    const facing = this.facing
+    this.enter(
+      pickWeighted(this.config.next[this.current], this.rng, (state) => this.resting(state)),
+    )
     if (before === 'turn' && this.current === 'walk') this.facing = this.turnTo
+    // Back on its feet after a trip: it walks on the way it was going.
+    if (before === 'trip' && this.current === 'walk') this.facing = facing
     // After the sugar crash it only naps for a moment.
     if (before === 'crash' && this.current === 'sleep')
       this.remainingMs = Math.min(this.remainingMs, POWER_NAP_MS)
@@ -603,7 +695,27 @@ export class BehaviorMachine {
     }
   }
 
+  /** A state picked by itself too soon after the last one (`cooldownMs`). */
+  private resting(state: BehaviorState): boolean {
+    const cooldown = this.config.cooldownMs?.[state]
+    const at = this.enteredAt.get(state)
+    return cooldown !== undefined && at !== undefined && this.ageMs - at < cooldown
+  }
+
+  /** Turns to face `direction` without changing what it does (the laser, a cursor nearby). */
+  face(direction: Direction): void {
+    this.facing = direction
+  }
+
+  /** Back from peeking past a screen edge: it turns round and walks back. */
+  peekDone(): void {
+    const back: Direction = this.facing === 1 ? -1 : 1
+    this.enter('turn')
+    this.turnTo = back
+  }
+
   enter(state: BehaviorState): void {
+    this.enteredAt.set(state, this.ageMs)
     this.current = state
     this.elapsedMs = 0
     this.remainingMs = between(this.config.durationMs[state], this.rng)

@@ -396,6 +396,27 @@ Same method (built app, throwaway folder, two samples 10 s apart after 50 s):
   a follow-up (fewer redraws while walking) is noted in ROADMAP.
 - RAM 90 MB, well under 120 MB. Not measured: Friends on, minis out, a handful of bread.
 
+### Quick check of 1.2.0 (2026-11-20, owner's PC in active use)
+
+`npm run perf -- --states=… --seconds=30/40 --runs=1`, built app, a throwaway data folder each
+run. A keyboard/mouse idle log ran alongside the second run: input every few seconds, and a
+profile showed someone right-clicking the test duck during the first. Not a clean baseline.
+
+| State | Run 1 (heavy use) | Run 2 (normal use) | Budget |
+| --- | --- | --- | --- |
+| idle | 10.68% · 120 MB (main 6.07) | **1.93% · 98 MB** (main 0.91 · gpu 0.64 · rend. 0.38) | < 1% ❓ |
+| sleep | 1.92% · 102 MB | **0.76% · 100 MB** (main 0.46 · gpu 0.23 · rend. 0.08) | < 1% ✅ |
+| walk | 9.42% · 118 MB | not run | ≤ 3% ❓ |
+
+- A 15 s CPU profile of main's JavaScript at idle (pinned, `--inspect`): 99.5% idle; nothing new
+  runs at rest (the 1.2.0 timers are a 5-min nudge check and a 30-s context check only while
+  those settings are on). Main's measured CPU at idle is native work (windows, mouse forwarding),
+  which a user moving the mouse over the test duck drives up.
+- RAM 98–100 MB with the first-run tip bubble open (every perf run starts on an empty folder):
+  under the 120 MB budget.
+- Still owed: a quiet run (PC left alone) for idle, walk and the free mix, compared with the
+  1.1.x baseline (idle 0.55%, walk 2.39%).
+
 ### Quick RAM check of a soap bubbles session (1.1.0, 2026-11-17, owner's PC in light use)
 
 Production build (`electron-vite preview`), throwaway data folder, `BUDDY_BUBBLES=12` (a session

@@ -1,9 +1,13 @@
 import type { TrickId } from '../core/anim/tricks'
+import type { AppContextKind } from '../core/behavior/app-context'
+import type { FishingPhase } from '../core/behavior/fishing'
+import type { LaserPose } from '../core/behavior/laser'
 import type { BehaviorState } from '../core/behavior/machine'
 import type { DayForecast, RainAlert } from '../core/care/forecast'
 import type { FriendState } from '../core/care/friend'
 import type { WeatherKind } from '../core/care/weather'
 import type { Rarity, Slot } from '../core/catalog/catalog'
+import type { OutfitPreset } from '../core/catalog/presets'
 import type { AchievementView } from '../core/economy/achievements'
 import type { CapBar, EarnLogEntry } from '../core/economy/earn-log'
 import type { MiniChance } from '../core/economy/eggs'
@@ -122,7 +126,84 @@ export const IPC = {
   soapPop: 'soap:pop',
   soapHover: 'soap:hover',
   soapShape: 'soap:shape',
+  // 1.2.0 ("Cozy & Playful"): main owns every roll, window, cap and cooldown.
+  fishingStart: 'toy:fishing-start',
+  fishingReel: 'toy:fishing-reel',
+  fishingCancel: 'toy:fishing-cancel',
+  laserToggle: 'toy:laser-toggle',
+  jamToggle: 'toy:jam-toggle',
+  jamTap: 'toy:jam-tap',
+  askDuck: 'toy:ask-duck',
+  noteSet: 'note:set',
+  noteClear: 'note:clear',
+  noteCopy: 'note:copy',
+  focusQuickAction: 'focus:quick-action',
+  debugComplete: 'debug:complete',
+  debugPreviewSpecs: 'debug:preview-specs',
+  presetSave: 'panel:preset-save',
+  presetWear: 'panel:preset-wear',
+  playView: 'panel:play-view',
+  panelGo: 'panel:go',
+  play: 'duck:play',
+  duckHover: 'duck:hover',
+  duckMenu: 'duck:menu',
+  bubbleHover: 'bubble:hover',
 } as const
+
+/** The toys and moments of 1.2.0, as main tells the duck page (it only draws them). */
+export type PlayEvent =
+  | { readonly kind: 'fish'; readonly phase: FishingPhase; readonly item: string | null }
+  | { readonly kind: 'fish-off' }
+  | {
+      readonly kind: 'laser'
+      readonly pose: LaserPose
+      readonly facing: 1 | -1
+      readonly dot: boolean
+    }
+  | { readonly kind: 'laser-off' }
+  | { readonly kind: 'jam'; readonly on: boolean }
+  | { readonly kind: 'think' }
+  /** A keepy-uppy hit: the combo so far, and whether it's a new best worth a party. */
+  | { readonly kind: 'combo'; readonly combo: number; readonly party: boolean }
+  /** Peeking past an outer screen edge (on), or back (off: it turns and walks back). */
+  | { readonly kind: 'peek'; readonly on: boolean }
+  | { readonly kind: 'care'; readonly nudge: 'water' | 'stretch' }
+  | { readonly kind: 'context'; readonly app: AppContextKind }
+  | { readonly kind: 'music'; readonly on: boolean }
+  /** Rubber-duck debug: the dev specs on (render only, never saved), and a nod per step. */
+  | { readonly kind: 'specs'; readonly on: boolean }
+  | { readonly kind: 'nod' }
+  /** A note in its beak (or not), and a happy nod when it's done. */
+  | { readonly kind: 'note'; readonly on: boolean; readonly done?: boolean }
+  | { readonly kind: 'cozy'; readonly days: number }
+  /** A flower planted in the rain is about to bloom: a few sparkles round it. */
+  | { readonly kind: 'sparkles' }
+  /** Prefs from Settings that only the page uses. */
+  | { readonly kind: 'curiosity'; readonly on: boolean }
+
+/** What the panel shows of the 1.2.0 toys and keepsakes. */
+export interface PlayView {
+  readonly fishing: boolean
+  readonly laser: boolean
+  readonly jam: boolean
+  readonly note: string | null
+  readonly presets: readonly (OutfitPreset | null)[]
+  readonly autoDress: Settings['autoDress']
+  /** Fisherman's Log: catches by id, and the table with its odds (no hidden odds). */
+  readonly fishingLog: Readonly<Record<string, number>>
+  readonly catches: readonly {
+    readonly id: string
+    readonly percent: number
+    readonly points: number
+  }[]
+  readonly bestKeepyUppy: number
+  readonly cozyDays: number
+  /** App-aware props need Windows (and activity tracking). */
+  readonly appAwareAvailable: boolean
+}
+
+/** Starting a toy from the panel or the tray. */
+export type ToyResult = 'ok' | 'busy'
 
 /** What a renderer needs to know at startup. */
 export interface AppConfig {
@@ -156,6 +237,10 @@ export interface AppConfig {
    * while a mini is out). Updates arrive through `duck.onTricks`.
    */
   readonly tricks: readonly TrickId[]
+  /** 1.2.0: a note in its beak, the cursor-curiosity switch, the Cozy Streak days. */
+  readonly note?: boolean
+  readonly cursorCuriosity?: boolean
+  readonly cozyDays?: number
 }
 
 /** What the duck wears: catalog ids (see assets/economy/catalog.json). */
@@ -412,6 +497,8 @@ export interface TodayView {
     /** When this phase ends; none while waiting for the user to come back. */
     readonly endsAt?: number
     readonly label?: string
+    /** Paused from the duck's mini-bar (1.2.0). */
+    readonly paused?: boolean
   }
   /** Focus sessions finished today, oldest first (start = minute of the day). */
   readonly sessionsToday: readonly {
@@ -501,6 +588,15 @@ export interface SettingsView {
   /** Start with Windows. Only offered in an installed build (`available`). */
   readonly autostart: { readonly available: boolean; readonly enabled: boolean }
   readonly appVersion: string
+  /** 1.2.0 */
+  readonly careNudges: boolean
+  readonly careNudgeMinutes: 45 | 60
+  readonly appAwareProps: boolean
+  /** App-aware props work on Windows only for now. */
+  readonly appAwareAvailable: boolean
+  readonly musicHeadbob: boolean
+  readonly cursorCuriosity: boolean
+  readonly autoDress: Settings['autoDress']
 }
 
 /**
@@ -735,6 +831,16 @@ export interface BuddyApi {
      */
     earn(source: EarnSource): void
     openPanel(): void
+    /** 1.2.0: fishing, the laser, the jam, notes… as main tells it. Returns unsubscribe. */
+    onPlay(listener: (event: PlayEvent) => void): () => void
+    /** Right-clicked: main shows the duck's menu (Open panel, the toys, the note). */
+    menu(): void
+    /** Clicked while fishing: main judges whether a fish was biting. */
+    fishingReel(): void
+    /** A click during the Quack Jam (main keeps the jam alive and lets a mini answer). */
+    jamTap(): void
+    /** The cursor rests on the duck (true) or left it: the note or focus bubble opens. */
+    hover(over: boolean): void
   }
   panel: {
     close(): void
@@ -787,6 +893,29 @@ export interface BuddyApi {
     claimReward(kind: RewardKind, id?: string | number): Promise<ClaimResult>
     /** Hatches a ready egg into a mini (by the odds shown). */
     hatchEgg(id: number): Promise<HatchResult>
+    /** Main asks the open panel to show a screen (the duck menu's Hold a Note…). */
+    onGo(listener: (screen: string) => void): () => void
+    /** 1.2.0 toys, the note, outfit presets and the debug walkthrough. */
+    play: {
+      view(): Promise<PlayView>
+      /** The play view changed (a catch, the note, a toy on or off). Returns unsubscribe. */
+      onChange(listener: (view: PlayView) => void): () => void
+      fishing(on: boolean): Promise<ToyResult>
+      laser(on: boolean): Promise<ToyResult>
+      jam(on: boolean): Promise<ToyResult>
+      ask(): Promise<ToyResult>
+      /** Hands the duck a note (null or empty: takes it back). */
+      setNote(text: string | null): Promise<PlayView>
+      clearNote(): Promise<PlayView>
+      /** Saves what the duck wears now as preset `index` (0–4). */
+      savePreset(index: number, name?: string): Promise<PlayView>
+      /** Wears preset `index`; unowned items in it are left off. */
+      wearPreset(index: number): Promise<Loadout>
+      /** The walkthrough is done: counted, and the Markdown copied if given. */
+      debugComplete(markdown?: string): Promise<void>
+      /** The walkthrough card is open: the duck wears dev specs (never saved) and nods. */
+      previewSpecs(active: boolean): void
+    }
     /** Friends (opt-in, docs/FRIENDS.md). */
     friends: {
       view(): Promise<FriendsView>
@@ -845,6 +974,8 @@ export interface BuddyApi {
   bubble: {
     /** The button with this index was pressed. */
     answer(choice: number): void
+    /** The cursor is over the bubble (keeps a hover bubble open). */
+    hover(over: boolean): void
   }
   /** The talk box (rubber-duck mode). Only *that* something was typed is sent, never the text. */
   talk: {
